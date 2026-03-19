@@ -13,7 +13,7 @@ public class PhieuNhapDAO {
 
     public List<PhieuNhapHang> getAll() {
         List<PhieuNhapHang> list = new ArrayList<>();
-        String sql = "SELECT * FROM phieunhaphang ORDER BY ThoiGian DESC";
+        String sql = "SELECT MaPhieu, MaNCCap, NguoiNhap, TongTien, ThoiGian FROM phieunhaphang ORDER BY ThoiGian DESC";
 
         try (Connection conn = DBConnection.open();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -28,6 +28,7 @@ public class PhieuNhapDAO {
                         rs.getTimestamp("ThoiGian")
                 ));
             }
+
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -35,10 +36,29 @@ public class PhieuNhapDAO {
         return list;
     }
 
+    public boolean existsById(String maPhieu) {
+        String sql = "SELECT 1 FROM phieunhaphang WHERE MaPhieu = ?";
+
+        try (Connection conn = DBConnection.open();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, maPhieu);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+
     public boolean insertPhieuNhap(PhieuNhapHang pn, List<ChiTietPNhap> chiTietList) {
-        String sqlPhieu = "INSERT INTO phieunhaphang (MaPhieu, MaNCCap, NguoiNhap, TongTien, ThoiGian) VALUES (?, ?, ?, ?, ?)";
-        String sqlChiTiet = "INSERT INTO chitietpnhap (MaPhieu, MaSP, SoLuong, DonGia) VALUES (?, ?, ?, ?)";
-        String sqlUpdateKho = "UPDATE sanpham SET SoLuongTon = SoLuongTon + ? WHERE MaSP = ?";
+        String sqlInsertPhieu = "INSERT INTO phieunhaphang (MaPhieu, MaNCCap, NguoiNhap, TongTien, ThoiGian) VALUES (?, ?, ?, ?, ?)";
+        String sqlInsertChiTiet = "INSERT INTO chitietpnhap (MaPhieu, MaSP, SoLuong, DonGia) VALUES (?, ?, ?, ?)";
+        String sqlCongKho = "UPDATE sanpham SET SoLuongTon = SoLuongTon + ? WHERE MaSP = ?";
 
         Connection conn = null;
 
@@ -46,16 +66,28 @@ public class PhieuNhapDAO {
             conn = DBConnection.open();
             conn.setAutoCommit(false);
 
-            try (PreparedStatement psPhieu = conn.prepareStatement(sqlPhieu)) {
-                psPhieu.setString(1, pn.getMaPhieu());
-                psPhieu.setString(2, pn.getMaNCCap());
-                psPhieu.setString(3, pn.getNguoiNhap());
-                psPhieu.setInt(4, pn.getTongTien());
-                psPhieu.setTimestamp(5, pn.getThoiGian());
-                psPhieu.executeUpdate();
+            if (existsByIdInConnection(conn, pn.getMaPhieu())) {
+                conn.rollback();
+                return false;
             }
 
-            try (PreparedStatement psCT = conn.prepareStatement(sqlChiTiet)) {
+            for (ChiTietPNhap ct : chiTietList) {
+                if (ct.getSoLuong() <= 0 || ct.getDonGia() <= 0) {
+                    conn.rollback();
+                    return false;
+                }
+            }
+
+            try (PreparedStatement psPN = conn.prepareStatement(sqlInsertPhieu)) {
+                psPN.setString(1, pn.getMaPhieu());
+                psPN.setString(2, pn.getMaNCCap());
+                psPN.setString(3, pn.getNguoiNhap());
+                psPN.setInt(4, pn.getTongTien());
+                psPN.setTimestamp(5, pn.getThoiGian());
+                psPN.executeUpdate();
+            }
+
+            try (PreparedStatement psCT = conn.prepareStatement(sqlInsertChiTiet)) {
                 for (ChiTietPNhap ct : chiTietList) {
                     psCT.setString(1, ct.getMaPhieu());
                     psCT.setString(2, ct.getMaSP());
@@ -66,7 +98,7 @@ public class PhieuNhapDAO {
                 psCT.executeBatch();
             }
 
-            try (PreparedStatement psKho = conn.prepareStatement(sqlUpdateKho)) {
+            try (PreparedStatement psKho = conn.prepareStatement(sqlCongKho)) {
                 for (ChiTietPNhap ct : chiTietList) {
                     psKho.setInt(1, ct.getSoLuong());
                     psKho.setString(2, ct.getMaSP());
@@ -80,22 +112,121 @@ public class PhieuNhapDAO {
 
         } catch (Exception e) {
             e.printStackTrace();
-            try {
-                if (conn != null) conn.rollback();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
+            rollbackQuietly(conn);
         } finally {
-            try {
-                if (conn != null) {
-                    conn.setAutoCommit(true);
-                    conn.close();
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            closeConnectionQuietly(conn);
         }
 
         return false;
+    }
+
+    public List<ChiTietPNhap> getChiTietByMaPhieu(String maPhieu) {
+        List<ChiTietPNhap> list = new ArrayList<>();
+        String sql = "SELECT MaPhieu, MaSP, SoLuong, DonGia FROM chitietpnhap WHERE MaPhieu = ? ORDER BY MaSP";
+
+        try (Connection conn = DBConnection.open();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, maPhieu);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(new ChiTietPNhap(
+                            rs.getString("MaPhieu"),
+                            rs.getString("MaSP"),
+                            rs.getInt("SoLuong"),
+                            rs.getInt("DonGia")
+                    ));
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return list;
+    }
+
+    public boolean xoaPhieuNhap(String maPhieu) {
+        String sqlGetChiTiet = "SELECT MaSP, SoLuong FROM chitietpnhap WHERE MaPhieu = ?";
+        String sqlTruKhoLai = "UPDATE sanpham SET SoLuongTon = SoLuongTon - ? WHERE MaSP = ?";
+        String sqlDeleteChiTiet = "DELETE FROM chitietpnhap WHERE MaPhieu = ?";
+        String sqlDeletePhieu = "DELETE FROM phieunhaphang WHERE MaPhieu = ?";
+
+        Connection conn = null;
+
+        try {
+            conn = DBConnection.open();
+            conn.setAutoCommit(false);
+
+            try (PreparedStatement psGet = conn.prepareStatement(sqlGetChiTiet);
+                 PreparedStatement psKho = conn.prepareStatement(sqlTruKhoLai)) {
+
+                psGet.setString(1, maPhieu);
+
+                try (ResultSet rs = psGet.executeQuery()) {
+                    while (rs.next()) {
+                        psKho.setInt(1, rs.getInt("SoLuong"));
+                        psKho.setString(2, rs.getString("MaSP"));
+                        psKho.addBatch();
+                    }
+                }
+
+                psKho.executeBatch();
+            }
+
+            try (PreparedStatement ps = conn.prepareStatement(sqlDeleteChiTiet)) {
+                ps.setString(1, maPhieu);
+                ps.executeUpdate();
+            }
+
+            int rows;
+            try (PreparedStatement ps = conn.prepareStatement(sqlDeletePhieu)) {
+                ps.setString(1, maPhieu);
+                rows = ps.executeUpdate();
+            }
+
+            conn.commit();
+            return rows > 0;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            rollbackQuietly(conn);
+        } finally {
+            closeConnectionQuietly(conn);
+        }
+
+        return false;
+    }
+
+    private boolean existsByIdInConnection(Connection conn, String maPhieu) throws Exception {
+        String sql = "SELECT 1 FROM phieunhaphang WHERE MaPhieu = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, maPhieu);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        }
+    }
+
+    private void rollbackQuietly(Connection conn) {
+        try {
+            if (conn != null) {
+                conn.rollback();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void closeConnectionQuietly(Connection conn) {
+        try {
+            if (conn != null) {
+                conn.setAutoCommit(true);
+                conn.close();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

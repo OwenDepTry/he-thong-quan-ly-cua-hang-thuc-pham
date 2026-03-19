@@ -166,4 +166,25 @@ public class SanPhamDAO {
 
     return null;
     }
+
+    public String getTenSanPhamByMa(String maSP) {
+    String sql = "SELECT TenSP FROM sanpham WHERE MaSP = ?";
+
+    try (Connection conn = DBConnection.open();
+         PreparedStatement ps = conn.prepareStatement(sql)) {
+
+        ps.setString(1, maSP);
+
+        try (ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return rs.getString("TenSP");
+            }
+        }
+
+    } catch (Exception e) {
+        e.printStackTrace();
+    }
+
+    return "";
+    }
 }

@@ -1,6 +1,6 @@
 package view;
 
-import dao.NhaCungCapSimpleDAO;
+import dao.NhaCungCapDAO;
 import dao.NhanVienSimpleDAO;
 import dao.PhieuNhapDAO;
 import dao.SanPhamDAO;
@@ -15,12 +15,13 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridLayout;
-import java.sql.Timestamp;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -29,14 +30,16 @@ import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.table.DefaultTableModel;
+import service.PdfPhieuNhapService;
 
 public class PhieuNhapPanel extends JPanel {
 
     private JTextField txtMaPhieu;
-    private JComboBox<String> cboNCC;
+    private JComboBox<String> cboNhaCungCap;
     private JComboBox<String> cboNhanVien;
     private JTextField txtMaSP;
     private JTextField txtSoLuong;
+    private JTextField txtDonGia;
     private JLabel lblTongTien;
 
     private JTable tableChiTiet;
@@ -46,9 +49,10 @@ public class PhieuNhapPanel extends JPanel {
     private DefaultTableModel modelPhieuNhap;
 
     private final PhieuNhapDAO phieuNhapDAO = new PhieuNhapDAO();
-    private final NhaCungCapSimpleDAO nhaCungCapDAO = new NhaCungCapSimpleDAO();
+    private final NhaCungCapDAO nhaCungCapDAO = new NhaCungCapDAO();
     private final NhanVienSimpleDAO nhanVienDAO = new NhanVienSimpleDAO();
     private final SanPhamDAO sanPhamDAO = new SanPhamDAO();
+    private final PdfPhieuNhapService pdfPhieuNhapService = new PdfPhieuNhapService();
 
     private final List<ChiTietPNhap> dsChiTiet = new ArrayList<>();
 
@@ -75,16 +79,17 @@ public class PhieuNhapPanel extends JPanel {
         topForm.setBorder(BorderFactory.createTitledBorder("Thông tin phiếu nhập"));
 
         txtMaPhieu = new JTextField();
-        cboNCC = new JComboBox<>();
+        cboNhaCungCap = new JComboBox<>();
         cboNhanVien = new JComboBox<>();
         txtMaSP = new JTextField();
         txtSoLuong = new JTextField();
+        txtDonGia = new JTextField();
         lblTongTien = new JLabel("0");
 
         topForm.add(new JLabel("Mã phiếu:"));
         topForm.add(txtMaPhieu);
         topForm.add(new JLabel("Nhà cung cấp:"));
-        topForm.add(cboNCC);
+        topForm.add(cboNhaCungCap);
 
         topForm.add(new JLabel("Người nhập:"));
         topForm.add(cboNhanVien);
@@ -93,18 +98,26 @@ public class PhieuNhapPanel extends JPanel {
 
         topForm.add(new JLabel("Số lượng:"));
         topForm.add(txtSoLuong);
-        topForm.add(new JLabel("Tổng tiền:"));
-        topForm.add(lblTongTien);
+        topForm.add(new JLabel("Đơn giá nhập:"));
+        topForm.add(txtDonGia);
+
+        JPanel infoBottom = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        infoBottom.add(new JLabel("Tổng tiền:"));
+        infoBottom.add(lblTongTien);
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 12, 8));
         JButton btnThemSP = new JButton("Thêm sản phẩm");
         JButton btnXoaDong = new JButton("Xóa dòng");
+        JButton btnXoaPhieu = new JButton("Xóa phiếu nhập");
         JButton btnLuuPN = new JButton("Lưu phiếu nhập");
+        JButton btnXuatPDF = new JButton("Xuất PDF");
         JButton btnLamMoi = new JButton("Làm mới");
 
         buttonPanel.add(btnThemSP);
         buttonPanel.add(btnXoaDong);
+        buttonPanel.add(btnXoaPhieu);
         buttonPanel.add(btnLuuPN);
+        buttonPanel.add(btnXuatPDF);
         buttonPanel.add(btnLamMoi);
 
         modelChiTiet = new DefaultTableModel(
@@ -130,29 +143,35 @@ public class PhieuNhapPanel extends JPanel {
         };
 
         tablePhieuNhap = new JTable(modelPhieuNhap);
-        JScrollPane scrollPhieu = new JScrollPane(tablePhieuNhap);
-        scrollPhieu.setBorder(BorderFactory.createTitledBorder("Danh sách phiếu nhập"));
+        JScrollPane scrollPhieuNhap = new JScrollPane(tablePhieuNhap);
+        scrollPhieuNhap.setBorder(BorderFactory.createTitledBorder("Danh sách phiếu nhập"));
+
+        JPanel centerPanel = new JPanel(new BorderLayout(10, 10));
+        centerPanel.add(scrollChiTiet, BorderLayout.CENTER);
+        centerPanel.add(scrollPhieuNhap, BorderLayout.SOUTH);
 
         JPanel upper = new JPanel(new BorderLayout(10, 10));
         upper.add(topForm, BorderLayout.NORTH);
-        upper.add(buttonPanel, BorderLayout.CENTER);
-        upper.add(scrollChiTiet, BorderLayout.SOUTH);
+        upper.add(infoBottom, BorderLayout.CENTER);
+        upper.add(buttonPanel, BorderLayout.SOUTH);
 
         mainPanel.add(upper, BorderLayout.NORTH);
-        mainPanel.add(scrollPhieu, BorderLayout.CENTER);
+        mainPanel.add(centerPanel, BorderLayout.CENTER);
 
         add(mainPanel, BorderLayout.CENTER);
 
         btnThemSP.addActionListener(e -> themSanPhamVaoPhieuNhap());
         btnXoaDong.addActionListener(e -> xoaDongChiTiet());
+        btnXoaPhieu.addActionListener(e -> xoaPhieuNhap());
         btnLuuPN.addActionListener(e -> luuPhieuNhap());
+        btnXuatPDF.addActionListener(e -> xuatPDFPhieuNhap());
         btnLamMoi.addActionListener(e -> lamMoiForm());
     }
 
     private void loadComboData() {
-        cboNCC.removeAllItems();
+        cboNhaCungCap.removeAllItems();
         for (NhaCungCap ncc : nhaCungCapDAO.getAll()) {
-            cboNCC.addItem(ncc.getMaNCCap() + " - " + ncc.getTenNCCap());
+            cboNhaCungCap.addItem(ncc.getMaNCCap() + " - " + ncc.getTenNCCap());
         }
 
         cboNhanVien.removeAllItems();
@@ -177,16 +196,19 @@ public class PhieuNhapPanel extends JPanel {
     private void themSanPhamVaoPhieuNhap() {
         String maSP = txtMaSP.getText().trim();
         String soLuongText = txtSoLuong.getText().trim();
+        String donGiaText = txtDonGia.getText().trim();
 
-        if (maSP.isEmpty() || soLuongText.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui lòng nhập mã sản phẩm và số lượng.");
+        if (maSP.isEmpty() || soLuongText.isEmpty() || donGiaText.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Vui lòng nhập mã sản phẩm, số lượng và đơn giá.");
             return;
         }
 
         try {
             int soLuong = Integer.parseInt(soLuongText);
-            if (soLuong <= 0) {
-                JOptionPane.showMessageDialog(this, "Số lượng phải > 0.");
+            int donGia = Integer.parseInt(donGiaText);
+
+            if (soLuong <= 0 || donGia <= 0) {
+                JOptionPane.showMessageDialog(this, "Số lượng và đơn giá phải > 0.");
                 return;
             }
 
@@ -196,24 +218,43 @@ public class PhieuNhapPanel extends JPanel {
                 return;
             }
 
-            ChiTietPNhap ct = new ChiTietPNhap("", sp.getMaSP(), soLuong, sp.getGia());
+            for (int i = 0; i < dsChiTiet.size(); i++) {
+                ChiTietPNhap ct = dsChiTiet.get(i);
+                if (ct.getMaSP().equalsIgnoreCase(maSP)) {
+                    int soLuongMoi = ct.getSoLuong() + soLuong;
+                    ct.setSoLuong(soLuongMoi);
+                    ct.setDonGia(donGia);
+
+                    modelChiTiet.setValueAt(soLuongMoi, i, 2);
+                    modelChiTiet.setValueAt(donGia, i, 3);
+                    modelChiTiet.setValueAt(ct.getThanhTien(), i, 4);
+
+                    capNhatTongTien();
+                    txtMaSP.setText("");
+                    txtSoLuong.setText("");
+                    txtDonGia.setText("");
+                    return;
+                }
+            }
+
+            ChiTietPNhap ct = new ChiTietPNhap("", sp.getMaSP(), soLuong, donGia);
             dsChiTiet.add(ct);
 
             modelChiTiet.addRow(new Object[]{
                 sp.getMaSP(),
                 sp.getTenSP(),
                 soLuong,
-                sp.getGia(),
+                donGia,
                 ct.getThanhTien()
             });
 
             capNhatTongTien();
-
             txtMaSP.setText("");
             txtSoLuong.setText("");
+            txtDonGia.setText("");
 
         } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this, "Số lượng phải là số.");
+            JOptionPane.showMessageDialog(this, "Số lượng và đơn giá phải là số.");
         }
     }
 
@@ -238,18 +279,24 @@ public class PhieuNhapPanel extends JPanel {
     }
 
     private String layMaTuCombo(String value) {
-        return value.split(" - ")[0].trim();
+        String[] parts = value.split(" - ");
+        return parts[0].trim();
     }
 
     private void luuPhieuNhap() {
         String maPhieu = txtMaPhieu.getText().trim();
 
         if (maPhieu.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui lòng nhập mã phiếu.");
+            JOptionPane.showMessageDialog(this, "Vui lòng nhập mã phiếu nhập.");
             return;
         }
 
-        if (cboNCC.getSelectedItem() == null || cboNhanVien.getSelectedItem() == null) {
+        if (phieuNhapDAO.existsById(maPhieu)) {
+            JOptionPane.showMessageDialog(this, "Mã phiếu nhập đã tồn tại.");
+            return;
+        }
+
+        if (cboNhaCungCap.getSelectedItem() == null || cboNhanVien.getSelectedItem() == null) {
             JOptionPane.showMessageDialog(this, "Vui lòng chọn nhà cung cấp và người nhập.");
             return;
         }
@@ -259,16 +306,23 @@ public class PhieuNhapPanel extends JPanel {
             return;
         }
 
-        String maNCC = layMaTuCombo(cboNCC.getSelectedItem().toString());
+        String maNCC = layMaTuCombo(cboNhaCungCap.getSelectedItem().toString());
         String maNV = layMaTuCombo(cboNhanVien.getSelectedItem().toString());
-        int tongTien = Integer.parseInt(lblTongTien.getText());
+
+        int tongTien;
+        try {
+            tongTien = Integer.parseInt(lblTongTien.getText().trim());
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Tổng tiền không hợp lệ.");
+            return;
+        }
 
         PhieuNhapHang pn = new PhieuNhapHang(
                 maPhieu,
                 maNCC,
                 maNV,
                 tongTien,
-                new Timestamp(System.currentTimeMillis())
+                new java.sql.Timestamp(System.currentTimeMillis())
         );
 
         for (ChiTietPNhap ct : dsChiTiet) {
@@ -284,15 +338,88 @@ public class PhieuNhapPanel extends JPanel {
         }
     }
 
+    private void xoaPhieuNhap() {
+        int row = tablePhieuNhap.getSelectedRow();
+        if (row == -1) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn phiếu nhập cần xóa.");
+            return;
+        }
+
+        String maPhieu = tablePhieuNhap.getValueAt(row, 0).toString();
+
+        int confirm = JOptionPane.showConfirmDialog(
+                this,
+                "Bạn có chắc muốn xóa phiếu nhập " + maPhieu + " không?",
+                "Xác nhận xóa",
+                JOptionPane.YES_NO_OPTION
+        );
+
+        if (confirm != JOptionPane.YES_OPTION) {
+            return;
+        }
+
+        boolean ok = phieuNhapDAO.xoaPhieuNhap(maPhieu);
+        if (ok) {
+            JOptionPane.showMessageDialog(this, "Xóa phiếu nhập thành công.");
+            loadPhieuNhapData();
+            lamMoiForm();
+        } else {
+            JOptionPane.showMessageDialog(this, "Xóa phiếu nhập thất bại.");
+        }
+    }
+
+    private void xuatPDFPhieuNhap() {
+        int row = tablePhieuNhap.getSelectedRow();
+        if (row == -1) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn 1 phiếu nhập trong bảng để xuất PDF.");
+            return;
+        }
+
+        try {
+            String maPhieu = modelPhieuNhap.getValueAt(row, 0).toString();
+            String maNCC = modelPhieuNhap.getValueAt(row, 1).toString();
+            String nguoiNhap = modelPhieuNhap.getValueAt(row, 2).toString();
+            int tongTien = Integer.parseInt(modelPhieuNhap.getValueAt(row, 3).toString());
+            java.sql.Timestamp thoiGian = java.sql.Timestamp.valueOf(modelPhieuNhap.getValueAt(row, 4).toString());
+
+            PhieuNhapHang pn = new PhieuNhapHang(maPhieu, maNCC, nguoiNhap, tongTien, thoiGian);
+            List<ChiTietPNhap> ds = phieuNhapDAO.getChiTietByMaPhieu(maPhieu);
+
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setDialogTitle("Chọn nơi lưu file PDF");
+            fileChooser.setSelectedFile(new File("PhieuNhap_" + maPhieu + ".pdf"));
+
+            int userSelection = fileChooser.showSaveDialog(this);
+            if (userSelection == JFileChooser.APPROVE_OPTION) {
+                String filePath = fileChooser.getSelectedFile().getAbsolutePath();
+                if (!filePath.toLowerCase().endsWith(".pdf")) {
+                    filePath += ".pdf";
+                }
+
+                pdfPhieuNhapService.exportPhieuNhapToPDF(pn, ds, filePath);
+                JOptionPane.showMessageDialog(this, "Xuất PDF thành công:\n" + filePath);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Xuất PDF thất bại.");
+        }
+    }
+
     private void lamMoiForm() {
         txtMaPhieu.setText("");
         txtMaSP.setText("");
         txtSoLuong.setText("");
+        txtDonGia.setText("");
         dsChiTiet.clear();
         modelChiTiet.setRowCount(0);
         lblTongTien.setText("0");
 
-        if (cboNCC.getItemCount() > 0) cboNCC.setSelectedIndex(0);
-        if (cboNhanVien.getItemCount() > 0) cboNhanVien.setSelectedIndex(0);
+        if (cboNhaCungCap.getItemCount() > 0) {
+            cboNhaCungCap.setSelectedIndex(0);
+        }
+
+        if (cboNhanVien.getItemCount() > 0) {
+            cboNhanVien.setSelectedIndex(0);
+        }
     }
 }

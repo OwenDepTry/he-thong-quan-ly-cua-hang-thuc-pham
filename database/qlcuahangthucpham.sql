@@ -102,6 +102,70 @@ CREATE TABLE IF NOT EXISTS sanpham (
 );
 
 -- =========================
+-- BẢNG KHUYẾN MÃI
+-- =========================
+CREATE TABLE IF NOT EXISTS khuyenmai (
+    MaKM VARCHAR(20) PRIMARY KEY,
+    TenKM VARCHAR(255) NOT NULL,
+    PhanTramGiam INT NOT NULL,
+    NgayBatDau DATE NOT NULL,
+    NgayKetThuc DATE NOT NULL,
+    TrangThai VARCHAR(20) NOT NULL
+);
+
+-- =========================
+-- BẢNG HÓA ĐƠN
+-- =========================
+CREATE TABLE IF NOT EXISTS hoadon (
+    MaHD VARCHAR(20) PRIMARY KEY,
+    MaKH VARCHAR(20) NOT NULL,
+    MaNV VARCHAR(20) NOT NULL,
+    TongTien INT NOT NULL DEFAULT 0,
+    ThoiGian TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_hd_kh FOREIGN KEY (MaKH) REFERENCES khachhang(MaKH),
+    CONSTRAINT fk_hd_nv FOREIGN KEY (MaNV) REFERENCES nhanvien(MaNV)
+);
+
+-- =========================
+-- BẢNG CHI TIẾT HÓA ĐƠN
+-- =========================
+CREATE TABLE IF NOT EXISTS chitiethoadon (
+    MaHD VARCHAR(20) NOT NULL,
+    MaSP VARCHAR(20) NOT NULL,
+    SoLuong INT NOT NULL,
+    DonGia INT NOT NULL,
+    PRIMARY KEY (MaHD, MaSP),
+    CONSTRAINT fk_cthd_hd FOREIGN KEY (MaHD) REFERENCES hoadon(MaHD) ON DELETE CASCADE,
+    CONSTRAINT fk_cthd_sp FOREIGN KEY (MaSP) REFERENCES sanpham(MaSP)
+);
+
+-- =========================
+-- BẢNG PHIẾU NHẬP HÀNG
+-- =========================
+CREATE TABLE IF NOT EXISTS phieunhaphang (
+    MaPhieu VARCHAR(20) PRIMARY KEY,
+    MaNCCap VARCHAR(20) NOT NULL,
+    NguoiNhap VARCHAR(20) NOT NULL,
+    TongTien INT NOT NULL DEFAULT 0,
+    ThoiGian TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_pn_ncc FOREIGN KEY (MaNCCap) REFERENCES nhacungcap(MaNCCap),
+    CONSTRAINT fk_pn_nv FOREIGN KEY (NguoiNhap) REFERENCES nhanvien(MaNV)
+);
+
+-- =========================
+-- BẢNG CHI TIẾT PHIẾU NHẬP
+-- =========================
+CREATE TABLE IF NOT EXISTS chitietpnhap (
+    MaPhieu VARCHAR(20) NOT NULL,
+    MaSP VARCHAR(20) NOT NULL,
+    SoLuong INT NOT NULL,
+    DonGia INT NOT NULL,
+    PRIMARY KEY (MaPhieu, MaSP),
+    CONSTRAINT fk_ctpn_pn FOREIGN KEY (MaPhieu) REFERENCES phieunhaphang(MaPhieu) ON DELETE CASCADE,
+    CONSTRAINT fk_ctpn_sp FOREIGN KEY (MaSP) REFERENCES sanpham(MaSP)
+);
+
+-- =========================
 -- DỮ LIỆU MẪU
 -- =========================
 INSERT INTO tinhthanh (TenTThanh) VALUES
@@ -139,3 +203,8 @@ INSERT INTO sanpham (
 ('SP002', 'Thịt bò', 2, 1, 3, 'Thịt bò loại 1', 250000, 50),
 ('SP003', 'Sữa tươi', 3, 3, 180, 'Sữa tươi không đường', 35000, 80)
 ON DUPLICATE KEY UPDATE TenSP = VALUES(TenSP);
+
+INSERT INTO khuyenmai (MaKM, TenKM, PhanTramGiam, NgayBatDau, NgayKetThuc, TrangThai) VALUES
+('KM001', 'Khuyến mãi tháng 3', 10, '2026-03-01', '2026-03-31', 'active'),
+('KM002', 'Giảm giá cuối tuần', 5, '2026-03-20', '2026-03-22', 'active')
+ON DUPLICATE KEY UPDATE TenKM = VALUES(TenKM);
