@@ -6,16 +6,16 @@ import entity.KhachHang;
 import entity.TinhThanh;
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
+import java.awt.GridLayout;
 import java.sql.Date;
+import java.text.NumberFormat;
 import java.util.List;
+import java.util.Locale;
 import javax.swing.BorderFactory;
-import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
@@ -25,10 +25,10 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
-import javax.swing.SwingConstants;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
 
 public class KhachHangPanel extends JPanel {
 
@@ -50,41 +50,61 @@ public class KhachHangPanel extends JPanel {
     private JComboBox<TinhThanh> cboTinhThanh;
     private JComboBox<String> cboTrangThai;
 
-    private JButton btnThem;
-    private JButton btnSua;
-    private JButton btnXoa;
-    private JButton btnLamMoi;
+    private JLabel lblTongKH;
+    private JLabel lblTongDiem;
 
     private final KhachHangDAO khachHangDAO = new KhachHangDAO();
     private final TinhThanhDAO tinhThanhDAO = new TinhThanhDAO();
 
     public KhachHangPanel() {
-        setLayout(new BorderLayout(10, 10));
-        setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        setLayout(new BorderLayout(12, 12));
+        setBackground(new Color(245, 248, 245));
+        setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+
         initUI();
         loadComboData();
         loadData();
     }
 
     private void initUI() {
-        JLabel lblTitle = new JLabel("QUẢN LÝ KHÁCH HÀNG", SwingConstants.CENTER);
-        lblTitle.setFont(new Font("Arial", Font.BOLD, 22));
-        lblTitle.setOpaque(true);
-        lblTitle.setBackground(new Color(46, 139, 87));
+        add(createHeader(), BorderLayout.NORTH);
+        add(createMainContent(), BorderLayout.CENTER);
+    }
+
+    private JPanel createHeader() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(new Color(46, 125, 50));
+        panel.setBorder(BorderFactory.createEmptyBorder(14, 18, 14, 18));
+
+        JLabel lblTitle = new JLabel("QUẢN LÝ KHÁCH HÀNG");
+        lblTitle.setFont(new Font("Arial", Font.BOLD, 24));
         lblTitle.setForeground(Color.WHITE);
-        lblTitle.setPreferredSize(new Dimension(100, 55));
-        add(lblTitle, BorderLayout.NORTH);
 
-        JPanel centerPanel = new JPanel(new BorderLayout(10, 10));
+        JLabel lblSub = new JLabel("Quản lý hồ sơ khách hàng, điểm tích lũy và thông tin tham gia");
+        lblSub.setFont(new Font("Arial", Font.PLAIN, 14));
+        lblSub.setForeground(new Color(235, 255, 235));
 
-        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        JLabel lblSearch = new JLabel("Tìm kiếm:");
-        txtSearch = new JTextField(20);
-        searchPanel.add(lblSearch);
-        searchPanel.add(txtSearch);
+        JPanel text = new JPanel(new GridLayout(2, 1));
+        text.setOpaque(false);
+        text.add(lblTitle);
+        text.add(lblSub);
+
+        panel.add(text, BorderLayout.WEST);
+        return panel;
+    }
+
+    private JPanel createMainContent() {
+        JPanel main = new JPanel(new BorderLayout(12, 12));
+        main.setOpaque(false);
+
+        JPanel top = new JPanel(new BorderLayout(12, 12));
+        top.setOpaque(false);
+        top.add(createSearchPanel(), BorderLayout.NORTH);
+        top.add(createSummaryPanel(), BorderLayout.SOUTH);
 
         model = new DefaultTableModel(
-                new String[]{"Mã KH", "Họ tên", "Phái", "Ngày sinh", "SDT", "Tỉnh thành", "Địa chỉ", "Ngày tham gia", "Điểm", "Trạng thái"}, 0
+                new String[]{"Mã KH", "Họ tên", "Phái", "Ngày sinh", "SĐT", "Tỉnh thành", "Địa chỉ", "Ngày tham gia", "Điểm", "Trạng thái"},
+                0
         ) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -93,73 +113,47 @@ public class KhachHangPanel extends JPanel {
         };
 
         table = new JTable(model);
-        table.setRowHeight(24);
+        configTable(table);
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         table.getSelectionModel().addListSelectionListener(e -> fillFormFromTable());
 
-        JScrollPane scrollPane = new JScrollPane(table);
+        JScrollPane scrollTable = new JScrollPane(table);
+        scrollTable.setBorder(BorderFactory.createTitledBorder("Danh sách khách hàng"));
 
-        centerPanel.add(searchPanel, BorderLayout.NORTH);
-        centerPanel.add(scrollPane, BorderLayout.CENTER);
-        add(centerPanel, BorderLayout.CENTER);
+        JPanel right = new JPanel(new BorderLayout(10, 10));
+        right.setOpaque(false);
+        right.setPreferredSize(new Dimension(410, 100));
+        right.add(createFormPanel(), BorderLayout.CENTER);
+        right.add(createButtonPanel(), BorderLayout.SOUTH);
 
-        JPanel bottomPanel = new JPanel();
-        bottomPanel.setLayout(new BoxLayout(bottomPanel, BoxLayout.Y_AXIS));
+        main.add(top, BorderLayout.NORTH);
+        main.add(scrollTable, BorderLayout.CENTER);
+        main.add(right, BorderLayout.EAST);
 
-        JPanel formPanel = new JPanel(new GridBagLayout());
-        formPanel.setBorder(BorderFactory.createTitledBorder("Thông tin khách hàng"));
+        return main;
+    }
 
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(6, 8, 6, 8);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
+    private JPanel createSearchPanel() {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(200, 220, 200), 1),
+                BorderFactory.createEmptyBorder(8, 8, 8, 8)
+        ));
 
-        txtMaKH = new JTextField();
-        txtHo = new JTextField();
-        txtTenLot = new JTextField();
-        txtTen = new JTextField();
-        txtNgaySinh = new JTextField();
-        txtSDT = new JTextField();
-        txtDiaChi = new JTextField();
-        txtNgayThamGia = new JTextField();
-        txtDiem = new JTextField();
+        JLabel lbl = new JLabel("Tìm kiếm:");
+        lbl.setFont(new Font("Arial", Font.BOLD, 14));
 
-        cboPhai = new JComboBox<>(new String[]{"Nam", "Nữ"});
-        cboTinhThanh = new JComboBox<>();
-        cboTrangThai = new JComboBox<>(new String[]{"active", "inactive"});
+        txtSearch = new JTextField();
+        txtSearch.setPreferredSize(new Dimension(260, 34));
+        txtSearch.setFont(new Font("Arial", Font.PLAIN, 14));
+        txtSearch.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(190, 210, 190), 1),
+                BorderFactory.createEmptyBorder(4, 8, 4, 8)
+        ));
 
-        addFormRow(formPanel, gbc, 0, "Mã khách hàng:", txtMaKH);
-        addFormRow(formPanel, gbc, 1, "Họ:", txtHo);
-        addFormRow(formPanel, gbc, 2, "Tên lót:", txtTenLot);
-        addFormRow(formPanel, gbc, 3, "Tên:", txtTen);
-        addFormRow(formPanel, gbc, 4, "Phái:", cboPhai);
-        addFormRow(formPanel, gbc, 5, "Ngày sinh (yyyy-mm-dd):", txtNgaySinh);
-        addFormRow(formPanel, gbc, 6, "SĐT:", txtSDT);
-        addFormRow(formPanel, gbc, 7, "Tỉnh thành:", cboTinhThanh);
-        addFormRow(formPanel, gbc, 8, "Địa chỉ:", txtDiaChi);
-        addFormRow(formPanel, gbc, 9, "Ngày tham gia (yyyy-mm-dd):", txtNgayThamGia);
-        addFormRow(formPanel, gbc, 10, "Điểm:", txtDiem);
-        addFormRow(formPanel, gbc, 11, "Trạng thái:", cboTrangThai);
-
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 10));
-        btnThem = new JButton("Thêm");
-        btnSua = new JButton("Sửa");
-        btnXoa = new JButton("Xóa");
-        btnLamMoi = new JButton("Làm mới");
-
-        buttonPanel.add(btnThem);
-        buttonPanel.add(btnSua);
-        buttonPanel.add(btnXoa);
-        buttonPanel.add(btnLamMoi);
-
-        bottomPanel.add(formPanel);
-        bottomPanel.add(buttonPanel);
-
-        add(bottomPanel, BorderLayout.SOUTH);
-
-        btnThem.addActionListener(e -> themKhachHang());
-        btnSua.addActionListener(e -> suaKhachHang());
-        btnXoa.addActionListener(e -> xoaKhachHang());
-        btnLamMoi.addActionListener(e -> lamMoiForm());
+        panel.add(lbl);
+        panel.add(txtSearch);
 
         txtSearch.getDocument().addDocumentListener(new DocumentListener() {
             @Override
@@ -177,17 +171,113 @@ public class KhachHangPanel extends JPanel {
                 searchData();
             }
         });
+
+        return panel;
     }
 
-    private void addFormRow(JPanel panel, GridBagConstraints gbc, int row, String label, java.awt.Component comp) {
-        gbc.gridx = 0;
-        gbc.gridy = row;
-        gbc.weightx = 0.2;
-        panel.add(new JLabel(label), gbc);
+    private JPanel createSummaryPanel() {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 0));
+        panel.setOpaque(false);
 
-        gbc.gridx = 1;
-        gbc.weightx = 0.8;
-        panel.add(comp, gbc);
+        lblTongKH = createSummaryLabel("Tổng khách hàng: 0");
+        lblTongDiem = createSummaryLabel("Tổng điểm tích lũy: 0");
+
+        panel.add(lblTongKH);
+        panel.add(lblTongDiem);
+
+        return panel;
+    }
+
+    private JLabel createSummaryLabel(String text) {
+        JLabel lbl = new JLabel(text);
+        lbl.setFont(new Font("Arial", Font.BOLD, 15));
+        lbl.setForeground(new Color(27, 94, 32));
+        return lbl;
+    }
+
+    private JPanel createFormPanel() {
+        JPanel panel = new JPanel(new GridLayout(11, 2, 10, 10));
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(200, 220, 200), 1),
+                BorderFactory.createEmptyBorder(16, 16, 16, 16)
+        ));
+
+        txtMaKH = new JTextField();
+        txtHo = new JTextField();
+        txtTenLot = new JTextField();
+        txtTen = new JTextField();
+        txtNgaySinh = new JTextField();
+        txtSDT = new JTextField();
+        txtDiaChi = new JTextField();
+        txtNgayThamGia = new JTextField();
+        txtDiem = new JTextField();
+
+        cboPhai = new JComboBox<>(new String[]{"Nam", "Nữ"});
+        cboTinhThanh = new JComboBox<>();
+        cboTrangThai = new JComboBox<>(new String[]{"active", "inactive"});
+
+        styleField(txtMaKH);
+        styleField(txtHo);
+        styleField(txtTenLot);
+        styleField(txtTen);
+        styleField(txtNgaySinh);
+        styleField(txtSDT);
+        styleField(txtDiaChi);
+        styleField(txtNgayThamGia);
+        styleField(txtDiem);
+        styleCombo(cboPhai);
+        styleCombo(cboTinhThanh);
+        styleCombo(cboTrangThai);
+
+        panel.add(createFormLabel("Mã khách hàng:"));
+        panel.add(txtMaKH);
+        panel.add(createFormLabel("Họ:"));
+        panel.add(txtHo);
+        panel.add(createFormLabel("Tên lót:"));
+        panel.add(txtTenLot);
+        panel.add(createFormLabel("Tên:"));
+        panel.add(txtTen);
+        panel.add(createFormLabel("Phái:"));
+        panel.add(cboPhai);
+        panel.add(createFormLabel("Ngày sinh:"));
+        panel.add(txtNgaySinh);
+        panel.add(createFormLabel("SĐT:"));
+        panel.add(txtSDT);
+        panel.add(createFormLabel("Tỉnh thành:"));
+        panel.add(cboTinhThanh);
+        panel.add(createFormLabel("Địa chỉ:"));
+        panel.add(txtDiaChi);
+        panel.add(createFormLabel("Ngày tham gia:"));
+        panel.add(txtNgayThamGia);
+        panel.add(createFormLabel("Điểm:"));
+        panel.add(txtDiem);
+        panel.add(createFormLabel("Trạng thái:"));
+        panel.add(cboTrangThai);
+
+        return panel;
+    }
+
+    private JPanel createButtonPanel() {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
+        panel.setOpaque(false);
+
+        JButton btnThem = createButton("Thêm", new Color(46, 125, 50));
+        JButton btnSua = createButton("Sửa", new Color(21, 101, 192));
+        JButton btnXoa = createButton("Xóa", new Color(198, 40, 40));
+        JButton btnLamMoi = createButton("Làm mới", new Color(97, 97, 97));
+
+        btnThem.addActionListener(e -> themKhachHang());
+        btnSua.addActionListener(e -> suaKhachHang());
+        btnXoa.addActionListener(e -> xoaKhachHang());
+        btnLamMoi.addActionListener(e -> lamMoiForm());
+
+        panel.add(btnThem);
+        panel.add(btnSua);
+        panel.add(btnXoa);
+        panel.add(btnLamMoi);
+
+        return panel;
     }
 
     private void loadComboData() {
@@ -213,6 +303,8 @@ public class KhachHangPanel extends JPanel {
     private void fillTable(List<KhachHang> list) {
         model.setRowCount(0);
 
+        int tongDiem = 0;
+
         for (KhachHang kh : list) {
             model.addRow(new Object[]{
                 kh.getMaKH(),
@@ -226,7 +318,12 @@ public class KhachHangPanel extends JPanel {
                 kh.getDiem(),
                 kh.getTrangThai()
             });
+
+            tongDiem += kh.getDiem();
         }
+
+        lblTongKH.setText("Tổng khách hàng: " + list.size());
+        lblTongDiem.setText("Tổng điểm tích lũy: " + NumberFormat.getInstance(new Locale("vi", "VN")).format(tongDiem));
     }
 
     private String getTinhThanhName(int maTinhThanh) {
@@ -393,5 +490,47 @@ public class KhachHangPanel extends JPanel {
         cboPhai.setSelectedIndex(0);
         cboTrangThai.setSelectedIndex(0);
         if (cboTinhThanh.getItemCount() > 0) cboTinhThanh.setSelectedIndex(0);
+    }
+
+    private JLabel createFormLabel(String text) {
+        JLabel lbl = new JLabel(text);
+        lbl.setFont(new Font("Arial", Font.BOLD, 14));
+        return lbl;
+    }
+
+    private void styleField(JTextField field) {
+        field.setFont(new Font("Arial", Font.PLAIN, 14));
+        field.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(190, 210, 190), 1),
+                BorderFactory.createEmptyBorder(6, 8, 6, 8)
+        ));
+    }
+
+    private void styleCombo(JComboBox<?> combo) {
+        combo.setFont(new Font("Arial", Font.PLAIN, 14));
+    }
+
+    private JButton createButton(String text, Color bg) {
+        JButton btn = new JButton(text);
+        btn.setFont(new Font("Arial", Font.BOLD, 14));
+        btn.setForeground(Color.WHITE);
+        btn.setBackground(bg);
+        btn.setFocusPainted(false);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setPreferredSize(new Dimension(90, 36));
+        return btn;
+    }
+
+    private void configTable(JTable table) {
+        table.setRowHeight(30);
+        table.setFont(new Font("Arial", Font.PLAIN, 14));
+        table.setGridColor(new Color(225, 235, 225));
+        table.setSelectionBackground(new Color(200, 230, 201));
+        table.setSelectionForeground(Color.BLACK);
+
+        JTableHeader header = table.getTableHeader();
+        header.setPreferredSize(new Dimension(header.getPreferredSize().width, 34));
+        header.setFont(new Font("Arial", Font.BOLD, 14));
+        header.setBackground(new Color(232, 245, 233));
     }
 }

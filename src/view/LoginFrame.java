@@ -7,9 +7,13 @@ import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.GradientPaint;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.RenderingHints;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -20,6 +24,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JTextField;
+import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 
 public class LoginFrame extends JFrame {
@@ -30,7 +35,7 @@ public class LoginFrame extends JFrame {
 
     public LoginFrame() {
         setTitle("Đăng nhập - Hệ thống quản lý cửa hàng thực phẩm");
-        setSize(920, 520);
+        setSize(1000, 560);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setResizable(false);
@@ -40,7 +45,7 @@ public class LoginFrame extends JFrame {
 
     private void initUI() {
         JPanel root = new JPanel(new BorderLayout());
-        root.setBackground(new Color(240, 244, 247));
+        root.setBackground(new Color(236, 245, 236));
 
         JPanel leftPanel = createLeftBanner();
         JPanel rightPanel = createLoginForm();
@@ -55,160 +60,200 @@ public class LoginFrame extends JFrame {
     }
 
     private JPanel createLeftBanner() {
-        JPanel panel = new JPanel();
-        panel.setPreferredSize(new Dimension(430, 520));
-        panel.setBackground(new Color(39, 174, 96));
+        JPanel panel = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                GradientPaint gp = new GradientPaint(
+                        0, 0, new Color(46, 125, 50),
+                        getWidth(), getHeight(), new Color(102, 187, 106)
+                );
+                g2.setPaint(gp);
+                g2.fillRect(0, 0, getWidth(), getHeight());
+
+                g2.setColor(new Color(255, 255, 255, 30));
+                g2.fillOval(40, 50, 180, 180);
+                g2.fillOval(220, 250, 220, 220);
+                g2.fillOval(80, 380, 130, 130);
+
+                g2.dispose();
+            }
+        };
+
+        panel.setPreferredSize(new Dimension(470, 560));
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        panel.setBorder(BorderFactory.createEmptyBorder(40, 35, 40, 35));
+        panel.setBorder(BorderFactory.createEmptyBorder(40, 36, 40, 36));
 
-        JLabel lblStore = new JLabel("GREEN MART");
-        lblStore.setFont(new Font("Arial", Font.BOLD, 32));
-        lblStore.setForeground(Color.WHITE);
-        lblStore.setAlignmentX(LEFT_ALIGNMENT);
+        JLabel lblBrand = new JLabel("GREEN MART");
+        lblBrand.setFont(new Font("Arial", Font.BOLD, 34));
+        lblBrand.setForeground(Color.WHITE);
+        lblBrand.setAlignmentX(LEFT_ALIGNMENT);
 
-        JLabel lblTitle1 = new JLabel("HỆ THỐNG");
-        lblTitle1.setFont(new Font("Arial", Font.BOLD, 28));
-        lblTitle1.setForeground(Color.WHITE);
-        lblTitle1.setAlignmentX(LEFT_ALIGNMENT);
+        JLabel lblLine1 = new JLabel("HỆ THỐNG QUẢN LÝ");
+        lblLine1.setFont(new Font("Arial", Font.BOLD, 30));
+        lblLine1.setForeground(Color.WHITE);
+        lblLine1.setAlignmentX(LEFT_ALIGNMENT);
 
-        JLabel lblTitle2 = new JLabel("QUẢN LÝ CỬA HÀNG");
-        lblTitle2.setFont(new Font("Arial", Font.BOLD, 28));
-        lblTitle2.setForeground(Color.WHITE);
-        lblTitle2.setAlignmentX(LEFT_ALIGNMENT);
-
-        JLabel lblTitle3 = new JLabel("THỰC PHẨM");
-        lblTitle3.setFont(new Font("Arial", Font.BOLD, 28));
-        lblTitle3.setForeground(Color.WHITE);
-        lblTitle3.setAlignmentX(LEFT_ALIGNMENT);
+        JLabel lblLine2 = new JLabel("CỬA HÀNG THỰC PHẨM");
+        lblLine2.setFont(new Font("Arial", Font.BOLD, 30));
+        lblLine2.setForeground(Color.WHITE);
+        lblLine2.setAlignmentX(LEFT_ALIGNMENT);
 
         JLabel lblDesc = new JLabel(
-                "<html><div style='width:320px;'>"
+                "<html><div style='width:340px;'>"
                 + "Quản lý sản phẩm, hóa đơn, phiếu nhập, khách hàng, nhân viên "
-                + "và thống kê doanh thu trên cùng một hệ thống."
+                + "và thống kê doanh thu trong một hệ thống thống nhất."
                 + "</div></html>"
         );
         lblDesc.setFont(new Font("Arial", Font.PLAIN, 17));
-        lblDesc.setForeground(new Color(235, 255, 240));
+        lblDesc.setForeground(new Color(240, 255, 240));
         lblDesc.setAlignmentX(LEFT_ALIGNMENT);
 
-        JLabel lblIcon = new JLabel("🥬 🥕 🥛 🍎");
-        lblIcon.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 42));
-        lblIcon.setAlignmentX(LEFT_ALIGNMENT);
-        lblIcon.setForeground(Color.WHITE);
+        JLabel lblIcons = new JLabel("🥬  🥕  🍎  🥛  🧾");
+        lblIcons.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 40));
+        lblIcons.setForeground(Color.WHITE);
+        lblIcons.setAlignmentX(LEFT_ALIGNMENT);
 
-        JPanel infoBox = new JPanel();
-        infoBox.setOpaque(false);
-        infoBox.setLayout(new BoxLayout(infoBox, BoxLayout.Y_AXIS));
-        infoBox.setAlignmentX(LEFT_ALIGNMENT);
-        infoBox.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(255, 255, 255, 80), 1),
-                BorderFactory.createEmptyBorder(18, 18, 18, 18)
+        JPanel featureBox = new JPanel();
+        featureBox.setOpaque(false);
+        featureBox.setLayout(new BoxLayout(featureBox, BoxLayout.Y_AXIS));
+        featureBox.setAlignmentX(LEFT_ALIGNMENT);
+        featureBox.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(255, 255, 255, 90), 1),
+                BorderFactory.createEmptyBorder(16, 18, 16, 18)
         ));
 
-        JLabel lblInfo1 = new JLabel("• Giao diện dễ dùng");
-        JLabel lblInfo2 = new JLabel("• Quản lý nhanh, rõ ràng");
-        JLabel lblInfo3 = new JLabel("• Phù hợp cho cửa hàng thực phẩm");
+        JLabel f1 = new JLabel("• Quản lý bán hàng nhanh chóng");
+        JLabel f2 = new JLabel("• Kiểm soát nhập hàng và tồn kho");
+        JLabel f3 = new JLabel("• Giao diện trực quan, dễ sử dụng");
 
-        Font infoFont = new Font("Arial", Font.PLAIN, 16);
-        lblInfo1.setFont(infoFont);
-        lblInfo2.setFont(infoFont);
-        lblInfo3.setFont(infoFont);
+        Font f = new Font("Arial", Font.PLAIN, 16);
+        f1.setFont(f);
+        f2.setFont(f);
+        f3.setFont(f);
 
-        lblInfo1.setForeground(Color.WHITE);
-        lblInfo2.setForeground(Color.WHITE);
-        lblInfo3.setForeground(Color.WHITE);
+        f1.setForeground(Color.WHITE);
+        f2.setForeground(Color.WHITE);
+        f3.setForeground(Color.WHITE);
 
-        infoBox.add(lblInfo1);
-        infoBox.add(Box.createVerticalStrut(8));
-        infoBox.add(lblInfo2);
-        infoBox.add(Box.createVerticalStrut(8));
-        infoBox.add(lblInfo3);
+        featureBox.add(f1);
+        featureBox.add(Box.createVerticalStrut(8));
+        featureBox.add(f2);
+        featureBox.add(Box.createVerticalStrut(8));
+        featureBox.add(f3);
 
-        panel.add(lblStore);
+        JLabel footer = new JLabel("Phần mềm quản lý cửa hàng thực phẩm");
+        footer.setFont(new Font("Arial", Font.ITALIC, 14));
+        footer.setForeground(new Color(235, 255, 235));
+        footer.setAlignmentX(LEFT_ALIGNMENT);
+
+        panel.add(lblBrand);
         panel.add(Box.createVerticalStrut(35));
-        panel.add(lblTitle1);
-        panel.add(Box.createVerticalStrut(6));
-        panel.add(lblTitle2);
-        panel.add(Box.createVerticalStrut(6));
-        panel.add(lblTitle3);
+        panel.add(lblLine1);
+        panel.add(Box.createVerticalStrut(8));
+        panel.add(lblLine2);
         panel.add(Box.createVerticalStrut(24));
         panel.add(lblDesc);
-        panel.add(Box.createVerticalStrut(25));
-        panel.add(lblIcon);
+        panel.add(Box.createVerticalStrut(28));
+        panel.add(lblIcons);
         panel.add(Box.createVerticalGlue());
-        panel.add(infoBox);
+        panel.add(featureBox);
+        panel.add(Box.createVerticalStrut(18));
+        panel.add(footer);
 
         return panel;
     }
 
     private JPanel createLoginForm() {
         JPanel wrapper = new JPanel(new GridBagLayout());
-        wrapper.setBackground(new Color(240, 244, 247));
+        wrapper.setBackground(new Color(236, 245, 236));
 
         JPanel card = new JPanel(new GridBagLayout());
         card.setBackground(Color.WHITE);
-        card.setPreferredSize(new Dimension(360, 360));
+        card.setPreferredSize(new Dimension(380, 400));
         card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(220, 225, 230), 1),
-                BorderFactory.createEmptyBorder(28, 28, 28, 28)
+                BorderFactory.createLineBorder(new Color(198, 220, 198), 1),
+                BorderFactory.createEmptyBorder(28, 30, 28, 30)
         ));
 
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(10, 8, 10, 8);
+        gbc.insets = new Insets(9, 8, 9, 8);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.gridwidth = 2;
 
-        JLabel lblWelcome = new JLabel("ĐĂNG NHẬP HỆ THỐNG", JLabel.CENTER);
-        lblWelcome.setFont(new Font("Arial", Font.BOLD, 24));
-        lblWelcome.setForeground(new Color(34, 139, 34));
-        card.add(lblWelcome, gbc);
+        JLabel lblTitle = new JLabel("ĐĂNG NHẬP HỆ THỐNG", SwingConstants.CENTER);
+        lblTitle.setFont(new Font("Arial", Font.BOLD, 24));
+        lblTitle.setForeground(new Color(34, 139, 34));
+        card.add(lblTitle, gbc);
 
         gbc.gridy++;
-        JLabel lblSub = new JLabel("Vui lòng nhập tài khoản và mật khẩu", JLabel.CENTER);
+        JLabel lblSub = new JLabel("Nhập thông tin để truy cập chương trình", SwingConstants.CENTER);
         lblSub.setFont(new Font("Arial", Font.PLAIN, 14));
         lblSub.setForeground(new Color(110, 110, 110));
         card.add(lblSub, gbc);
 
+        gbc.gridy++;
+        JLabel line = new JLabel(" ");
+        line.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(225, 235, 225)));
+        card.add(line, gbc);
+
         gbc.gridwidth = 1;
         gbc.gridy++;
-        JLabel lblUser = new JLabel("Tên tài khoản");
+        JLabel lblUser = new JLabel("Mã nhân viên / Tài khoản");
         lblUser.setFont(new Font("Arial", Font.BOLD, 14));
+        lblUser.setForeground(new Color(55, 71, 79));
         card.add(lblUser, gbc);
 
         gbc.gridy++;
         txtUsername = new JTextField(20);
         txtUsername.setFont(new Font("Arial", Font.PLAIN, 15));
-        txtUsername.setPreferredSize(new Dimension(240, 38));
+        txtUsername.setPreferredSize(new Dimension(260, 40));
+        txtUsername.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(190, 210, 190), 1),
+                BorderFactory.createEmptyBorder(8, 10, 8, 10)
+        ));
         card.add(txtUsername, gbc);
 
         gbc.gridy++;
         JLabel lblPass = new JLabel("Mật khẩu");
         lblPass.setFont(new Font("Arial", Font.BOLD, 14));
+        lblPass.setForeground(new Color(55, 71, 79));
         card.add(lblPass, gbc);
 
         gbc.gridy++;
         txtPassword = new JPasswordField(20);
         txtPassword.setFont(new Font("Arial", Font.PLAIN, 15));
-        txtPassword.setPreferredSize(new Dimension(240, 38));
+        txtPassword.setPreferredSize(new Dimension(260, 40));
+        txtPassword.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(190, 210, 190), 1),
+                BorderFactory.createEmptyBorder(8, 10, 8, 10)
+        ));
         card.add(txtPassword, gbc);
 
         gbc.gridy++;
         btnLogin = new JButton("Đăng nhập");
         btnLogin.setFont(new Font("Arial", Font.BOLD, 15));
-        btnLogin.setBackground(new Color(39, 174, 96));
+        btnLogin.setBackground(new Color(46, 125, 50));
         btnLogin.setForeground(Color.WHITE);
         btnLogin.setFocusPainted(false);
         btnLogin.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnLogin.setPreferredSize(new Dimension(240, 42));
+        btnLogin.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
+        btnLogin.setPreferredSize(new Dimension(260, 42));
         card.add(btnLogin, gbc);
 
         gbc.gridy++;
-        JLabel lblHint = new JLabel("GreenMart - Quản lý cửa hàng thực phẩm", JLabel.CENTER);
-        lblHint.setFont(new Font("Arial", Font.ITALIC, 13));
-        lblHint.setForeground(new Color(130, 130, 130));
-        card.add(lblHint, gbc);
+        JLabel lblNote = new JLabel(
+                "<html><center>Hệ thống quản lý cửa hàng thực phẩm<br>Green Mart</center></html>",
+                SwingConstants.CENTER
+        );
+        lblNote.setFont(new Font("Arial", Font.ITALIC, 13));
+        lblNote.setForeground(new Color(120, 120, 120));
+        card.add(lblNote, gbc);
 
         wrapper.add(card);
         return wrapper;
@@ -219,8 +264,12 @@ public class LoginFrame extends JFrame {
         String password = new String(txtPassword.getPassword()).trim();
 
         if (username.isEmpty() || password.isEmpty()) {
-            JOptionPane.showMessageDialog(this,
-                    "Vui lòng nhập đầy đủ tài khoản và mật khẩu.");
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Vui lòng nhập đầy đủ tài khoản và mật khẩu.",
+                    "Thông báo",
+                    JOptionPane.WARNING_MESSAGE
+            );
             return;
         }
 
@@ -228,13 +277,21 @@ public class LoginFrame extends JFrame {
         User user = dao.login(username, password);
 
         if (user != null) {
-            JOptionPane.showMessageDialog(this,
-                    "Đăng nhập thành công. Xin chào " + user.getHoTen() + "!");
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Đăng nhập thành công. Xin chào " + user.getHoTen() + "!",
+                    "Thông báo",
+                    JOptionPane.INFORMATION_MESSAGE
+            );
             dispose();
             SwingUtilities.invokeLater(() -> new MainFrame(user).setVisible(true));
         } else {
-            JOptionPane.showMessageDialog(this,
-                    "Sai tài khoản hoặc mật khẩu, hoặc tài khoản đã bị khóa.");
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Sai tài khoản hoặc mật khẩu, hoặc tài khoản đã bị khóa.",
+                    "Đăng nhập thất bại",
+                    JOptionPane.ERROR_MESSAGE
+            );
         }
     }
 }

@@ -8,15 +8,15 @@ import entity.Loai;
 import entity.SanPham;
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
+import java.awt.GridLayout;
+import java.text.NumberFormat;
 import java.util.List;
+import java.util.Locale;
 import javax.swing.BorderFactory;
-import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
@@ -24,12 +24,13 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
+import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
-import javax.swing.SwingConstants;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
 
 public class SanPhamPanel extends JPanel {
 
@@ -40,49 +41,70 @@ public class SanPhamPanel extends JPanel {
     private JTextField txtMaSP;
     private JTextField txtTenSP;
     private JTextField txtHSDung;
-    private JTextField txtMoTa;
     private JTextField txtGia;
     private JTextField txtSoLuongTon;
+    private JTextArea txtMoTa;
 
     private JComboBox<Loai> cboLoai;
     private JComboBox<DonVi> cboDonVi;
 
-    private JButton btnThem;
-    private JButton btnSua;
-    private JButton btnXoa;
-    private JButton btnLamMoi;
+    private JLabel lblTongSP;
+    private JLabel lblTongTon;
+    private JLabel lblGiaTriTon;
 
     private final SanPhamDAO sanPhamDAO = new SanPhamDAO();
     private final LoaiDAO loaiDAO = new LoaiDAO();
     private final DonViDAO donViDAO = new DonViDAO();
 
     public SanPhamPanel() {
-        setLayout(new BorderLayout(10, 10));
-        setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        setLayout(new BorderLayout(12, 12));
+        setBackground(new Color(245, 248, 245));
+        setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+
         initUI();
         loadComboData();
         loadData();
     }
 
     private void initUI() {
-        JLabel lblTitle = new JLabel("QUẢN LÝ SẢN PHẨM", SwingConstants.CENTER);
-        lblTitle.setFont(new Font("Arial", Font.BOLD, 22));
-        lblTitle.setOpaque(true);
-        lblTitle.setBackground(new Color(46, 139, 87));
+        add(createHeader(), BorderLayout.NORTH);
+        add(createMainContent(), BorderLayout.CENTER);
+    }
+
+    private JPanel createHeader() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(new Color(46, 125, 50));
+        panel.setBorder(BorderFactory.createEmptyBorder(14, 18, 14, 18));
+
+        JLabel lblTitle = new JLabel("QUẢN LÝ SẢN PHẨM");
+        lblTitle.setFont(new Font("Arial", Font.BOLD, 24));
         lblTitle.setForeground(Color.WHITE);
-        lblTitle.setPreferredSize(new Dimension(100, 55));
-        add(lblTitle, BorderLayout.NORTH);
 
-        JPanel centerPanel = new JPanel(new BorderLayout(10, 10));
+        JLabel lblSub = new JLabel("Quản lý danh mục sản phẩm, giá bán, tồn kho và thông tin mô tả");
+        lblSub.setFont(new Font("Arial", Font.PLAIN, 14));
+        lblSub.setForeground(new Color(235, 255, 235));
 
-        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        JLabel lblSearch = new JLabel("Tìm kiếm:");
-        txtSearch = new JTextField(20);
-        searchPanel.add(lblSearch);
-        searchPanel.add(txtSearch);
+        JPanel text = new JPanel(new GridLayout(2, 1));
+        text.setOpaque(false);
+        text.add(lblTitle);
+        text.add(lblSub);
+
+        panel.add(text, BorderLayout.WEST);
+        return panel;
+    }
+
+    private JPanel createMainContent() {
+        JPanel main = new JPanel(new BorderLayout(12, 12));
+        main.setOpaque(false);
+
+        JPanel top = new JPanel(new BorderLayout(12, 12));
+        top.setOpaque(false);
+        top.add(createSearchPanel(), BorderLayout.NORTH);
+        top.add(createSummaryPanel(), BorderLayout.SOUTH);
 
         model = new DefaultTableModel(
-                new String[]{"Mã SP", "Tên sản phẩm", "Loại", "Đơn vị", "HSD", "Mô tả", "Giá", "SL tồn"}, 0
+                new String[]{"Mã SP", "Tên sản phẩm", "Loại", "Đơn vị", "HSD", "Mô tả", "Giá", "SL tồn"},
+                0
         ) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -91,66 +113,47 @@ public class SanPhamPanel extends JPanel {
         };
 
         table = new JTable(model);
-        table.setRowHeight(24);
+        configTable(table);
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         table.getSelectionModel().addListSelectionListener(e -> fillFormFromTable());
 
-        JScrollPane scrollPane = new JScrollPane(table);
+        JScrollPane scrollTable = new JScrollPane(table);
+        scrollTable.setBorder(BorderFactory.createTitledBorder("Danh sách sản phẩm"));
 
-        centerPanel.add(searchPanel, BorderLayout.NORTH);
-        centerPanel.add(scrollPane, BorderLayout.CENTER);
+        JPanel right = new JPanel(new BorderLayout(10, 10));
+        right.setOpaque(false);
+        right.setPreferredSize(new Dimension(390, 100));
+        right.add(createFormPanel(), BorderLayout.CENTER);
+        right.add(createButtonPanel(), BorderLayout.SOUTH);
 
-        add(centerPanel, BorderLayout.CENTER);
+        main.add(top, BorderLayout.NORTH);
+        main.add(scrollTable, BorderLayout.CENTER);
+        main.add(right, BorderLayout.EAST);
 
-        JPanel bottomPanel = new JPanel();
-        bottomPanel.setLayout(new BoxLayout(bottomPanel, BoxLayout.Y_AXIS));
+        return main;
+    }
 
-        JPanel formPanel = new JPanel(new GridBagLayout());
-        formPanel.setBorder(BorderFactory.createTitledBorder("Thông tin sản phẩm"));
+    private JPanel createSearchPanel() {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(200, 220, 200), 1),
+                BorderFactory.createEmptyBorder(8, 8, 8, 8)
+        ));
 
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(6, 8, 6, 8);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
+        JLabel lbl = new JLabel("Tìm kiếm:");
+        lbl.setFont(new Font("Arial", Font.BOLD, 14));
 
-        txtMaSP = new JTextField();
-        txtTenSP = new JTextField();
-        txtHSDung = new JTextField();
-        txtMoTa = new JTextField();
-        txtGia = new JTextField();
-        txtSoLuongTon = new JTextField();
+        txtSearch = new JTextField();
+        txtSearch.setPreferredSize(new Dimension(260, 34));
+        txtSearch.setFont(new Font("Arial", Font.PLAIN, 14));
+        txtSearch.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(190, 210, 190), 1),
+                BorderFactory.createEmptyBorder(4, 8, 4, 8)
+        ));
 
-        cboLoai = new JComboBox<>();
-        cboDonVi = new JComboBox<>();
-
-        addFormRow(formPanel, gbc, 0, "Mã sản phẩm:", txtMaSP);
-        addFormRow(formPanel, gbc, 1, "Tên sản phẩm:", txtTenSP);
-        addFormRow(formPanel, gbc, 2, "Loại:", cboLoai);
-        addFormRow(formPanel, gbc, 3, "Đơn vị tính:", cboDonVi);
-        addFormRow(formPanel, gbc, 4, "Hạn sử dụng:", txtHSDung);
-        addFormRow(formPanel, gbc, 5, "Mô tả:", txtMoTa);
-        addFormRow(formPanel, gbc, 6, "Giá:", txtGia);
-        addFormRow(formPanel, gbc, 7, "Số lượng tồn:", txtSoLuongTon);
-
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 10));
-        btnThem = new JButton("Thêm");
-        btnSua = new JButton("Sửa");
-        btnXoa = new JButton("Xóa");
-        btnLamMoi = new JButton("Làm mới");
-
-        buttonPanel.add(btnThem);
-        buttonPanel.add(btnSua);
-        buttonPanel.add(btnXoa);
-        buttonPanel.add(btnLamMoi);
-
-        bottomPanel.add(formPanel);
-        bottomPanel.add(buttonPanel);
-
-        add(bottomPanel, BorderLayout.SOUTH);
-
-        btnThem.addActionListener(e -> themSanPham());
-        btnSua.addActionListener(e -> suaSanPham());
-        btnXoa.addActionListener(e -> xoaSanPham());
-        btnLamMoi.addActionListener(e -> lamMoiForm());
+        panel.add(lbl);
+        panel.add(txtSearch);
 
         txtSearch.getDocument().addDocumentListener(new DocumentListener() {
             @Override
@@ -168,17 +171,106 @@ public class SanPhamPanel extends JPanel {
                 searchData();
             }
         });
+
+        return panel;
     }
 
-    private void addFormRow(JPanel panel, GridBagConstraints gbc, int row, String label, java.awt.Component comp) {
-        gbc.gridx = 0;
-        gbc.gridy = row;
-        gbc.weightx = 0.2;
-        panel.add(new JLabel(label), gbc);
+    private JPanel createSummaryPanel() {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 0));
+        panel.setOpaque(false);
 
-        gbc.gridx = 1;
-        gbc.weightx = 0.8;
-        panel.add(comp, gbc);
+        lblTongSP = createSummaryLabel("Tổng sản phẩm: 0");
+        lblTongTon = createSummaryLabel("Tổng tồn kho: 0");
+        lblGiaTriTon = createSummaryLabel("Giá trị tồn: 0 VNĐ");
+
+        panel.add(lblTongSP);
+        panel.add(lblTongTon);
+        panel.add(lblGiaTriTon);
+
+        return panel;
+    }
+
+    private JLabel createSummaryLabel(String text) {
+        JLabel lbl = new JLabel(text);
+        lbl.setFont(new Font("Arial", Font.BOLD, 15));
+        lbl.setForeground(new Color(27, 94, 32));
+        return lbl;
+    }
+
+    private JPanel createFormPanel() {
+        JPanel panel = new JPanel(new GridLayout(8, 2, 10, 10));
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(200, 220, 200), 1),
+                BorderFactory.createEmptyBorder(16, 16, 16, 16)
+        ));
+
+        txtMaSP = new JTextField();
+        txtTenSP = new JTextField();
+        txtHSDung = new JTextField();
+        txtGia = new JTextField();
+        txtSoLuongTon = new JTextField();
+        txtMoTa = new JTextArea(3, 20);
+        txtMoTa.setLineWrap(true);
+        txtMoTa.setWrapStyleWord(true);
+
+        cboLoai = new JComboBox<>();
+        cboDonVi = new JComboBox<>();
+
+        styleField(txtMaSP);
+        styleField(txtTenSP);
+        styleField(txtHSDung);
+        styleField(txtGia);
+        styleField(txtSoLuongTon);
+        styleCombo(cboLoai);
+        styleCombo(cboDonVi);
+
+        txtMoTa.setFont(new Font("Arial", Font.PLAIN, 14));
+        txtMoTa.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(190, 210, 190), 1),
+                BorderFactory.createEmptyBorder(6, 8, 6, 8)
+        ));
+
+        panel.add(createFormLabel("Mã sản phẩm:"));
+        panel.add(txtMaSP);
+        panel.add(createFormLabel("Tên sản phẩm:"));
+        panel.add(txtTenSP);
+        panel.add(createFormLabel("Loại:"));
+        panel.add(cboLoai);
+        panel.add(createFormLabel("Đơn vị tính:"));
+        panel.add(cboDonVi);
+        panel.add(createFormLabel("Hạn sử dụng:"));
+        panel.add(txtHSDung);
+        panel.add(createFormLabel("Giá bán:"));
+        panel.add(txtGia);
+        panel.add(createFormLabel("Số lượng tồn:"));
+        panel.add(txtSoLuongTon);
+        panel.add(createFormLabel("Mô tả:"));
+        panel.add(new JScrollPane(txtMoTa));
+
+        return panel;
+    }
+
+    private JPanel createButtonPanel() {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
+        panel.setOpaque(false);
+
+        JButton btnThem = createButton("Thêm", new Color(46, 125, 50));
+        JButton btnSua = createButton("Sửa", new Color(21, 101, 192));
+        JButton btnXoa = createButton("Xóa", new Color(198, 40, 40));
+        JButton btnLamMoi = createButton("Làm mới", new Color(97, 97, 97));
+
+        btnThem.addActionListener(e -> themSanPham());
+        btnSua.addActionListener(e -> suaSanPham());
+        btnXoa.addActionListener(e -> xoaSanPham());
+        btnLamMoi.addActionListener(e -> lamMoiForm());
+
+        panel.add(btnThem);
+        panel.add(btnSua);
+        panel.add(btnXoa);
+        panel.add(btnLamMoi);
+
+        return panel;
     }
 
     private void loadComboData() {
@@ -209,6 +301,9 @@ public class SanPhamPanel extends JPanel {
     private void fillTable(List<SanPham> list) {
         model.setRowCount(0);
 
+        int tongTon = 0;
+        long giaTriTon = 0;
+
         for (SanPham sp : list) {
             model.addRow(new Object[]{
                 sp.getMaSP(),
@@ -217,10 +312,17 @@ public class SanPhamPanel extends JPanel {
                 getDonViName(sp.getDonViTinh()),
                 sp.getHsDung(),
                 sp.getMoTa(),
-                sp.getGia(),
+                formatMoney(sp.getGia()),
                 sp.getSoLuongTon()
             });
+
+            tongTon += sp.getSoLuongTon();
+            giaTriTon += (long) sp.getGia() * sp.getSoLuongTon();
         }
+
+        lblTongSP.setText("Tổng sản phẩm: " + list.size());
+        lblTongTon.setText("Tổng tồn kho: " + tongTon);
+        lblGiaTriTon.setText("Giá trị tồn: " + formatMoneyLong(giaTriTon));
     }
 
     private String getLoaiName(int maLoai) {
@@ -248,24 +350,19 @@ public class SanPhamPanel extends JPanel {
         if (row == -1) return;
 
         String maSP = model.getValueAt(row, 0).toString();
-        List<SanPham> list = sanPhamDAO.getAll();
+        SanPham sp = sanPhamDAO.findById(maSP);
+        if (sp == null) return;
 
-        for (SanPham sp : list) {
-            if (sp.getMaSP().equals(maSP)) {
-                txtMaSP.setText(sp.getMaSP());
-                txtTenSP.setText(sp.getTenSP());
-                txtHSDung.setText(String.valueOf(sp.getHsDung()));
-                txtMoTa.setText(sp.getMoTa());
-                txtGia.setText(String.valueOf(sp.getGia()));
-                txtSoLuongTon.setText(String.valueOf(sp.getSoLuongTon()));
+        txtMaSP.setText(sp.getMaSP());
+        txtTenSP.setText(sp.getTenSP());
+        txtHSDung.setText(String.valueOf(sp.getHsDung()));
+        txtMoTa.setText(sp.getMoTa());
+        txtGia.setText(String.valueOf(sp.getGia()));
+        txtSoLuongTon.setText(String.valueOf(sp.getSoLuongTon()));
 
-                selectLoai(sp.getLoai());
-                selectDonVi(sp.getDonViTinh());
-
-                txtMaSP.setEditable(false);
-                break;
-            }
-        }
+        selectLoai(sp.getLoai());
+        selectDonVi(sp.getDonViTinh());
+        txtMaSP.setEditable(false);
     }
 
     private void selectLoai(int maLoai) {
@@ -394,5 +491,57 @@ public class SanPhamPanel extends JPanel {
 
         if (cboLoai.getItemCount() > 0) cboLoai.setSelectedIndex(0);
         if (cboDonVi.getItemCount() > 0) cboDonVi.setSelectedIndex(0);
+    }
+
+    private JLabel createFormLabel(String text) {
+        JLabel lbl = new JLabel(text);
+        lbl.setFont(new Font("Arial", Font.BOLD, 14));
+        return lbl;
+    }
+
+    private void styleField(JTextField field) {
+        field.setFont(new Font("Arial", Font.PLAIN, 14));
+        field.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(190, 210, 190), 1),
+                BorderFactory.createEmptyBorder(6, 8, 6, 8)
+        ));
+    }
+
+    private void styleCombo(JComboBox<?> combo) {
+        combo.setFont(new Font("Arial", Font.PLAIN, 14));
+    }
+
+    private JButton createButton(String text, Color bg) {
+        JButton btn = new JButton(text);
+        btn.setFont(new Font("Arial", Font.BOLD, 14));
+        btn.setForeground(Color.WHITE);
+        btn.setBackground(bg);
+        btn.setFocusPainted(false);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setPreferredSize(new Dimension(90, 36));
+        return btn;
+    }
+
+    private void configTable(JTable table) {
+        table.setRowHeight(30);
+        table.setFont(new Font("Arial", Font.PLAIN, 14));
+        table.setGridColor(new Color(225, 235, 225));
+        table.setSelectionBackground(new Color(200, 230, 201));
+        table.setSelectionForeground(Color.BLACK);
+
+        JTableHeader header = table.getTableHeader();
+        header.setPreferredSize(new Dimension(header.getPreferredSize().width, 34));
+        header.setFont(new Font("Arial", Font.BOLD, 14));
+        header.setBackground(new Color(232, 245, 233));
+    }
+
+    private String formatMoney(int money) {
+        NumberFormat nf = NumberFormat.getInstance(new Locale("vi", "VN"));
+        return nf.format(money) + " VNĐ";
+    }
+
+    private String formatMoneyLong(long money) {
+        NumberFormat nf = NumberFormat.getInstance(new Locale("vi", "VN"));
+        return nf.format(money) + " VNĐ";
     }
 }

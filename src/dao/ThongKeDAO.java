@@ -2,6 +2,7 @@ package dao;
 
 import config.DBConnection;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
@@ -11,66 +12,114 @@ public class ThongKeDAO {
 
     public int getTongDoanhThu() {
         String sql = "SELECT COALESCE(SUM(TongTien), 0) FROM hoadon";
-
         try (Connection conn = DBConnection.open();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
-
             if (rs.next()) {
                 return rs.getInt(1);
             }
-
         } catch (Exception e) {
             e.printStackTrace();
         }
-
         return 0;
     }
 
     public int getTongSoHoaDon() {
         String sql = "SELECT COUNT(*) FROM hoadon";
-
         try (Connection conn = DBConnection.open();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
-
             if (rs.next()) {
                 return rs.getInt(1);
             }
-
         } catch (Exception e) {
             e.printStackTrace();
         }
-
         return 0;
     }
 
-    public int getTongSoPhieuNhap() {
-        String sql = "SELECT COUNT(*) FROM phieunhaphang";
-
+    public int getTongSoSanPhamDaBan() {
+        String sql = "SELECT COALESCE(SUM(SoLuong), 0) FROM chitiethoadon";
         try (Connection conn = DBConnection.open();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
-
             if (rs.next()) {
                 return rs.getInt(1);
             }
-
         } catch (Exception e) {
             e.printStackTrace();
         }
-
         return 0;
     }
 
-    public List<Object[]> getTopSanPhamBanChay() {
+    public int getTongSoKhachHang() {
+        String sql = "SELECT COUNT(*) FROM khachhang";
+        try (Connection conn = DBConnection.open();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    public int getDoanhThuHomNay() {
+        String sql = "SELECT COALESCE(SUM(TongTien), 0) FROM hoadon WHERE DATE(ThoiGian) = CURDATE()";
+        try (Connection conn = DBConnection.open();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    public int getDoanhThuThangNay() {
+        String sql = "SELECT COALESCE(SUM(TongTien), 0) FROM hoadon WHERE MONTH(ThoiGian) = MONTH(CURDATE()) AND YEAR(ThoiGian) = YEAR(CURDATE())";
+        try (Connection conn = DBConnection.open();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    public int getDoanhThuNamNay() {
+        String sql = "SELECT COALESCE(SUM(TongTien), 0) FROM hoadon WHERE YEAR(ThoiGian) = YEAR(CURDATE())";
+        try (Connection conn = DBConnection.open();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    public List<Object[]> thongKeDoanhThu7NgayGanNhat() {
         List<Object[]> list = new ArrayList<>();
 
-        String sql = "SELECT sp.MaSP, sp.TenSP, COALESCE(SUM(ct.SoLuong), 0) AS TongBan "
-                   + "FROM sanpham sp "
-                   + "LEFT JOIN chitiethoadon ct ON sp.MaSP = ct.MaSP "
-                   + "GROUP BY sp.MaSP, sp.TenSP "
-                   + "ORDER BY TongBan DESC, sp.TenSP ASC";
+        String sql = """
+            SELECT DATE(ThoiGian) AS Ngay,
+                   COUNT(*) AS SoHoaDon,
+                   COALESCE(SUM(TongTien), 0) AS DoanhThu
+            FROM hoadon
+            WHERE DATE(ThoiGian) >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+            GROUP BY DATE(ThoiGian)
+            ORDER BY DATE(ThoiGian) ASC
+        """;
 
         try (Connection conn = DBConnection.open();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -78,132 +127,7 @@ public class ThongKeDAO {
 
             while (rs.next()) {
                 list.add(new Object[]{
-                    rs.getString("MaSP"),
-                    rs.getString("TenSP"),
-                    rs.getInt("TongBan")
-                });
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return list;
-    }
-
-    public List<Object[]> getTonKhoSanPham() {
-        List<Object[]> list = new ArrayList<>();
-
-        String sql = "SELECT MaSP, TenSP, SoLuongTon, Gia FROM sanpham ORDER BY TenSP ASC";
-
-        try (Connection conn = DBConnection.open();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-
-            while (rs.next()) {
-                list.add(new Object[]{
-                    rs.getString("MaSP"),
-                    rs.getString("TenSP"),
-                    rs.getInt("SoLuongTon"),
-                    rs.getInt("Gia")
-                });
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return list;
-    }
-
-    public int getDoanhThuTheoNgay(String ngay) {
-        String sql = "SELECT COALESCE(SUM(TongTien), 0) "
-                   + "FROM hoadon "
-                   + "WHERE DATE(ThoiGian) = ?";
-
-        try (Connection conn = DBConnection.open();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setString(1, ngay);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt(1);
-                }
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return 0;
-    }
-
-    public int getDoanhThuTheoThang(int thang, int nam) {
-        String sql = "SELECT COALESCE(SUM(TongTien), 0) "
-                   + "FROM hoadon "
-                   + "WHERE MONTH(ThoiGian) = ? AND YEAR(ThoiGian) = ?";
-
-        try (Connection conn = DBConnection.open();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setInt(1, thang);
-            ps.setInt(2, nam);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt(1);
-                }
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return 0;
-    }
-
-    public int getDoanhThuTheoNam(int nam) {
-        String sql = "SELECT COALESCE(SUM(TongTien), 0) "
-                   + "FROM hoadon "
-                   + "WHERE YEAR(ThoiGian) = ?";
-
-        try (Connection conn = DBConnection.open();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setInt(1, nam);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt(1);
-                }
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return 0;
-    }
-
-    public List<Object[]> getThongKeTheoNhanVien() {
-        List<Object[]> list = new ArrayList<>();
-
-        String sql = "SELECT nv.MaNV, nv.Ho, nv.Ten, COUNT(hd.MaHD) AS SoHoaDon, COALESCE(SUM(hd.TongTien), 0) AS DoanhThu "
-                   + "FROM nhanvien nv "
-                   + "LEFT JOIN hoadon hd ON nv.MaNV = hd.MaNV "
-                   + "GROUP BY nv.MaNV, nv.Ho, nv.Ten "
-                   + "ORDER BY DoanhThu DESC, nv.MaNV ASC";
-
-        try (Connection conn = DBConnection.open();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-
-            while (rs.next()) {
-                String hoTen = rs.getString("Ho") + " " + rs.getString("Ten");
-                list.add(new Object[]{
-                    rs.getString("MaNV"),
-                    hoTen.trim(),
+                    rs.getDate("Ngay"),
                     rs.getInt("SoHoaDon"),
                     rs.getInt("DoanhThu")
                 });
@@ -216,24 +140,62 @@ public class ThongKeDAO {
         return list;
     }
 
-    public List<Object[]> getThongKeTheoKhachHang() {
+    public List<Object[]> thongKeTheoNhanVien() {
         List<Object[]> list = new ArrayList<>();
 
-        String sql = "SELECT kh.MaKH, kh.Ho, kh.Ten, COUNT(hd.MaHD) AS SoLanMua, COALESCE(SUM(hd.TongTien), 0) AS TongChiTieu "
-                   + "FROM khachhang kh "
-                   + "LEFT JOIN hoadon hd ON kh.MaKH = hd.MaKH "
-                   + "GROUP BY kh.MaKH, kh.Ho, kh.Ten "
-                   + "ORDER BY TongChiTieu DESC, kh.MaKH ASC";
+        String sql = """
+            SELECT nv.MaNV,
+                   nv.HoTen,
+                   COUNT(hd.MaHD) AS SoHoaDon,
+                   COALESCE(SUM(hd.TongTien), 0) AS TongDoanhThu
+            FROM nhanvien nv
+            LEFT JOIN hoadon hd ON nv.MaNV = hd.MaNV
+            GROUP BY nv.MaNV, nv.HoTen
+            ORDER BY TongDoanhThu DESC, SoHoaDon DESC
+        """;
 
         try (Connection conn = DBConnection.open();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
-                String hoTen = rs.getString("Ho") + " " + rs.getString("Ten");
+                list.add(new Object[]{
+                    rs.getString("MaNV"),
+                    rs.getString("HoTen"),
+                    rs.getInt("SoHoaDon"),
+                    rs.getInt("TongDoanhThu")
+                });
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return list;
+    }
+
+    public List<Object[]> thongKeTheoKhachHang() {
+        List<Object[]> list = new ArrayList<>();
+
+        String sql = """
+            SELECT kh.MaKH,
+                   kh.HoTen,
+                   COUNT(hd.MaHD) AS SoLanMua,
+                   COALESCE(SUM(hd.TongTien), 0) AS TongChiTieu
+            FROM khachhang kh
+            LEFT JOIN hoadon hd ON kh.MaKH = hd.MaKH
+            GROUP BY kh.MaKH, kh.HoTen
+            ORDER BY TongChiTieu DESC, SoLanMua DESC
+        """;
+
+        try (Connection conn = DBConnection.open();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
                 list.add(new Object[]{
                     rs.getString("MaKH"),
-                    hoTen.trim(),
+                    rs.getString("HoTen"),
                     rs.getInt("SoLanMua"),
                     rs.getInt("TongChiTieu")
                 });
@@ -244,5 +206,116 @@ public class ThongKeDAO {
         }
 
         return list;
+    }
+
+    public List<Object[]> thongKeSanPhamBanChay() {
+        List<Object[]> list = new ArrayList<>();
+
+        String sql = """
+            SELECT sp.MaSP,
+                   sp.TenSP,
+                   COALESCE(SUM(ct.SoLuong), 0) AS SoLuongDaBan,
+                   COALESCE(SUM(ct.SoLuong * ct.DonGia), 0) AS DoanhThuSP
+            FROM sanpham sp
+            LEFT JOIN chitiethoadon ct ON sp.MaSP = ct.MaSP
+            GROUP BY sp.MaSP, sp.TenSP
+            ORDER BY SoLuongDaBan DESC, DoanhThuSP DESC
+            LIMIT 10
+        """;
+
+        try (Connection conn = DBConnection.open();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                list.add(new Object[]{
+                    rs.getString("MaSP"),
+                    rs.getString("TenSP"),
+                    rs.getInt("SoLuongDaBan"),
+                    rs.getInt("DoanhThuSP")
+                });
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return list;
+    }
+
+    public List<Object[]> thongKeDoanhThuTheoKhoangNgay(Date tuNgay, Date denNgay) {
+        List<Object[]> list = new ArrayList<>();
+
+        String sql = """
+            SELECT DATE(ThoiGian) AS Ngay,
+                   COUNT(*) AS SoHoaDon,
+                   COALESCE(SUM(TongTien), 0) AS DoanhThu
+            FROM hoadon
+            WHERE DATE(ThoiGian) BETWEEN ? AND ?
+            GROUP BY DATE(ThoiGian)
+            ORDER BY DATE(ThoiGian) ASC
+        """;
+
+        try (Connection conn = DBConnection.open();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setDate(1, tuNgay);
+            ps.setDate(2, denNgay);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(new Object[]{
+                        rs.getDate("Ngay"),
+                        rs.getInt("SoHoaDon"),
+                        rs.getInt("DoanhThu")
+                    });
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return list;
+    }
+
+    public int getTongDoanhThuTheoKhoangNgay(Date tuNgay, Date denNgay) {
+        String sql = "SELECT COALESCE(SUM(TongTien), 0) FROM hoadon WHERE DATE(ThoiGian) BETWEEN ? AND ?";
+        try (Connection conn = DBConnection.open();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setDate(1, tuNgay);
+            ps.setDate(2, denNgay);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    public int getTongHoaDonTheoKhoangNgay(Date tuNgay, Date denNgay) {
+        String sql = "SELECT COUNT(*) FROM hoadon WHERE DATE(ThoiGian) BETWEEN ? AND ?";
+        try (Connection conn = DBConnection.open();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setDate(1, tuNgay);
+            ps.setDate(2, denNgay);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
     }
 }
