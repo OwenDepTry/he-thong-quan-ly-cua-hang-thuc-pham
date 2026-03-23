@@ -2,6 +2,7 @@ package ui;
 
 import dao.SanPhamDAO;
 import java.awt.BorderLayout;
+import java.util.ArrayList;
 import java.util.List;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
@@ -16,6 +17,7 @@ public class SanPhamPanel extends AdminTablePanelBase {
     private DefaultTableModel model;
     private JTable tb;
     private CrudToolbarPanel toolbar;
+    private SearchPanel searchPanel;
 
     public SanPhamPanel() {
         super();
@@ -24,9 +26,19 @@ public class SanPhamPanel extends AdminTablePanelBase {
                 "Thêm", "Xóa", "Sửa", "Chi tiết", "Xuất excel", "Nhập excel"
         );
 
-        SearchPanel searchPanel = new SearchPanel(
+        searchPanel = new SearchPanel(
                 "Tìm thấy dữ liệu",
                 "Mã", "Loại", "Tên"
+        );
+        searchPanel.setSortOptions(
+            "Mặc định",
+            "Mã giảm dần",
+            "Tên A-Z",
+            "Tên Z-A",
+            "Giá tăng dần",
+            "Giá giảm dần",
+            "Tồn kho tăng dần",
+            "Tồn kho giảm dần"
         );
 
         buildTopBar(toolbar, searchPanel);
@@ -68,11 +80,7 @@ public class SanPhamPanel extends AdminTablePanelBase {
     }
 
     private void loadTableData() {
-        model.setRowCount(0);
-        List<Object[]> data = sanPhamDAO.findAllForTable();
-        for (Object[] row : data) {
-            model.addRow(row);
-        }
+        applySearchAndSort();
     }
 
     private void bindEvents() {
@@ -97,6 +105,79 @@ public class SanPhamPanel extends AdminTablePanelBase {
                             "Thông báo",
                             JOptionPane.INFORMATION_MESSAGE
                     ));
+        }
+
+        searchPanel.getBtnRefresh().addActionListener(e -> applySearchAndSort());
+        searchPanel.getBtnReset().addActionListener(e -> {
+            searchPanel.getTxtKeyword().setText("");
+            searchPanel.getCboSort().setSelectedIndex(0);
+            applySearchAndSort();
+        });
+        searchPanel.getTxtKeyword().addActionListener(e -> applySearchAndSort());
+        searchPanel.getCboSort().addActionListener(e -> applySearchAndSort());
+    }
+
+    private void applySearchAndSort() {
+        List<Object[]> data = new ArrayList<>(sanPhamDAO.findAllForTable());
+        String keyword = searchPanel.getTxtKeyword().getText().trim();
+        String field = searchPanel.getSelectedRadioText();
+
+        if (!keyword.isEmpty()) {
+            data.removeIf(row -> !matchesField(row, field, keyword));
+        }
+
+        sortData(data);
+
+        model.setRowCount(0);
+        for (Object[] row : data) {
+            model.addRow(row);
+        }
+        searchPanel.getLblResult().setText("Dữ liệu sản phẩm: " + data.size() + " dòng");
+    }
+
+    private boolean matchesField(Object[] row, String field, String keyword) {
+        String normalizedKeyword = keyword.toLowerCase();
+        switch (field) {
+            case "Loại":
+                return containsIgnoreCase(row[3], normalizedKeyword);
+            case "Tên":
+                return containsIgnoreCase(row[2], normalizedKeyword);
+            default:
+                return containsIgnoreCase(row[0], normalizedKeyword);
+        }
+    }
+
+    private boolean containsIgnoreCase(Object value, String normalizedKeyword) {
+        return String.valueOf(value == null ? "" : value).toLowerCase().contains(normalizedKeyword);
+    }
+
+    private void sortData(List<Object[]> data) {
+        String option = String.valueOf(searchPanel.getCboSort().getSelectedItem());
+        switch (option) {
+            case "Mã giảm dần":
+                data.sort((a, b) -> PanelSortUtils.compareCode(b[0], a[0]));
+                break;
+            case "Tên A-Z":
+                data.sort((a, b) -> PanelSortUtils.compareText(a[2], b[2]));
+                break;
+            case "Tên Z-A":
+                data.sort((a, b) -> PanelSortUtils.compareText(b[2], a[2]));
+                break;
+            case "Giá tăng dần":
+                data.sort((a, b) -> PanelSortUtils.compareNumber(a[7], b[7]));
+                break;
+            case "Giá giảm dần":
+                data.sort((a, b) -> PanelSortUtils.compareNumber(b[7], a[7]));
+                break;
+            case "Tồn kho tăng dần":
+                data.sort((a, b) -> PanelSortUtils.compareNumber(a[8], b[8]));
+                break;
+            case "Tồn kho giảm dần":
+                data.sort((a, b) -> PanelSortUtils.compareNumber(b[8], a[8]));
+                break;
+            default:
+                data.sort((a, b) -> PanelSortUtils.compareCode(a[0], b[0]));
+                break;
         }
     }
 

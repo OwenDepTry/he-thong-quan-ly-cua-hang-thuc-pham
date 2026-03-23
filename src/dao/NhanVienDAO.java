@@ -10,25 +10,73 @@ import java.util.List;
 
 public class NhanVienDAO {
 
+    public enum LoginStatus {
+        SUCCESS,
+        USER_NOT_FOUND,
+        WRONG_PASSWORD,
+        INACTIVE,
+        DB_ERROR
+    }
+
+    public static class LoginResult {
+        private final LoginStatus status;
+        private final NhanVien nhanVien;
+        private final String errorMessage;
+
+        public LoginResult(LoginStatus status, NhanVien nhanVien, String errorMessage) {
+            this.status = status;
+            this.nhanVien = nhanVien;
+            this.errorMessage = errorMessage;
+        }
+
+        public LoginStatus getStatus() {
+            return status;
+        }
+
+        public NhanVien getNhanVien() {
+            return nhanVien;
+        }
+
+        public String getErrorMessage() {
+            return errorMessage;
+        }
+    }
+
     public NhanVien login(String maNhanVien, String matKhau) {
-        String sql = "SELECT * FROM NhanVien WHERE MaNhanVien = ? AND MatKhau = ? AND TrangThai = 'active'";
+        LoginResult result = loginDetailed(maNhanVien, matKhau);
+        return result.getStatus() == LoginStatus.SUCCESS ? result.getNhanVien() : null;
+    }
+
+    public LoginResult loginDetailed(String maNhanVien, String matKhau) {
+        String sql = "SELECT * FROM NhanVien WHERE MaNhanVien = ?";
 
         try (Connection conn = DBConnection.open();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, maNhanVien);
-            ps.setString(2, matKhau);
 
             try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return mapNhanVien(rs);
+                if (!rs.next()) {
+                    return new LoginResult(LoginStatus.USER_NOT_FOUND, null, null);
                 }
+
+                NhanVien nhanVien = mapNhanVien(rs);
+                String trangThai = nhanVien.getTrangThai() == null ? "" : nhanVien.getTrangThai().trim();
+                if (!"active".equalsIgnoreCase(trangThai)) {
+                    return new LoginResult(LoginStatus.INACTIVE, null, null);
+                }
+
+                String storedPassword = nhanVien.getMatKhau() == null ? "" : nhanVien.getMatKhau().trim();
+                if (!storedPassword.equals(matKhau)) {
+                    return new LoginResult(LoginStatus.WRONG_PASSWORD, null, null);
+                }
+
+                return new LoginResult(LoginStatus.SUCCESS, nhanVien, null);
             }
         } catch (Exception e) {
             e.printStackTrace();
+            return new LoginResult(LoginStatus.DB_ERROR, null, e.getMessage());
         }
-
-        return null;
     }
 
     public List<Object[]> findAllForTable() {

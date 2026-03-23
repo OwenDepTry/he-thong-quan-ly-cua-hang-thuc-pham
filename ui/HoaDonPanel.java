@@ -13,6 +13,7 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.text.DecimalFormat;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import javax.swing.BorderFactory;
 import javax.swing.DefaultCellEditor;
@@ -58,6 +59,14 @@ public class HoaDonPanel extends AdminTablePanelBase {
 
         toolbar = new CrudToolbarPanel("Thêm", "Xóa", "Sửa", "Chi tiết", "In PDF", "Xuất excel");
         searchPanel = new SearchPanel("0 hóa đơn", "Mã", "Mã KH", "Mã NV");
+        searchPanel.setSortOptions(
+            "Mã mới nhất",
+            "Mã cũ nhất",
+            "Thành tiền tăng dần",
+            "Thành tiền giảm dần",
+            "Thời gian mới nhất",
+            "Thời gian cũ nhất"
+        );
 
         buildTopBar(toolbar, searchPanel);
         beautifyToolbar();
@@ -324,7 +333,7 @@ public class HoaDonPanel extends AdminTablePanelBase {
         }
 
         if (searchPanel.getBtnRefresh() != null) {
-            searchPanel.getBtnRefresh().addActionListener(e -> loadData());
+            searchPanel.getBtnRefresh().addActionListener(e -> searchData());
         }
 
         if (searchPanel.getBtnReset() != null) {
@@ -338,6 +347,10 @@ public class HoaDonPanel extends AdminTablePanelBase {
             searchPanel.getTxtKeyword().addActionListener(e -> searchData());
         }
 
+        if (searchPanel.getCboSort() != null) {
+            searchPanel.getCboSort().addActionListener(e -> searchData());
+        }
+
         tblHoaDon.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
                 showSelectedInvoice();
@@ -347,34 +360,64 @@ public class HoaDonPanel extends AdminTablePanelBase {
 
     private void applyRolePermissions() {
         if (!AppSession.isAdmin()) {
-            JButton btnThem = toolbar.getButton("Thêm");
             JButton btnXoa = toolbar.getButton("Xóa");
             JButton btnSua = toolbar.getButton("Sửa");
 
-            if (btnThem != null) btnThem.setEnabled(false);
             if (btnXoa != null) btnXoa.setEnabled(false);
             if (btnSua != null) btnSua.setEnabled(false);
         }
     }
 
     private void loadData() {
+        List<Object[]> data;
         if (AppSession.isAdmin()) {
-            fillHoaDonTable(hoaDonDAO.findAllForTable());
+            data = new ArrayList<>(hoaDonDAO.findAllForTable());
         } else {
-            fillHoaDonTable(hoaDonDAO.findAllForTableByNhanVien(AppSession.getMaNhanVien()));
+            data = new ArrayList<>(hoaDonDAO.findAllForTableByNhanVien(AppSession.getMaNhanVien()));
         }
+        sortData(data);
+        fillHoaDonTable(data);
     }
 
     private void searchData() {
         String keyword = searchPanel.getTxtKeyword().getText().trim();
+        String field = searchPanel.getSelectedRadioText();
+        List<Object[]> data;
+
         if (keyword.isEmpty()) {
             loadData();
         } else {
             if (AppSession.isAdmin()) {
-                fillHoaDonTable(hoaDonDAO.search(keyword));
+                data = new ArrayList<>(hoaDonDAO.search(field, keyword));
             } else {
-                fillHoaDonTable(hoaDonDAO.searchByNhanVien(keyword, AppSession.getMaNhanVien()));
+                data = new ArrayList<>(hoaDonDAO.searchByNhanVien(field, keyword, AppSession.getMaNhanVien()));
             }
+            sortData(data);
+            fillHoaDonTable(data);
+        }
+    }
+
+    private void sortData(List<Object[]> data) {
+        String option = String.valueOf(searchPanel.getCboSort().getSelectedItem());
+        switch (option) {
+            case "Mã cũ nhất":
+                data.sort((a, b) -> PanelSortUtils.compareCode(a[0], b[0]));
+                break;
+            case "Thành tiền tăng dần":
+                data.sort((a, b) -> PanelSortUtils.compareNumber(a[7], b[7]));
+                break;
+            case "Thành tiền giảm dần":
+                data.sort((a, b) -> PanelSortUtils.compareNumber(b[7], a[7]));
+                break;
+            case "Thời gian mới nhất":
+                data.sort((a, b) -> PanelSortUtils.compareText(b[8], a[8]));
+                break;
+            case "Thời gian cũ nhất":
+                data.sort((a, b) -> PanelSortUtils.compareText(a[8], b[8]));
+                break;
+            default:
+                data.sort((a, b) -> PanelSortUtils.compareCode(b[0], a[0]));
+                break;
         }
     }
 
@@ -502,7 +545,7 @@ public class HoaDonPanel extends AdminTablePanelBase {
             ));
             form.setBackground(new Color(248, 248, 248));
 
-            txtMaHoaDon = new JTextField();
+            txtMaHoaDon = new JTextField(hoaDonDAO.generateNextMaHoaDon());
             cboKhachHang = new JComboBox<>();
             cboNhanVien = new JComboBox<>();
             cboKhuyenMai = new JComboBox<>();
@@ -511,6 +554,7 @@ public class HoaDonPanel extends AdminTablePanelBase {
             txtTienGiam = new JTextField("0");
             txtThanhTien = new JTextField("0");
 
+            txtMaHoaDon.setEditable(false);
             txtTongTien.setEditable(false);
             txtTienGiam.setEditable(false);
             txtThanhTien.setEditable(false);
@@ -734,13 +778,17 @@ public class HoaDonPanel extends AdminTablePanelBase {
 
                 String maHD = txtMaHoaDon.getText().trim();
                 if (maHD.isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "Vui lòng nhập mã hóa đơn.");
+                    JOptionPane.showMessageDialog(this, "Không thể tạo mã hóa đơn. Vui lòng thử lại.");
                     return;
                 }
 
                 if (hoaDonDAO.exists(maHD)) {
-                    JOptionPane.showMessageDialog(this, "Mã hóa đơn đã tồn tại.");
-                    return;
+                    maHD = hoaDonDAO.generateNextMaHoaDon();
+                    txtMaHoaDon.setText(maHD);
+                    if (hoaDonDAO.exists(maHD)) {
+                        JOptionPane.showMessageDialog(this, "Mã hóa đơn đang bị trùng. Vui lòng thử lưu lại.");
+                        return;
+                    }
                 }
 
                 if (itemModel.getRowCount() == 0) {

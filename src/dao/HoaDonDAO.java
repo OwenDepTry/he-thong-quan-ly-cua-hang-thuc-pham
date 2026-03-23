@@ -57,7 +57,18 @@ public class HoaDonDAO {
     }
 
     public List<Object[]> search(String keyword) {
+        return search(null, keyword);
+    }
+
+    public List<Object[]> search(String field, String keyword) {
         List<Object[]> list = new ArrayList<>();
+        String normalizedKeyword = keyword == null ? "" : keyword.trim();
+
+        if (normalizedKeyword.isEmpty()) {
+            return findAllForTable();
+        }
+
+        String column = resolveSearchColumn(field);
 
         String sql = """
             SELECT hd.MaHoaDon,
@@ -73,20 +84,16 @@ public class HoaDonDAO {
             FROM HoaDon hd
             LEFT JOIN KhachHang kh ON kh.MaKhachHang = hd.MaKhachHang
             LEFT JOIN NhanVien nv ON nv.MaNhanVien = hd.MaNhanVien
-            WHERE hd.MaHoaDon LIKE ?
-               OR hd.MaKhachHang LIKE ?
-               OR hd.MaNhanVien LIKE ?
+            WHERE %s LIKE ?
             ORDER BY hd.MaHoaDon DESC
-        """;
+        """.formatted(column);
 
-        String k = "%" + keyword + "%";
+        String k = "%" + normalizedKeyword + "%";
 
         try (Connection conn = DBConnection.open();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, k);
-            ps.setString(2, k);
-            ps.setString(3, k);
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -105,6 +112,68 @@ public class HoaDonDAO {
                 }
             }
 
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return list;
+    }
+
+    public List<Object[]> searchByNhanVien(String keyword, String maNhanVien) {
+        return searchByNhanVien(null, keyword, maNhanVien);
+    }
+
+    public List<Object[]> searchByNhanVien(String field, String keyword, String maNhanVien) {
+        List<Object[]> list = new ArrayList<>();
+        String normalizedKeyword = keyword == null ? "" : keyword.trim();
+
+        if (normalizedKeyword.isEmpty()) {
+            return findAllForTableByNhanVien(maNhanVien);
+        }
+
+        String column = resolveSearchColumn(field);
+        String sql = """
+            SELECT hd.MaHoaDon,
+                hd.MaKhachHang,
+                CONCAT(kh.Ho, ' ', COALESCE(kh.TenLot, ''), ' ', kh.Ten) AS TenKhachHang,
+                hd.MaNhanVien,
+                CONCAT(nv.Ho, ' ', COALESCE(nv.TenLot, ''), ' ', nv.Ten) AS TenNhanVien,
+                hd.TongTien,
+                hd.TienGiam,
+                (hd.TongTien - hd.TienGiam) AS ThanhTien,
+                hd.ThoiGian,
+                COALESCE(hd.MaKhuyenMai, '') AS MaKhuyenMai
+            FROM HoaDon hd
+            LEFT JOIN KhachHang kh ON kh.MaKhachHang = hd.MaKhachHang
+            LEFT JOIN NhanVien nv ON nv.MaNhanVien = hd.MaNhanVien
+            WHERE hd.MaNhanVien = ?
+              AND %s LIKE ?
+            ORDER BY hd.MaHoaDon DESC
+        """.formatted(column);
+
+        String k = "%" + normalizedKeyword + "%";
+        try (Connection conn = DBConnection.open();
+            PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, maNhanVien);
+            ps.setString(2, k);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(new Object[]{
+                        rs.getString("MaHoaDon"),
+                        rs.getString("MaKhachHang"),
+                        rs.getString("TenKhachHang").trim(),
+                        rs.getString("MaNhanVien"),
+                        rs.getString("TenNhanVien").trim(),
+                        rs.getDouble("TongTien"),
+                        rs.getDouble("TienGiam"),
+                        rs.getDouble("ThanhTien"),
+                        rs.getString("ThoiGian"),
+                        rs.getString("MaKhuyenMai")
+                    });
+                }
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -315,6 +384,38 @@ public class HoaDonDAO {
         return false;
     }
 
+    public String generateNextMaHoaDon() {
+        String sql = "SELECT MaHoaDon FROM HoaDon WHERE MaHoaDon LIKE 'HD%'";
+        int max = 0;
+
+        try (Connection conn = DBConnection.open();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                String ma = rs.getString("MaHoaDon");
+                if (ma == null) {
+                    continue;
+                }
+
+                ma = ma.trim().toUpperCase();
+                if (!ma.startsWith("HD")) {
+                    continue;
+                }
+
+                String so = ma.substring(2).trim();
+                if (so.matches("\\d+")) {
+                    max = Math.max(max, Integer.parseInt(so));
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return "HD" + (max + 1);
+    }
+
     public boolean insertHoaDon(String maHoaDon, String maKH, String maNV, String thoiGian,
                                 String maKM, String tongTien, String tienGiam,
                                 DefaultTableModel itemModel) {
@@ -424,6 +525,23 @@ public class HoaDonDAO {
     private String extractCode(String value) {
         int idx = value.indexOf(" - ");
         return idx >= 0 ? value.substring(0, idx).trim() : value.trim();
+    }
+
+    private String resolveSearchColumn(String field) {
+        if (field == null) {
+            return "hd.MaHoaDon";
+        }
+
+        switch (field.trim().toLowerCase()) {
+            case "mã kh":
+            case "ma kh":
+                return "hd.MaKhachHang";
+            case "mã nv":
+            case "ma nv":
+                return "hd.MaNhanVien";
+            default:
+                return "hd.MaHoaDon";
+        }
     }
 
     public List<Object[]> findAllForTableByNhanVien(String maNhanVien) {

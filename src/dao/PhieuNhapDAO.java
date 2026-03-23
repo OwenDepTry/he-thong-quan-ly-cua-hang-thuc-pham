@@ -50,7 +50,18 @@ public class PhieuNhapDAO {
     }
 
     public List<Object[]> search(String keyword) {
+        return search(null, keyword);
+    }
+
+    public List<Object[]> search(String field, String keyword) {
         List<Object[]> list = new ArrayList<>();
+        String normalizedKeyword = keyword == null ? "" : keyword.trim();
+
+        if (normalizedKeyword.isEmpty()) {
+            return findAllForTable();
+        }
+
+        String column = resolveSearchColumn(field);
         String ngayCol = getExistingColumn("PhieuNhap", "NgayNhap", "ThoiGian");
 
         if (ngayCol == null) {
@@ -59,17 +70,15 @@ public class PhieuNhapDAO {
 
         String sql = "SELECT MaPhieuNhap, MaNhaCungCap, MaNhanVien, TongTien, " + ngayCol
                 + " FROM PhieuNhap "
-                + "WHERE MaPhieuNhap LIKE ? OR MaNhaCungCap LIKE ? OR MaNhanVien LIKE ? "
+                + "WHERE " + column + " LIKE ? "
                 + "ORDER BY MaPhieuNhap DESC";
 
-        String k = "%" + keyword + "%";
+        String k = "%" + normalizedKeyword + "%";
 
         try (Connection conn = DBConnection.open();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, k);
-            ps.setString(2, k);
-            ps.setString(3, k);
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -93,6 +102,80 @@ public class PhieuNhapDAO {
         }
 
         return list;
+    }
+
+    public List<Object[]> searchByNhanVien(String keyword, String maNhanVien) {
+        return searchByNhanVien(null, keyword, maNhanVien);
+    }
+
+    public List<Object[]> searchByNhanVien(String field, String keyword, String maNhanVien) {
+        List<Object[]> list = new ArrayList<>();
+        String normalizedKeyword = keyword == null ? "" : keyword.trim();
+
+        if (normalizedKeyword.isEmpty()) {
+            return findAllForTableByNhanVien(maNhanVien);
+        }
+
+        String column = resolveSearchColumn(field);
+        String ngayCol = getExistingColumn("PhieuNhap", "NgayNhap", "ThoiGian");
+
+        if (ngayCol == null) {
+            ngayCol = "NgayNhap";
+        }
+
+        String sql = "SELECT MaPhieuNhap, MaNhaCungCap, MaNhanVien, TongTien, " + ngayCol
+                + " FROM PhieuNhap "
+                + "WHERE MaNhanVien = ? "
+            + "AND " + column + " LIKE ? "
+                + "ORDER BY MaPhieuNhap DESC";
+
+        String k = "%" + normalizedKeyword + "%";
+
+        try (Connection conn = DBConnection.open();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, maNhanVien);
+            ps.setString(2, k);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String maNCC = safe(rs.getString("MaNhaCungCap"));
+                    String maNV = safe(rs.getString("MaNhanVien"));
+
+                    list.add(new Object[]{
+                        rs.getString("MaPhieuNhap"),
+                        maNCC,
+                        getTenNhaCungCapById(maNCC),
+                        maNV,
+                        getTenNhanVienById(maNV),
+                        rs.getDouble("TongTien"),
+                        rs.getString(ngayCol)
+                    });
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return list;
+    }
+
+    private String resolveSearchColumn(String field) {
+        if (field == null) {
+            return "MaPhieuNhap";
+        }
+
+        switch (field.trim().toLowerCase()) {
+            case "mã ncc":
+            case "ma ncc":
+                return "MaNhaCungCap";
+            case "mã nv":
+            case "ma nv":
+                return "MaNhanVien";
+            default:
+                return "MaPhieuNhap";
+        }
     }
 
     public List<Object[]> findDetailsByPhieuNhap(String maPhieuNhap) {
@@ -148,6 +231,38 @@ public class PhieuNhapDAO {
         }
 
         return false;
+    }
+
+    public String generateNextMaPhieuNhap() {
+        String sql = "SELECT MaPhieuNhap FROM PhieuNhap WHERE MaPhieuNhap LIKE 'PN%'";
+        int max = 0;
+
+        try (Connection conn = DBConnection.open();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                String ma = rs.getString("MaPhieuNhap");
+                if (ma == null) {
+                    continue;
+                }
+
+                ma = ma.trim().toUpperCase();
+                if (!ma.startsWith("PN")) {
+                    continue;
+                }
+
+                String so = ma.substring(2).trim();
+                if (so.matches("\\d+")) {
+                    max = Math.max(max, Integer.parseInt(so));
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return "PN" + (max + 1);
     }
 
     public List<String> getNhanVienOptions() {
