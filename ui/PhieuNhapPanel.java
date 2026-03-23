@@ -42,11 +42,11 @@ public class PhieuNhapPanel extends AdminTablePanelBase {
     private DefaultTableModel modelPhieuNhap;
     private DefaultTableModel modelChiTiet;
 
-    private JTextField txtMaPhieuNhap;
+    protected JTextField txtMaPhieuNhap;
     private JTextField txtNhaCungCap;
     private JTextField txtNhanVien;
     private JTextField txtThoiGian;
-    private JTextField txtTongTien;
+    protected JTextField txtTongTien;
 
     private CrudToolbarPanel toolbar;
     private SearchPanel searchPanel;
@@ -276,16 +276,11 @@ public class PhieuNhapPanel extends AdminTablePanelBase {
         }
 
         if (btnSua != null) {
-            btnSua.addActionListener(e -> JOptionPane.showMessageDialog(
-                    this,
-                    "Tạm thời mình đã nối xong chi tiết, PDF và Excel. Nếu cần mình sẽ làm tiếp chức năng sửa phiếu nhập.",
-                    "Thông báo",
-                    JOptionPane.INFORMATION_MESSAGE
-            ));
+            btnSua.addActionListener(e -> openEditDialog());
         }
 
         if (btnChiTiet != null) {
-            btnChiTiet.addActionListener(e -> showSelectedPhieuNhap());
+            btnChiTiet.addActionListener(e -> openDetailDialog());
         }
 
         if (btnInPdf != null) {
@@ -454,6 +449,35 @@ public class PhieuNhapPanel extends AdminTablePanelBase {
         }
     }
 
+    private void openEditDialog() {
+        int row = tblPhieuNhap.getSelectedRow();
+        if (row < 0) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn phiếu nhập để sửa.");
+            return;
+        }
+
+        String maPN = String.valueOf(tblPhieuNhap.getValueAt(row, 0));
+        EditPhieuNhapDialog dialog = new EditPhieuNhapDialog(getParentFrame(), phieuNhapDAO, maPN);
+        dialog.setVisible(true);
+
+        if (dialog.isSaved()) {
+            loadData();
+        }
+    }
+
+    private void openDetailDialog() {
+        int row = tblPhieuNhap.getSelectedRow();
+        if (row < 0) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn phiếu nhập để xem chi tiết.");
+            return;
+        }
+
+        String maPN = String.valueOf(tblPhieuNhap.getValueAt(row, 0));
+        PhieuNhapDetailDialog dialog = new PhieuNhapDetailDialog(getParentFrame(), phieuNhapDAO, maPN);
+        dialog.setVisible(true);
+    }
+
+
     private Frame getParentFrame() {
         return (Frame) SwingUtilities.getWindowAncestor(this);
     }
@@ -468,16 +492,16 @@ public class PhieuNhapPanel extends AdminTablePanelBase {
 
         private final PhieuNhapDAO phieuNhapDAO;
         private final DecimalFormat moneyFormat = new DecimalFormat("#,##0");
-        private boolean saved = false;
+        protected boolean saved = false;
 
-        private JTextField txtMaPhieuNhap;
-        private JComboBox<String> cboNhaCungCap;
-        private JComboBox<String> cboNhanVien;
-        private JTextField txtNgayNhap;
-        private JTextField txtTongTien;
+        protected JTextField txtMaPhieuNhap;
+        protected JComboBox<String> cboNhaCungCap;
+        protected JComboBox<String> cboNhanVien;
+        protected JTextField txtNgayNhap;
+        protected JTextField txtTongTien;
 
-        private JTable tblItems;
-        private DefaultTableModel itemModel;
+        protected JTable tblItems;
+        protected DefaultTableModel itemModel;
 
         AddPhieuNhapDialog(Frame owner, PhieuNhapDAO phieuNhapDAO) {
             super(owner, "Thêm phiếu nhập", true);
@@ -659,7 +683,7 @@ public class PhieuNhapPanel extends AdminTablePanelBase {
             panel.add(comp, gbc);
         }
 
-        private void refreshAllRows() {
+        protected void refreshAllRows() {
             for (int i = 0; i < itemModel.getRowCount(); i++) {
                 updateRow(i);
             }
@@ -727,7 +751,7 @@ public class PhieuNhapPanel extends AdminTablePanelBase {
             txtTongTien.setText(moneyFormat.format(tong));
         }
 
-        private void savePhieuNhap() {
+        protected void savePhieuNhap() {
             try {
                 refreshAllRows();
 
@@ -783,7 +807,7 @@ public class PhieuNhapPanel extends AdminTablePanelBase {
             }
         }
 
-        private String extractCode(Object obj) {
+        protected String extractCode(Object obj) {
             if (obj == null) return "";
             String s = String.valueOf(obj).trim();
             int idx = s.indexOf(" - ");
@@ -798,4 +822,184 @@ public class PhieuNhapPanel extends AdminTablePanelBase {
             return saved;
         }
     }
-}   
+    private static class EditPhieuNhapDialog extends AddPhieuNhapDialog {
+
+        private final PhieuNhapDAO phieuNhapDAO;
+        private final String maPhieuNhap;
+
+        EditPhieuNhapDialog(Frame owner, PhieuNhapDAO phieuNhapDAO, String maPhieuNhap) {
+            super(owner, phieuNhapDAO);
+            this.phieuNhapDAO = phieuNhapDAO;
+            this.maPhieuNhap = maPhieuNhap;
+
+            setTitle("Sửa phiếu nhập");
+            loadDataForEdit();
+        }
+
+        private void loadDataForEdit() {
+            txtMaPhieuNhap.setText(maPhieuNhap);
+            txtMaPhieuNhap.setEditable(false);
+
+            List<Object[]> ds = phieuNhapDAO.findAllForTable();
+            for (Object[] row : ds) {
+                if (maPhieuNhap.equals(String.valueOf(row[0]))) {
+                    selectComboItem(cboNhaCungCap, String.valueOf(row[1]));
+                    selectComboItem(cboNhanVien, String.valueOf(row[3]));
+                    txtTongTien.setText(String.valueOf(row[5]));
+                    txtNgayNhap.setText(String.valueOf(row[6]));
+                    break;
+                }
+            }
+
+            itemModel.setRowCount(0);
+            List<Object[]> details = phieuNhapDAO.findDetailsByPhieuNhap(maPhieuNhap);
+            for (Object[] d : details) {
+                itemModel.addRow(new Object[]{
+                        d[0] + " - " + d[1],
+                        d[1],
+                        d[2],
+                        d[3],
+                        d[4]
+                });
+            }
+
+            refreshAllRows();
+        }
+
+        private void selectComboItem(JComboBox<String> combo, String code) {
+            if (code == null || code.trim().isEmpty()) {
+                if (combo.getItemCount() > 0) combo.setSelectedIndex(0);
+                return;
+            }
+
+            for (int i = 0; i < combo.getItemCount(); i++) {
+                String item = combo.getItemAt(i);
+                if (item != null && item.startsWith(code + " - ")) {
+                    combo.setSelectedIndex(i);
+                    return;
+                }
+            }
+        }
+
+        @Override
+        protected void savePhieuNhap() {
+            try {
+                refreshAllRows();
+
+                String maNCC = extractCode(cboNhaCungCap.getSelectedItem());
+                String maNV = extractCode(cboNhanVien.getSelectedItem());
+
+                boolean ok = phieuNhapDAO.updatePhieuNhap(
+                        maPhieuNhap,
+                        maNCC,
+                        maNV,
+                        txtNgayNhap.getText().trim(),
+                        txtTongTien.getText().replace(",", ""),
+                        itemModel
+                );
+
+                if (ok) {
+                    saved = true;
+                    JOptionPane.showMessageDialog(this, "Cập nhật phiếu nhập thành công.");
+                    dispose();
+                } else {
+                    JOptionPane.showMessageDialog(this, "Cập nhật phiếu nhập thất bại.");
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                JOptionPane.showMessageDialog(this, "Lỗi: " + e.getMessage());
+            }
+        }
+    }
+
+    private static class PhieuNhapDetailDialog extends JDialog {
+
+        PhieuNhapDetailDialog(Frame owner, PhieuNhapDAO phieuNhapDAO, String maPhieuNhap) {
+            super(owner, "Chi tiết phiếu nhập", true);
+            setSize(980, 620);
+            setLocationRelativeTo(owner);
+            setLayout(new BorderLayout(10, 10));
+
+            JPanel info = new JPanel(new GridBagLayout());
+            info.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(210, 210, 210)),
+                    BorderFactory.createEmptyBorder(12, 12, 12, 12)
+            ));
+            info.setBackground(Color.WHITE);
+
+            JTextField txtMa = createReadOnly();
+            JTextField txtNCC = createReadOnly();
+            JTextField txtNV = createReadOnly();
+            JTextField txtNgay = createReadOnly();
+            JTextField txtTong = createReadOnly();
+
+            List<Object[]> ds = phieuNhapDAO.findAllForTable();
+            for (Object[] row : ds) {
+                if (maPhieuNhap.equals(String.valueOf(row[0]))) {
+                    txtMa.setText(String.valueOf(row[0]));
+                    txtNCC.setText(String.valueOf(row[1]) + " - " + String.valueOf(row[2]));
+                    txtNV.setText(String.valueOf(row[3]) + " - " + String.valueOf(row[4]));
+                    txtTong.setText(String.valueOf(row[5]));
+                    txtNgay.setText(String.valueOf(row[6]));
+                    break;
+                }
+            }
+
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.insets = new Insets(8, 10, 8, 10);
+            gbc.fill = GridBagConstraints.HORIZONTAL;
+
+            addRow(info, gbc, 0, "Mã phiếu nhập", txtMa);
+            addRow(info, gbc, 1, "Nhà cung cấp", txtNCC);
+            addRow(info, gbc, 2, "Nhân viên", txtNV);
+            addRow(info, gbc, 3, "Ngày nhập", txtNgay);
+            addRow(info, gbc, 4, "Tổng tiền", txtTong);
+
+            String[] cols = {"Mã SP", "Tên sản phẩm", "Số lượng", "Đơn giá", "Thành tiền"};
+            DefaultTableModel model = new DefaultTableModel(cols, 0) {
+                @Override
+                public boolean isCellEditable(int row, int column) {
+                    return false;
+                }
+            };
+
+            JTable table = new JTable(model);
+            table.setRowHeight(26);
+
+            List<Object[]> details = phieuNhapDAO.findDetailsByPhieuNhap(maPhieuNhap);
+            for (Object[] d : details) {
+                model.addRow(new Object[]{d[0], d[1], d[2], d[3], d[4]});
+            }
+
+            JButton btnDong = new JButton("Đóng");
+            btnDong.addActionListener(e -> dispose());
+
+            JPanel south = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+            south.add(btnDong);
+
+            add(info, BorderLayout.NORTH);
+            add(new JScrollPane(table), BorderLayout.CENTER);
+            add(south, BorderLayout.SOUTH);
+        }
+
+        private static JTextField createReadOnly() {
+            JTextField txt = new JTextField();
+            txt.setEditable(false);
+            txt.setBackground(Color.WHITE);
+            txt.setPreferredSize(new Dimension(260, 32));
+            return txt;
+        }
+
+        private static void addRow(JPanel panel, GridBagConstraints gbc, int row, String label, JTextField field) {
+            gbc.gridx = 0;
+            gbc.gridy = row;
+            gbc.weightx = 0.3;
+            panel.add(new JLabel(label), gbc);
+
+            gbc.gridx = 1;
+            gbc.weightx = 0.7;
+            panel.add(field, gbc);
+        }
+    }
+
+}

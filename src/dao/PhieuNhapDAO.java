@@ -592,6 +592,97 @@ public class PhieuNhapDAO {
         return false;
     }
 
+    public boolean updatePhieuNhap(String maPhieuNhap, String maNCC, String maNV, String ngayNhap,
+                                String tongTien, DefaultTableModel itemModel) {
+
+        String ngayCol = getExistingColumn("PhieuNhap", "NgayNhap", "ThoiGian");
+        if (ngayCol == null) {
+            ngayCol = "NgayNhap";
+        }
+
+        String sqlGetOldCT = "SELECT MaSanPham, SoLuong FROM ChiTietPhieuNhap WHERE MaPhieuNhap = ?";
+        String sqlTruTonCu = "UPDATE SanPham SET SoLuongTon = SoLuongTon - ? WHERE MaSanPham = ?";
+        String sqlUpdatePN = "UPDATE PhieuNhap SET MaNhaCungCap = ?, MaNhanVien = ?, TongTien = ?, " + ngayCol + " = ? WHERE MaPhieuNhap = ?";
+        String sqlDeleteCT = "DELETE FROM ChiTietPhieuNhap WHERE MaPhieuNhap = ?";
+        String sqlInsertCT = """
+            INSERT INTO ChiTietPhieuNhap (MaPhieuNhap, MaSanPham, SoLuong, DonGia)
+            VALUES (?, ?, ?, ?)
+        """;
+        String sqlCongTonMoi = "UPDATE SanPham SET SoLuongTon = SoLuongTon + ? WHERE MaSanPham = ?";
+
+        try (Connection conn = DBConnection.open()) {
+            conn.setAutoCommit(false);
+
+            try {
+                try (PreparedStatement psOld = conn.prepareStatement(sqlGetOldCT);
+                    PreparedStatement psTruTon = conn.prepareStatement(sqlTruTonCu)) {
+
+                    psOld.setString(1, maPhieuNhap);
+                    try (ResultSet rs = psOld.executeQuery()) {
+                        while (rs.next()) {
+                            psTruTon.setInt(1, rs.getInt("SoLuong"));
+                            psTruTon.setString(2, rs.getString("MaSanPham"));
+                            psTruTon.executeUpdate();
+                        }
+                    }
+                }
+
+                try (PreparedStatement psUpdatePN = conn.prepareStatement(sqlUpdatePN);
+                    PreparedStatement psDeleteCT = conn.prepareStatement(sqlDeleteCT);
+                    PreparedStatement psInsertCT = conn.prepareStatement(sqlInsertCT);
+                    PreparedStatement psCongTon = conn.prepareStatement(sqlCongTonMoi)) {
+
+                    psUpdatePN.setString(1, maNCC);
+                    psUpdatePN.setString(2, maNV);
+                    psUpdatePN.setDouble(3, Double.parseDouble(tongTien.replace(",", "").trim()));
+                    psUpdatePN.setString(4, ngayNhap);
+                    psUpdatePN.setString(5, maPhieuNhap);
+                    psUpdatePN.executeUpdate();
+
+                    psDeleteCT.setString(1, maPhieuNhap);
+                    psDeleteCT.executeUpdate();
+
+                    for (int i = 0; i < itemModel.getRowCount(); i++) {
+                        Object maSpObj = itemModel.getValueAt(i, 0);
+                        if (maSpObj == null || String.valueOf(maSpObj).trim().isEmpty()) {
+                            continue;
+                        }
+
+                        String maSP = extractCode(String.valueOf(maSpObj));
+                        int soLuong = Integer.parseInt(String.valueOf(itemModel.getValueAt(i, 2)).trim());
+                        double donGia = Double.parseDouble(
+                                String.valueOf(itemModel.getValueAt(i, 3)).replace(",", "").trim()
+                        );
+
+                        psInsertCT.setString(1, maPhieuNhap);
+                        psInsertCT.setString(2, maSP);
+                        psInsertCT.setInt(3, soLuong);
+                        psInsertCT.setDouble(4, donGia);
+                        psInsertCT.executeUpdate();
+
+                        psCongTon.setInt(1, soLuong);
+                        psCongTon.setString(2, maSP);
+                        psCongTon.executeUpdate();
+                    }
+                }
+
+                conn.commit();
+                return true;
+
+            } catch (Exception e) {
+                conn.rollback();
+                e.printStackTrace();
+            } finally {
+                conn.setAutoCommit(true);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+
     private String getExistingColumn(String tableName, String... candidates) {
         try (Connection conn = DBConnection.open()) {
             DatabaseMetaData meta = conn.getMetaData();

@@ -5,9 +5,15 @@ import java.sql.DriverManager;
 
 public class DBConnection {
 
+<<<<<<< HEAD
     private static final String DEFAULT_URL = "jdbc:mysql://localhost:3306/qlcuahangthucpham?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
     private static final String DEFAULT_USER = "root";
     private static final String DEFAULT_PASSWORD = "";
+=======
+    private static final String DEFAULT_URL = "jdbc:mysql://localhost:3306/QLCuaHangThucPham";
+    private static final String DEFAULT_USER = "root";
+    private static final String DEFAULT_PASSWORD = "ngaoda110";
+>>>>>>> 3833e0a (update: fix hoa don + phieu nhap, them sua va chi tiet)
 
     private static final String URL = getEnvOrDefault("APP_DB_URL", DEFAULT_URL);
     private static final String USER = getEnvOrDefault("APP_DB_USER", DEFAULT_USER);

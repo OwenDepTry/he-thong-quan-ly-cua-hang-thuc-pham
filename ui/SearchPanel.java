@@ -7,6 +7,7 @@ import java.awt.Font;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -29,46 +30,50 @@ public class SearchPanel extends JPanel {
     private final JLabel lblKeyword;
 
     public SearchPanel(String title, String... radioNames) {
-        setLayout(new FlowLayout(FlowLayout.LEFT, 10, 6));
+        setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         setOpaque(false);
         setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 10));
+
+        JPanel row1 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 4));
+        row1.setOpaque(false);
+
+        JPanel row2 = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 2));
+        row2.setOpaque(false);
 
         lblSort = new JLabel("Sắp xếp:");
         lblSort.setFont(new Font("Arial", Font.BOLD, 12));
         lblSort.setForeground(new Color(22, 58, 33));
-        add(lblSort);
+        row1.add(lblSort);
 
         cboSort = new JComboBox<>(new String[]{"none"});
         cboSort.setPreferredSize(new Dimension(100, 28));
         cboSort.setFont(new Font("Arial", Font.PLAIN, 12));
-        add(cboSort);
+        row1.add(cboSort);
 
         lblKeyword = new JLabel("Từ khóa:");
         lblKeyword.setFont(new Font("Arial", Font.BOLD, 12));
         lblKeyword.setForeground(new Color(22, 58, 33));
-        add(lblKeyword);
+        row1.add(lblKeyword);
 
         txtKeyword = new JTextField();
-        txtKeyword.setPreferredSize(new Dimension(140, 28));
+        txtKeyword.setPreferredSize(new Dimension(170, 28));
         txtKeyword.setFont(new Font("Arial", Font.PLAIN, 12));
         txtKeyword.setForeground(new Color(25, 25, 25));
         txtKeyword.setBackground(Color.WHITE);
         txtKeyword.setBorder(BorderFactory.createLineBorder(new Color(180, 180, 180), 1));
-        add(txtKeyword);
+        row1.add(txtKeyword);
 
         btnReset = new JButton("Đặt lại");
         styleSmallButton(btnReset, 88);
-        add(btnReset);
+        row1.add(btnReset);
 
         btnRefresh = new JButton("Refresh");
         styleSmallButton(btnRefresh, 88);
-        add(btnRefresh);
-
-        JPanel radioPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
-        radioPanel.setOpaque(false);
+        row1.add(btnRefresh);
 
         buttonGroup = new ButtonGroup();
         radios = new ArrayList<>();
+
         for (int i = 0; i < radioNames.length; i++) {
             JRadioButton r = new JRadioButton(radioNames[i]);
             r.setOpaque(false);
@@ -79,15 +84,19 @@ public class SearchPanel extends JPanel {
             }
             buttonGroup.add(r);
             radios.add(r);
-            radioPanel.add(r);
+            row2.add(r);
         }
-        add(radioPanel);
 
         lblResult = new JLabel(title);
         lblResult.setHorizontalAlignment(SwingConstants.LEFT);
         lblResult.setForeground(new Color(16, 54, 29));
         lblResult.setFont(new Font("Arial", Font.BOLD, 12));
-        add(lblResult);
+        row2.add(lblResult);
+
+        add(row1);
+        add(row2);
+
+        setPreferredSize(new Dimension(520, 70));
     }
 
     private void styleSmallButton(JButton btn, int width) {

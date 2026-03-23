@@ -522,6 +522,83 @@ public class HoaDonDAO {
         return false;
     }
 
+    public boolean updateHoaDon(String maHoaDon, String maKH, String maNV, String thoiGian,
+                                String maKM, String tongTien, String tienGiam,
+                                DefaultTableModel itemModel) {
+        String sqlHD = """
+            UPDATE HoaDon
+            SET MaKhachHang = ?, MaNhanVien = ?, TongTien = ?, TienGiam = ?, ThoiGian = ?, MaKhuyenMai = ?
+            WHERE MaHoaDon = ?
+        """;
+
+        String sqlDeleteCT = "DELETE FROM ChiTietHoaDon WHERE MaHoaDon = ?";
+
+        String sqlInsertCT = """
+            INSERT INTO ChiTietHoaDon (MaHoaDon, MaSanPham, SoLuong, DonGia)
+            VALUES (?, ?, ?, ?)
+        """;
+
+        try (Connection conn = DBConnection.open()) {
+            conn.setAutoCommit(false);
+
+            try (PreparedStatement psHD = conn.prepareStatement(sqlHD);
+                PreparedStatement psDeleteCT = conn.prepareStatement(sqlDeleteCT);
+                PreparedStatement psInsertCT = conn.prepareStatement(sqlInsertCT)) {
+
+                psHD.setString(1, maKH);
+                psHD.setString(2, maNV);
+                psHD.setDouble(3, Double.parseDouble(tongTien.replace(",", "").trim()));
+                psHD.setDouble(4, Double.parseDouble(tienGiam.replace(",", "").trim()));
+                psHD.setString(5, thoiGian);
+
+                if (maKM == null || maKM.trim().isEmpty()) {
+                    psHD.setNull(6, java.sql.Types.VARCHAR);
+                } else {
+                    psHD.setString(6, maKM);
+                }
+
+                psHD.setString(7, maHoaDon);
+                psHD.executeUpdate();
+
+                psDeleteCT.setString(1, maHoaDon);
+                psDeleteCT.executeUpdate();
+
+                for (int i = 0; i < itemModel.getRowCount(); i++) {
+                    Object maSpObj = itemModel.getValueAt(i, 0);
+                    if (maSpObj == null || String.valueOf(maSpObj).trim().isEmpty()) {
+                        continue;
+                    }
+
+                    String maSP = extractCode(String.valueOf(maSpObj));
+                    int soLuong = Integer.parseInt(String.valueOf(itemModel.getValueAt(i, 2)).trim());
+                    double donGia = Double.parseDouble(
+                            String.valueOf(itemModel.getValueAt(i, 3)).replace(",", "").trim()
+                    );
+
+                    psInsertCT.setString(1, maHoaDon);
+                    psInsertCT.setString(2, maSP);
+                    psInsertCT.setInt(3, soLuong);
+                    psInsertCT.setDouble(4, donGia);
+                    psInsertCT.executeUpdate();
+                }
+
+                conn.commit();
+                return true;
+
+            } catch (Exception e) {
+                conn.rollback();
+                e.printStackTrace();
+            } finally {
+                conn.setAutoCommit(true);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+
     private String extractCode(String value) {
         int idx = value.indexOf(" - ");
         return idx >= 0 ? value.substring(0, idx).trim() : value.trim();

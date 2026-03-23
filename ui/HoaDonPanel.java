@@ -290,18 +290,11 @@ public class HoaDonPanel extends AdminTablePanelBase {
         }
 
         if (btnSua != null) {
-            btnSua.addActionListener(e -> {
-                JOptionPane.showMessageDialog(
-                        this,
-                        "Tạm thời mình đã nối xong xem chi tiết, PDF và Excel. Nếu cần mình sửa tiếp chức năng cập nhật hóa đơn.",
-                        "Thông báo",
-                        JOptionPane.INFORMATION_MESSAGE
-                );
-            });
+            btnSua.addActionListener(e -> openEditDialog());
         }
 
         if (btnChiTiet != null) {
-            btnChiTiet.addActionListener(e -> showSelectedInvoice());
+            btnChiTiet.addActionListener(e -> openDetailDialog());
         }
 
         if (btnInPdf != null) {
@@ -491,6 +484,34 @@ public class HoaDonPanel extends AdminTablePanelBase {
         }
     }
 
+    private void openEditDialog() {
+        int row = tblHoaDon.getSelectedRow();
+        if (row < 0) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn hóa đơn để sửa.");
+            return;
+        }
+
+        String maHD = String.valueOf(tblHoaDon.getValueAt(row, 0));
+        EditInvoiceDialog dialog = new EditInvoiceDialog(getParentFrame(), hoaDonDAO, maHD);
+        dialog.setVisible(true);
+
+        if (dialog.isSaved()) {
+            loadData();
+        }
+    }
+
+    private void openDetailDialog() {
+        int row = tblHoaDon.getSelectedRow();
+        if (row < 0) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn hóa đơn để xem chi tiết.");
+            return;
+        }
+
+        String maHD = String.valueOf(tblHoaDon.getValueAt(row, 0));
+        InvoiceDetailDialog dialog = new InvoiceDetailDialog(getParentFrame(), hoaDonDAO, maHD);
+        dialog.setVisible(true);
+    }
+
     private Frame getParentFrame() {
         return (Frame) SwingUtilities.getWindowAncestor(this);
     }
@@ -506,19 +527,17 @@ public class HoaDonPanel extends AdminTablePanelBase {
         private final HoaDonDAO hoaDonDAO;
         private final DecimalFormat moneyFormat = new DecimalFormat("#,##0");
 
-        private boolean saved = false;
-
-        private JTextField txtMaHoaDon;
-        private JComboBox<String> cboKhachHang;
-        private JComboBox<String> cboNhanVien;
-        private JComboBox<String> cboKhuyenMai;
-        private JTextField txtThoiGian;
-        private JTextField txtTongTien;
-        private JTextField txtTienGiam;
-        private JTextField txtThanhTien;
-
-        private JTable tblItems;
-        private DefaultTableModel itemModel;
+        protected boolean saved = false;
+        protected JTextField txtMaHoaDon;
+        protected JComboBox<String> cboKhachHang;
+        protected JComboBox<String> cboNhanVien;
+        protected JComboBox<String> cboKhuyenMai;
+        protected JTextField txtThoiGian;
+        protected JTextField txtTongTien;
+        protected JTextField txtTienGiam;
+        protected JTextField txtThanhTien;
+        protected JTable tblItems;
+        protected DefaultTableModel itemModel;
 
         AddInvoiceDialog(Frame owner, HoaDonDAO hoaDonDAO) {
             super(owner, "Thêm hóa đơn", true);
@@ -713,7 +732,7 @@ public class HoaDonPanel extends AdminTablePanelBase {
             panel.add(comp, gbc);
         }
 
-        private void refreshAllRows() {
+        protected void refreshAllRows() {
             for (int i = 0; i < itemModel.getRowCount(); i++) {
                 updateRow(i);
             }
@@ -772,7 +791,7 @@ public class HoaDonPanel extends AdminTablePanelBase {
             txtThanhTien.setText(moneyFormat.format(tong - tienGiam));
         }
 
-        private void saveInvoice() {
+        protected void saveInvoice(){
             try {
                 refreshAllRows();
 
@@ -835,9 +854,9 @@ public class HoaDonPanel extends AdminTablePanelBase {
             }
         }
 
-        private String extractCode(Object obj) {
+        protected String extractCode(Object obj){
             if (obj == null) return "";
-            String s = String.valueOf(obj).trim();
+            String s = String.valueOf(obj).trim();  
             int idx = s.indexOf(" - ");
             return idx >= 0 ? s.substring(0, idx).trim() : s;
         }
@@ -850,4 +869,201 @@ public class HoaDonPanel extends AdminTablePanelBase {
             return saved;
         }
     }
+
+    private static class EditInvoiceDialog extends AddInvoiceDialog {
+
+    private final HoaDonDAO hoaDonDAO;
+    private final String maHoaDon;
+
+    EditInvoiceDialog(Frame owner, HoaDonDAO hoaDonDAO, String maHoaDon) {
+        super(owner, hoaDonDAO);
+        this.hoaDonDAO = hoaDonDAO;
+        this.maHoaDon = maHoaDon;
+
+        setTitle("Sửa hóa đơn");
+        loadDataForEdit();
+    }
+
+    private void loadDataForEdit() {
+            txtMaHoaDon.setText(maHoaDon);
+            txtMaHoaDon.setEditable(false);
+
+            List<Object[]> ds = hoaDonDAO.findAllForTable();
+            for (Object[] row : ds) {
+                if (maHoaDon.equals(String.valueOf(row[0]))) {
+                    selectComboItem(cboKhachHang, String.valueOf(row[1]));
+                    selectComboItem(cboNhanVien, String.valueOf(row[3]));
+                    txtTongTien.setText(String.valueOf(row[5]));
+                    txtTienGiam.setText(String.valueOf(row[6]));
+                    txtThanhTien.setText(String.valueOf(row[7]));
+                    txtThoiGian.setText(String.valueOf(row[8]));
+                    selectComboItem(cboKhuyenMai, String.valueOf(row[9]));
+                    break;
+                }
+            }
+
+            itemModel.setRowCount(0);
+            List<Object[]> details = hoaDonDAO.findDetailsByHoaDon(maHoaDon);
+            for (Object[] d : details) {
+                itemModel.addRow(new Object[]{
+                        d[0] + " - " + d[1],
+                        d[1],
+                        d[2],
+                        d[3],
+                        d[4]
+                });
+            }
+
+            refreshAllRows();
+        }
+
+        private void selectComboItem(JComboBox<String> combo, String code) {
+            if (code == null || code.trim().isEmpty()) {
+                combo.setSelectedIndex(0);
+                return;
+            }
+
+            for (int i = 0; i < combo.getItemCount(); i++) {
+                String item = combo.getItemAt(i);
+                if (item != null && item.startsWith(code + " - ")) {
+                    combo.setSelectedIndex(i);
+                    return;
+                }
+            }
+        }
+
+        @Override
+        protected void saveInvoice() {
+            try {
+                refreshAllRows();
+
+                String maKH = extractCode(cboKhachHang.getSelectedItem());
+                String maNV = extractCode(cboNhanVien.getSelectedItem());
+                String maKM = cboKhuyenMai.getSelectedIndex() <= 0
+                        ? null
+                        : extractCode(cboKhuyenMai.getSelectedItem());
+
+                boolean ok = hoaDonDAO.updateHoaDon(
+                        maHoaDon,
+                        maKH,
+                        maNV,
+                        txtThoiGian.getText().trim(),
+                        maKM,
+                        txtTongTien.getText().replace(",", ""),
+                        txtTienGiam.getText().replace(",", ""),
+                        itemModel
+                );
+
+                if (ok) {
+                    saved = true;
+                    JOptionPane.showMessageDialog(this, "Cập nhật hóa đơn thành công.");
+                    dispose();
+                } else {
+                    JOptionPane.showMessageDialog(this, "Cập nhật hóa đơn thất bại.");
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                JOptionPane.showMessageDialog(this, "Lỗi: " + e.getMessage());
+            }
+        }
+    }
+    private static class InvoiceDetailDialog extends JDialog {
+
+        InvoiceDetailDialog(Frame owner, HoaDonDAO hoaDonDAO, String maHoaDon) {
+            super(owner, "Chi tiết hóa đơn", true);
+            setSize(980, 650);
+            setLocationRelativeTo(owner);
+            setLayout(new BorderLayout(10, 10));
+
+            JPanel info = new JPanel(new GridBagLayout());
+            info.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(210, 210, 210)),
+                    BorderFactory.createEmptyBorder(12, 12, 12, 12)
+            ));
+            info.setBackground(Color.WHITE);
+
+            JTextField txtMaHD = createReadOnly();
+            JTextField txtKH = createReadOnly();
+            JTextField txtNV = createReadOnly();
+            JTextField txtTime = createReadOnly();
+            JTextField txtTong = createReadOnly();
+            JTextField txtGiam = createReadOnly();
+            JTextField txtThanh = createReadOnly();
+            JTextField txtKM = createReadOnly();
+
+            List<Object[]> ds = hoaDonDAO.findAllForTable();
+            for (Object[] row : ds) {
+                if (maHoaDon.equals(String.valueOf(row[0]))) {
+                    txtMaHD.setText(String.valueOf(row[0]));
+                    txtKH.setText(String.valueOf(row[1]) + " - " + String.valueOf(row[2]));
+                    txtNV.setText(String.valueOf(row[3]) + " - " + String.valueOf(row[4]));
+                    txtTong.setText(String.valueOf(row[5]));
+                    txtGiam.setText(String.valueOf(row[6]));
+                    txtThanh.setText(String.valueOf(row[7]));
+                    txtTime.setText(String.valueOf(row[8]));
+                    txtKM.setText(String.valueOf(row[9]));
+                    break;
+                }
+            }
+
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.insets = new Insets(8, 10, 8, 10);
+            gbc.fill = GridBagConstraints.HORIZONTAL;
+
+            addRow(info, gbc, 0, "Mã hóa đơn", txtMaHD);
+            addRow(info, gbc, 1, "Khách hàng", txtKH);
+            addRow(info, gbc, 2, "Nhân viên", txtNV);
+            addRow(info, gbc, 3, "Thời gian", txtTime);
+            addRow(info, gbc, 4, "Tổng tiền", txtTong);
+            addRow(info, gbc, 5, "Tiền giảm", txtGiam);
+            addRow(info, gbc, 6, "Thành tiền", txtThanh);
+            addRow(info, gbc, 7, "Khuyến mãi", txtKM);
+
+            String[] cols = {"Mã SP", "Tên sản phẩm", "Số lượng", "Đơn giá", "Thành tiền"};
+            DefaultTableModel model = new DefaultTableModel(cols, 0) {
+                @Override
+                public boolean isCellEditable(int row, int column) {
+                    return false;
+                }
+            };
+
+            JTable table = new JTable(model);
+            table.setRowHeight(26);
+
+            List<Object[]> details = hoaDonDAO.findDetailsByHoaDon(maHoaDon);
+            for (Object[] d : details) {
+                model.addRow(new Object[]{d[0], d[1], d[2], d[3], d[4]});
+            }
+
+            JButton btnDong = new JButton("Đóng");
+            btnDong.addActionListener(e -> dispose());
+
+            JPanel south = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+            south.add(btnDong);
+
+            add(info, BorderLayout.NORTH);
+            add(new JScrollPane(table), BorderLayout.CENTER);
+            add(south, BorderLayout.SOUTH);
+        }
+
+        private static JTextField createReadOnly() {
+            JTextField txt = new JTextField();
+            txt.setEditable(false);
+            txt.setBackground(Color.WHITE);
+            txt.setPreferredSize(new Dimension(260, 32));
+            return txt;
+        }
+
+        private static void addRow(JPanel panel, GridBagConstraints gbc, int row, String label, JTextField field) {
+            gbc.gridx = 0;
+            gbc.gridy = row;
+            gbc.weightx = 0.3;
+            panel.add(new JLabel(label), gbc);
+
+            gbc.gridx = 1;
+            gbc.weightx = 0.7;
+            panel.add(field, gbc);
+        }
+    }
+
 }
