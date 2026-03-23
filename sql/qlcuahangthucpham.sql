@@ -201,15 +201,6 @@
     ('PN1', 'SP001', 500, 20000),
     ('PN1', 'SP002', 500, 10000);
 
-    JTabbedPane tabs = new JTabbedPane();
-
-tabs.addTab("Quản lý sản phẩm", panelSanPhamCu);
-tabs.addTab("Quản lý loại sản phẩm", new LoaiSanPhamPanel());
-tabs.addTab("Quản lý hàng hóa", new HangHoaPanel());
-
-setLayout(new BorderLayout());
-add(tabs, BorderLayout.CENTER);
-
 -- =========================
 -- 10. BẢNG LOẠI SẢN PHẨM
 -- =========================

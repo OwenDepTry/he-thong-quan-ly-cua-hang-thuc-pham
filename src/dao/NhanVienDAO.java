@@ -75,7 +75,7 @@ public class NhanVienDAO {
             }
         } catch (Exception e) {
             e.printStackTrace();
-            return new LoginResult(LoginStatus.DB_ERROR, null, e.getMessage());
+            return new LoginResult(LoginStatus.DB_ERROR, null, e.toString());
         }
     }
 

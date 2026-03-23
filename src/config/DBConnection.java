@@ -2,33 +2,25 @@ package config;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.SQLException;
 
 public class DBConnection {
-
-<<<<<<< HEAD
-    private static final String DEFAULT_URL = "jdbc:mysql://localhost:3306/qlcuahangthucpham?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
-    private static final String DEFAULT_USER = "root";
-    private static final String DEFAULT_PASSWORD = "";
-=======
-    private static final String DEFAULT_URL = "jdbc:mysql://localhost:3306/QLCuaHangThucPham";
-    private static final String DEFAULT_USER = "root";
-    private static final String DEFAULT_PASSWORD = "ngaoda110";
->>>>>>> 3833e0a (update: fix hoa don + phieu nhap, them sua va chi tiet)
-
-    private static final String URL = getEnvOrDefault("APP_DB_URL", DEFAULT_URL);
-    private static final String USER = getEnvOrDefault("APP_DB_USER", DEFAULT_USER);
-    private static final String PASSWORD = getEnvOrDefault("APP_DB_PASSWORD", DEFAULT_PASSWORD);
-
-    public static Connection open() throws Exception {
-        Class.forName("com.mysql.cj.jdbc.Driver");
-        return DriverManager.getConnection(URL, USER, PASSWORD);
-    }
-
-    private static String getEnvOrDefault(String key, String defaultValue) {
-        String value = System.getenv(key);
-        if (value == null || value.trim().isEmpty()) {
-            return defaultValue;
+    private static final String URL = "jdbc:mysql://127.0.0.1:3306/qlcuahangthucpham?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh";
+    private static final String USER = "root";
+    private static final String PASSWORD = "ngaoda110";
+return new LoginResult(LoginStatus.DB_ERROR, null, e.toString());
+    public static Connection open() {
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            Connection conn = DriverManager.getConnection(URL, USER, PASSWORD);
+            System.out.println("KET NOI DB THANH CONG");
+            return conn;
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+            throw new RuntimeException("Thiếu MySQL JDBC Driver: " + e.getMessage(), e);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw new RuntimeException("Lỗi SQL khi kết nối: " + e.getMessage(), e);
         }
-        return value.trim();
     }
 }
