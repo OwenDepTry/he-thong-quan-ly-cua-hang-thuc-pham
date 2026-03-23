@@ -96,8 +96,8 @@ git clone https://github.com/OwenDepTry/he-thong-quan-ly-cua-hang-thuc-pham
 
 | Vai trò   | Tài khoản | Mật khẩu |
 | --------- | --------- | -------- |
-| Admin     | admin     | 123      |
-| Nhân viên | staff     | 123      |
+| Admin     | admin     | admin    |
+| Nhân viên | nhanvien  | 123      |
 
 ---
 
