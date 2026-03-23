@@ -1,6 +1,8 @@
 package ui;
 
 import dao.NhanVienDAO;
+import dao.NhanVienDAO.LoginResult;
+import dao.NhanVienDAO.LoginStatus;
 import entity.NhanVien;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -159,17 +161,39 @@ public class LoginFrame extends JFrame {
         }
 
         NhanVienDAO dao = new NhanVienDAO();
-        NhanVien nv = dao.login(username, password);
+        LoginResult loginResult = dao.loginDetailed(username, password);
 
-        if (nv == null) {
+        if (loginResult.getStatus() != LoginStatus.SUCCESS) {
+            String message;
+            switch (loginResult.getStatus()) {
+                case USER_NOT_FOUND:
+                    message = "Tài khoản không tồn tại!";
+                    break;
+                case WRONG_PASSWORD:
+                    message = "Mật khẩu không đúng!";
+                    break;
+                case INACTIVE:
+                    message = "Tài khoản đã bị khóa hoặc không còn hoạt động!";
+                    break;
+                case DB_ERROR:
+                    message = "Không thể kết nối cơ sở dữ liệu.\n"
+                            + (loginResult.getErrorMessage() == null ? "" : loginResult.getErrorMessage());
+                    break;
+                default:
+                    message = "Đăng nhập thất bại!";
+                    break;
+            }
+
             JOptionPane.showMessageDialog(
                     this,
-                    "Sai tài khoản hoặc mật khẩu!",
+                    message,
                     "Đăng nhập thất bại",
                     JOptionPane.ERROR_MESSAGE
             );
             return;
         }
+
+        NhanVien nv = loginResult.getNhanVien();
 
         String role = "NV".equalsIgnoreCase(nv.getChucVu()) ? "STAFF" : "ADMIN";
         String displayName = nv.getHoTen() == null || nv.getHoTen().trim().isEmpty()

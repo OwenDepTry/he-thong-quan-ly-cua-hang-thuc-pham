@@ -5,10 +5,9 @@ import entity.NhanVien;
 import java.awt.BorderLayout;
 import java.awt.Frame;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JRadioButton;
 import javax.swing.JTable;
 import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableModel;
@@ -35,6 +34,14 @@ public class NhanVienPanel extends AdminTablePanelBase {
         searchPanel = new SearchPanel(
                 "Dữ liệu nhân viên",
                 "Mã", "Tên", "SDT", "Chức vụ"
+        );
+        searchPanel.setSortOptions(
+            "Mặc định",
+            "Mã giảm dần",
+            "Tên A-Z",
+            "Tên Z-A",
+            "Lương tăng dần",
+            "Lương giảm dần"
         );
 
         buildTopBar(toolbar, searchPanel);
@@ -72,6 +79,7 @@ public class NhanVienPanel extends AdminTablePanelBase {
         searchPanel.getBtnRefresh().addActionListener(e -> timNhanVien());
         searchPanel.getBtnReset().addActionListener(e -> datLaiTimKiem());
         searchPanel.getTxtKeyword().addActionListener(e -> timNhanVien());
+        searchPanel.getCboSort().addActionListener(e -> timNhanVien());
     }
 
     private void importNhanVienCsv() {
@@ -278,13 +286,16 @@ public class NhanVienPanel extends AdminTablePanelBase {
 
     private void timNhanVien() {
         String keyword = searchPanel.getTxtKeyword().getText().trim();
-        String field = getSelectedSearchField();
-        loadTableData(nhanVienDAO.searchForTable(field, keyword));
+        String field = searchPanel.getSelectedRadioText();
+        List<Object[]> data = new ArrayList<>(nhanVienDAO.searchForTable(field, keyword));
+        sortData(data);
+        loadTableData(data);
     }
 
     private void datLaiTimKiem() {
         searchPanel.getTxtKeyword().setText("");
-        loadTableData(nhanVienDAO.findAllForTable());
+        searchPanel.getCboSort().setSelectedIndex(0);
+        timNhanVien();
     }
 
     private String getSelectedMaNhanVien() {
@@ -295,21 +306,32 @@ public class NhanVienPanel extends AdminTablePanelBase {
         return String.valueOf(table.getValueAt(selectedRow, 0));
     }
 
-    private String getSelectedSearchField() {
-        for (java.awt.Component component : searchPanel.getComponents()) {
-            if (component instanceof JPanel) {
-                JPanel panel = (JPanel) component;
-                for (java.awt.Component child : panel.getComponents()) {
-                    if (child instanceof JRadioButton) {
-                        JRadioButton radio = (JRadioButton) child;
-                        if (radio.isSelected()) {
-                            return radio.getText();
-                        }
-                    }
-                }
-            }
+    private void sortData(List<Object[]> data) {
+        String option = String.valueOf(searchPanel.getCboSort().getSelectedItem());
+        switch (option) {
+            case "Mã giảm dần":
+                data.sort((a, b) -> PanelSortUtils.compareCode(b[0], a[0]));
+                break;
+            case "Tên A-Z":
+                data.sort((a, b) -> PanelSortUtils.compareText(fullName(a), fullName(b)));
+                break;
+            case "Tên Z-A":
+                data.sort((a, b) -> PanelSortUtils.compareText(fullName(b), fullName(a)));
+                break;
+            case "Lương tăng dần":
+                data.sort((a, b) -> PanelSortUtils.compareNumber(a[9], b[9]));
+                break;
+            case "Lương giảm dần":
+                data.sort((a, b) -> PanelSortUtils.compareNumber(b[9], a[9]));
+                break;
+            default:
+                data.sort((a, b) -> PanelSortUtils.compareCode(a[0], b[0]));
+                break;
         }
-        return "Mã";
+    }
+
+    private String fullName(Object[] row) {
+        return String.valueOf(row[1]) + " " + String.valueOf(row[2]) + " " + String.valueOf(row[3]);
     }
 
     private void selectRowById(String ma) {

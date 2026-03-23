@@ -5,10 +5,9 @@ import entity.KhuyenMai;
 import java.awt.BorderLayout;
 import java.awt.Frame;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JRadioButton;
 import javax.swing.JTable;
 import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableModel;
@@ -40,6 +39,14 @@ public class KhuyenMaiPanel extends AdminTablePanelBase {
         searchPanel = new SearchPanel(
                 "Dữ liệu khuyến mãi",
                 "Mã", "Tên", "Trạng thái"
+        );
+        searchPanel.setSortOptions(
+            "Mặc định",
+            "Mã giảm dần",
+            "Tên A-Z",
+            "Tên Z-A",
+            "% giảm tăng dần",
+            "% giảm giảm dần"
         );
 
         buildTopBar(toolbar, searchPanel);
@@ -77,6 +84,7 @@ public class KhuyenMaiPanel extends AdminTablePanelBase {
         searchPanel.getBtnRefresh().addActionListener(e -> timKhuyenMai());
         searchPanel.getBtnReset().addActionListener(e -> datLaiTimKiem());
         searchPanel.getTxtKeyword().addActionListener(e -> timKhuyenMai());
+        searchPanel.getCboSort().addActionListener(e -> timKhuyenMai());
     }
 
     private void importKhuyenMaiCsv() {
@@ -257,13 +265,16 @@ public class KhuyenMaiPanel extends AdminTablePanelBase {
 
     private void timKhuyenMai() {
         String keyword = searchPanel.getTxtKeyword().getText().trim();
-        String field = getSelectedSearchField();
-        loadTableData(khuyenMaiDAO.searchForTable(field, keyword));
+        String field = searchPanel.getSelectedRadioText();
+        List<Object[]> data = new ArrayList<>(khuyenMaiDAO.searchForTable(field, keyword));
+        sortData(data);
+        loadTableData(data);
     }
 
     private void datLaiTimKiem() {
         searchPanel.getTxtKeyword().setText("");
-        loadTableData(khuyenMaiDAO.findAllForTable());
+        searchPanel.getCboSort().setSelectedIndex(0);
+        timKhuyenMai();
     }
 
     private String getSelectedMaKhuyenMai() {
@@ -274,21 +285,28 @@ public class KhuyenMaiPanel extends AdminTablePanelBase {
         return String.valueOf(table.getValueAt(selectedRow, 0));
     }
 
-    private String getSelectedSearchField() {
-        for (java.awt.Component component : searchPanel.getComponents()) {
-            if (component instanceof JPanel) {
-                JPanel panel = (JPanel) component;
-                for (java.awt.Component child : panel.getComponents()) {
-                    if (child instanceof JRadioButton) {
-                        JRadioButton radio = (JRadioButton) child;
-                        if (radio.isSelected()) {
-                            return radio.getText();
-                        }
-                    }
-                }
-            }
+    private void sortData(List<Object[]> data) {
+        String option = String.valueOf(searchPanel.getCboSort().getSelectedItem());
+        switch (option) {
+            case "Mã giảm dần":
+                data.sort((a, b) -> PanelSortUtils.compareCode(b[0], a[0]));
+                break;
+            case "Tên A-Z":
+                data.sort((a, b) -> PanelSortUtils.compareText(a[1], b[1]));
+                break;
+            case "Tên Z-A":
+                data.sort((a, b) -> PanelSortUtils.compareText(b[1], a[1]));
+                break;
+            case "% giảm tăng dần":
+                data.sort((a, b) -> PanelSortUtils.compareNumber(a[3], b[3]));
+                break;
+            case "% giảm giảm dần":
+                data.sort((a, b) -> PanelSortUtils.compareNumber(b[3], a[3]));
+                break;
+            default:
+                data.sort((a, b) -> PanelSortUtils.compareCode(a[0], b[0]));
+                break;
         }
-        return "Mã";
     }
 
     private void selectRowById(String ma) {

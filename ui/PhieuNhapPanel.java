@@ -12,6 +12,8 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.text.DecimalFormat;
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import javax.swing.BorderFactory;
 import javax.swing.DefaultCellEditor;
@@ -54,12 +56,21 @@ public class PhieuNhapPanel extends AdminTablePanelBase {
 
         toolbar = new CrudToolbarPanel("Thêm", "Xóa", "Sửa", "Chi tiết", "In PDF", "Xuất excel");
         searchPanel = new SearchPanel("0 phiếu nhập", "Mã phiếu", "Mã NCC", "Mã NV");
+        searchPanel.setSortOptions(
+            "Mã mới nhất",
+            "Mã cũ nhất",
+            "Tổng tiền tăng dần",
+            "Tổng tiền giảm dần",
+            "Ngày mới nhất",
+            "Ngày cũ nhất"
+        );
 
         buildTopBar(toolbar, searchPanel);
         beautifyToolbar();
 
         initUI();
         bindEvents();
+        applyRolePermissions();
         loadData();
     }
 
@@ -302,7 +313,7 @@ public class PhieuNhapPanel extends AdminTablePanelBase {
                     ExportUtils.exportTableToCsv(this, tblPhieuNhap, "danh_sach_phieu_nhap"));
         }
 
-        searchPanel.getBtnRefresh().addActionListener(e -> loadData());
+        searchPanel.getBtnRefresh().addActionListener(e -> searchData());
 
         searchPanel.getBtnReset().addActionListener(e -> {
             searchPanel.getTxtKeyword().setText("");
@@ -310,6 +321,7 @@ public class PhieuNhapPanel extends AdminTablePanelBase {
         });
 
         searchPanel.getTxtKeyword().addActionListener(e -> searchData());
+        searchPanel.getCboSort().addActionListener(e -> searchData());
 
         tblPhieuNhap.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
@@ -318,16 +330,65 @@ public class PhieuNhapPanel extends AdminTablePanelBase {
         });
     }
 
+    private void applyRolePermissions() {
+        if (!AppSession.isAdmin()) {
+            JButton btnXoa = toolbar.getButton("Xóa");
+            JButton btnSua = toolbar.getButton("Sửa");
+
+            if (btnXoa != null) btnXoa.setEnabled(false);
+            if (btnSua != null) btnSua.setEnabled(false);
+        }
+    }
+
     private void loadData() {
-        fillPhieuNhapTable(phieuNhapDAO.findAllForTable());
+        List<Object[]> data;
+        if (AppSession.isAdmin()) {
+            data = new ArrayList<>(phieuNhapDAO.findAllForTable());
+        } else {
+            data = new ArrayList<>(phieuNhapDAO.findAllForTableByNhanVien(AppSession.getMaNhanVien()));
+        }
+        sortData(data);
+        fillPhieuNhapTable(data);
     }
 
     private void searchData() {
         String keyword = searchPanel.getTxtKeyword().getText().trim();
+        String field = searchPanel.getSelectedRadioText();
+        List<Object[]> data;
         if (keyword.isEmpty()) {
             loadData();
         } else {
-            fillPhieuNhapTable(phieuNhapDAO.search(keyword));
+            if (AppSession.isAdmin()) {
+                data = new ArrayList<>(phieuNhapDAO.search(field, keyword));
+            } else {
+                data = new ArrayList<>(phieuNhapDAO.searchByNhanVien(field, keyword, AppSession.getMaNhanVien()));
+            }
+            sortData(data);
+            fillPhieuNhapTable(data);
+        }
+    }
+
+    private void sortData(List<Object[]> data) {
+        String option = String.valueOf(searchPanel.getCboSort().getSelectedItem());
+        switch (option) {
+            case "Mã cũ nhất":
+                data.sort((a, b) -> PanelSortUtils.compareCode(a[0], b[0]));
+                break;
+            case "Tổng tiền tăng dần":
+                data.sort((a, b) -> PanelSortUtils.compareNumber(a[5], b[5]));
+                break;
+            case "Tổng tiền giảm dần":
+                data.sort((a, b) -> PanelSortUtils.compareNumber(b[5], a[5]));
+                break;
+            case "Ngày mới nhất":
+                data.sort((a, b) -> PanelSortUtils.compareText(b[6], a[6]));
+                break;
+            case "Ngày cũ nhất":
+                data.sort((a, b) -> PanelSortUtils.compareText(a[6], b[6]));
+                break;
+            default:
+                data.sort((a, b) -> PanelSortUtils.compareCode(b[0], a[0]));
+                break;
         }
     }
 
@@ -443,12 +504,13 @@ public class PhieuNhapPanel extends AdminTablePanelBase {
             ));
             form.setBackground(new Color(248, 248, 248));
 
-            txtMaPhieuNhap = new JTextField();
+            txtMaPhieuNhap = new JTextField(phieuNhapDAO.generateNextMaPhieuNhap());
             cboNhaCungCap = new JComboBox<>();
             cboNhanVien = new JComboBox<>();
-            txtNgayNhap = new JTextField("2025-04-28");
+            txtNgayNhap = new JTextField(LocalDate.now().toString());
             txtTongTien = new JTextField("0");
 
+            txtMaPhieuNhap.setEditable(false);
             txtTongTien.setEditable(false);
 
             txtMaPhieuNhap.setPreferredSize(new Dimension(250, 34));
@@ -460,8 +522,19 @@ public class PhieuNhapPanel extends AdminTablePanelBase {
             for (String item : phieuNhapDAO.getNhaCungCapOptions()) {
                 cboNhaCungCap.addItem(item);
             }
-            for (String item : phieuNhapDAO.getNhanVienOptions()) {
-                cboNhanVien.addItem(item);
+
+            if (AppSession.isAdmin()) {
+                for (String item : phieuNhapDAO.getNhanVienOptions()) {
+                    cboNhanVien.addItem(item);
+                }
+            } else {
+                String current = AppSession.getCurrentUser() == null
+                        ? AppSession.getMaNhanVien()
+                        : AppSession.getCurrentUser().getMaNhanVien() + " - "
+                        + AppSession.getCurrentUser().getHoTen();
+                cboNhanVien.addItem(current);
+                cboNhanVien.setSelectedIndex(0);
+                cboNhanVien.setEnabled(false);
             }
 
             GridBagConstraints gbc = new GridBagConstraints();
@@ -660,13 +733,17 @@ public class PhieuNhapPanel extends AdminTablePanelBase {
 
                 String maPN = txtMaPhieuNhap.getText().trim();
                 if (maPN.isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "Vui lòng nhập mã phiếu nhập.");
+                    JOptionPane.showMessageDialog(this, "Không thể tạo mã phiếu nhập. Vui lòng thử lại.");
                     return;
                 }
 
                 if (phieuNhapDAO.exists(maPN)) {
-                    JOptionPane.showMessageDialog(this, "Mã phiếu nhập đã tồn tại.");
-                    return;
+                    maPN = phieuNhapDAO.generateNextMaPhieuNhap();
+                    txtMaPhieuNhap.setText(maPN);
+                    if (phieuNhapDAO.exists(maPN)) {
+                        JOptionPane.showMessageDialog(this, "Mã phiếu nhập đang bị trùng. Vui lòng thử lưu lại.");
+                        return;
+                    }
                 }
 
                 if (itemModel.getRowCount() == 0) {

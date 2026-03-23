@@ -37,8 +37,8 @@ public class AdminTablePanelBase extends JPanel {
         topBar.setOpaque(false);
         topBar.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
 
-        // QUAN TRỌNG: tăng chiều cao thanh trên
-        topBar.setPreferredSize(new Dimension(100, 92));
+        // Tăng nhẹ chiều cao để cụm sort/search không bị dính và cắt chữ.
+        topBar.setPreferredSize(new Dimension(100, 104));
 
         JPanel leftWrap = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         leftWrap.setOpaque(false);
