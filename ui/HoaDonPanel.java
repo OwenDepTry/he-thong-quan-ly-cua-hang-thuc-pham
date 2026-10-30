@@ -283,7 +283,8 @@ public class HoaDonPanel extends AdminTablePanelBase {
                         JOptionPane.showMessageDialog(this, "Xóa hóa đơn thành công.");
                         loadData();
                     } else {
-                        JOptionPane.showMessageDialog(this, "Xóa hóa đơn thất bại.");
+                        JOptionPane.showMessageDialog(this, "Xóa hóa đơn thất bại."
+                                + (hoaDonDAO.getLastError() == null ? "" : "\n" + hoaDonDAO.getLastError()));
                     }
                 }
             });
@@ -781,9 +782,16 @@ public class HoaDonPanel extends AdminTablePanelBase {
             double tienGiam = 0;
             String maKM = extractCode(cboKhuyenMai.getSelectedItem());
 
+            cboKhuyenMai.setToolTipText(null);
             if (!"(Không áp dụng)".equals(maKM) && !maKM.isBlank()) {
-                double phanTram = hoaDonDAO.getPhanTramKhuyenMai(maKM);
-                tienGiam = tong * phanTram / 100.0;
+                String lyDo = hoaDonDAO.kiemTraKhuyenMai(maKM, tong, txtThoiGian.getText());
+                if (lyDo == null) {
+                    double phanTram = hoaDonDAO.getPhanTramKhuyenMai(maKM);
+                    tienGiam = tong * phanTram / 100.0;
+                } else {
+                    // Không giảm giá; lý do sẽ được báo khi bấm Lưu
+                    cboKhuyenMai.setToolTipText(lyDo);
+                }
             }
 
             txtTongTien.setText(moneyFormat.format(tong));
@@ -846,7 +854,8 @@ public class HoaDonPanel extends AdminTablePanelBase {
                     JOptionPane.showMessageDialog(this, "Thêm hóa đơn thành công.");
                     dispose();
                 } else {
-                    JOptionPane.showMessageDialog(this, "Lưu hóa đơn thất bại.");
+                    JOptionPane.showMessageDialog(this, "Lưu hóa đơn thất bại."
+                            + (hoaDonDAO.getLastError() == null ? "" : "\n" + hoaDonDAO.getLastError()));
                 }
             } catch (Exception ex) {
                 ex.printStackTrace();
@@ -930,6 +939,10 @@ public class HoaDonPanel extends AdminTablePanelBase {
                     return;
                 }
             }
+
+            // Mã không còn trong danh sách (vd. khuyến mãi đã hết hạn): giữ nguyên giá trị cũ
+            combo.addItem(code);
+            combo.setSelectedIndex(combo.getItemCount() - 1);
         }
 
         @Override
@@ -959,7 +972,8 @@ public class HoaDonPanel extends AdminTablePanelBase {
                     JOptionPane.showMessageDialog(this, "Cập nhật hóa đơn thành công.");
                     dispose();
                 } else {
-                    JOptionPane.showMessageDialog(this, "Cập nhật hóa đơn thất bại.");
+                    JOptionPane.showMessageDialog(this, "Cập nhật hóa đơn thất bại."
+                            + (hoaDonDAO.getLastError() == null ? "" : "\n" + hoaDonDAO.getLastError()));
                 }
             } catch (Exception e) {
                 e.printStackTrace();
