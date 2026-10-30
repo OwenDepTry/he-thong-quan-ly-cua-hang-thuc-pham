@@ -4,11 +4,24 @@ import config.DBConnection;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.time.LocalDate;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.table.DefaultTableModel;
 
 public class HoaDonDAO {
+
+    private static final Pattern DIEU_KIEN_PATTERN = Pattern.compile("^\\s*(>=|>|=)?\\s*([\\d.,]+)");
+
+    private String lastError;
+
+    /** Lý do thất bại của lần insert/update/delete gần nhất (null nếu thành công). */
+    public String getLastError() {
+        return lastError;
+    }
 
     public List<Object[]> findAllForTable() {
         List<Object[]> list = new ArrayList<>();
@@ -16,9 +29,9 @@ public class HoaDonDAO {
         String sql = """
             SELECT hd.MaHoaDon,
                    hd.MaKhachHang,
-                   CONCAT(kh.Ho, ' ', COALESCE(kh.TenLot, ''), ' ', kh.Ten) AS TenKhachHang,
+                   COALESCE(CONCAT_WS(' ', kh.Ho, NULLIF(kh.TenLot, ''), kh.Ten), '') AS TenKhachHang,
                    hd.MaNhanVien,
-                   CONCAT(nv.Ho, ' ', COALESCE(nv.TenLot, ''), ' ', nv.Ten) AS TenNhanVien,
+                   COALESCE(CONCAT_WS(' ', nv.Ho, NULLIF(nv.TenLot, ''), nv.Ten), '') AS TenNhanVien,
                    hd.TongTien,
                    hd.TienGiam,
                    (hd.TongTien - hd.TienGiam) AS ThanhTien,
@@ -27,7 +40,7 @@ public class HoaDonDAO {
             FROM HoaDon hd
             LEFT JOIN KhachHang kh ON kh.MaKhachHang = hd.MaKhachHang
             LEFT JOIN NhanVien nv ON nv.MaNhanVien = hd.MaNhanVien
-            ORDER BY hd.MaHoaDon DESC
+            ORDER BY CAST(SUBSTRING(hd.MaHoaDon, 3) AS UNSIGNED) DESC, hd.MaHoaDon DESC
         """;
 
         try (Connection conn = DBConnection.open();
@@ -73,9 +86,9 @@ public class HoaDonDAO {
         String sql = """
             SELECT hd.MaHoaDon,
                    hd.MaKhachHang,
-                   CONCAT(kh.Ho, ' ', COALESCE(kh.TenLot, ''), ' ', kh.Ten) AS TenKhachHang,
+                   COALESCE(CONCAT_WS(' ', kh.Ho, NULLIF(kh.TenLot, ''), kh.Ten), '') AS TenKhachHang,
                    hd.MaNhanVien,
-                   CONCAT(nv.Ho, ' ', COALESCE(nv.TenLot, ''), ' ', nv.Ten) AS TenNhanVien,
+                   COALESCE(CONCAT_WS(' ', nv.Ho, NULLIF(nv.TenLot, ''), nv.Ten), '') AS TenNhanVien,
                    hd.TongTien,
                    hd.TienGiam,
                    (hd.TongTien - hd.TienGiam) AS ThanhTien,
@@ -85,7 +98,7 @@ public class HoaDonDAO {
             LEFT JOIN KhachHang kh ON kh.MaKhachHang = hd.MaKhachHang
             LEFT JOIN NhanVien nv ON nv.MaNhanVien = hd.MaNhanVien
             WHERE %s LIKE ?
-            ORDER BY hd.MaHoaDon DESC
+            ORDER BY CAST(SUBSTRING(hd.MaHoaDon, 3) AS UNSIGNED) DESC, hd.MaHoaDon DESC
         """.formatted(column);
 
         String k = "%" + normalizedKeyword + "%";
@@ -135,9 +148,9 @@ public class HoaDonDAO {
         String sql = """
             SELECT hd.MaHoaDon,
                 hd.MaKhachHang,
-                CONCAT(kh.Ho, ' ', COALESCE(kh.TenLot, ''), ' ', kh.Ten) AS TenKhachHang,
+                COALESCE(CONCAT_WS(' ', kh.Ho, NULLIF(kh.TenLot, ''), kh.Ten), '') AS TenKhachHang,
                 hd.MaNhanVien,
-                CONCAT(nv.Ho, ' ', COALESCE(nv.TenLot, ''), ' ', nv.Ten) AS TenNhanVien,
+                COALESCE(CONCAT_WS(' ', nv.Ho, NULLIF(nv.TenLot, ''), nv.Ten), '') AS TenNhanVien,
                 hd.TongTien,
                 hd.TienGiam,
                 (hd.TongTien - hd.TienGiam) AS ThanhTien,
@@ -148,7 +161,7 @@ public class HoaDonDAO {
             LEFT JOIN NhanVien nv ON nv.MaNhanVien = hd.MaNhanVien
             WHERE hd.MaNhanVien = ?
               AND %s LIKE ?
-            ORDER BY hd.MaHoaDon DESC
+            ORDER BY CAST(SUBSTRING(hd.MaHoaDon, 3) AS UNSIGNED) DESC, hd.MaHoaDon DESC
         """.formatted(column);
 
         String k = "%" + normalizedKeyword + "%";
@@ -266,7 +279,8 @@ public class HoaDonDAO {
 
     public List<String> getKhuyenMaiOptions() {
         List<String> list = new ArrayList<>();
-        String sql = "SELECT MaKhuyenMai, TenKhuyenMai FROM KhuyenMai WHERE TrangThai = 'active'";
+        String sql = "SELECT MaKhuyenMai, TenKhuyenMai FROM KhuyenMai "
+                + "WHERE TrangThai = 'active' AND CURDATE() BETWEEN NgayBatDau AND NgayKetThuc";
 
         try (Connection conn = DBConnection.open();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -448,6 +462,9 @@ public class HoaDonDAO {
                     psHD.setString(7, maKM);
                 }
 
+                kiemTraKhuyenMaiHopLe(conn, maKM,
+                        Double.parseDouble(tongTien.replace(",", "").trim()), thoiGian);
+
                 psHD.executeUpdate();
 
                 for (int i = 0; i < itemModel.getRowCount(); i++) {
@@ -468,22 +485,25 @@ public class HoaDonDAO {
                     psCT.setInt(3, soLuong);
                     psCT.setDouble(4, donGia);
                     psCT.executeUpdate();
+
+                    truTonKho(conn, maSP, soLuong);
                 }
 
                 conn.commit();
+                lastError = null;
                 return true;
 
             } catch (Exception e) {
                 conn.rollback();
+                lastError = e.getMessage();
                 e.printStackTrace();
-                System.out.println("Lỗi insertHoaDon: " + e.getMessage());
             } finally {
                 conn.setAutoCommit(true);
             }
 
         } catch (Exception e) {
+            lastError = e.getMessage();
             e.printStackTrace();
-            System.out.println("Lỗi kết nối insertHoaDon: " + e.getMessage());
         }
 
         return false;
@@ -499,6 +519,8 @@ public class HoaDonDAO {
             try (PreparedStatement psCT = conn.prepareStatement(sqlCT);
                  PreparedStatement psHD = conn.prepareStatement(sqlHD)) {
 
+                hoanTonKho(conn, maHoaDon);
+
                 psCT.setString(1, maHoaDon);
                 psCT.executeUpdate();
 
@@ -506,10 +528,12 @@ public class HoaDonDAO {
                 psHD.executeUpdate();
 
                 conn.commit();
+                lastError = null;
                 return true;
 
             } catch (Exception e) {
                 conn.rollback();
+                lastError = e.getMessage();
                 e.printStackTrace();
             } finally {
                 conn.setAutoCommit(true);
@@ -557,8 +581,14 @@ public class HoaDonDAO {
                     psHD.setString(6, maKM);
                 }
 
+                kiemTraKhuyenMaiHopLe(conn, maKM,
+                        Double.parseDouble(tongTien.replace(",", "").trim()), thoiGian);
+
                 psHD.setString(7, maHoaDon);
                 psHD.executeUpdate();
+
+                // Hoàn lại tồn kho theo chi tiết cũ trước khi ghi chi tiết mới
+                hoanTonKho(conn, maHoaDon);
 
                 psDeleteCT.setString(1, maHoaDon);
                 psDeleteCT.executeUpdate();
@@ -580,13 +610,17 @@ public class HoaDonDAO {
                     psInsertCT.setInt(3, soLuong);
                     psInsertCT.setDouble(4, donGia);
                     psInsertCT.executeUpdate();
+
+                    truTonKho(conn, maSP, soLuong);
                 }
 
                 conn.commit();
+                lastError = null;
                 return true;
 
             } catch (Exception e) {
                 conn.rollback();
+                lastError = e.getMessage();
                 e.printStackTrace();
             } finally {
                 conn.setAutoCommit(true);
@@ -597,6 +631,112 @@ public class HoaDonDAO {
         }
 
         return false;
+    }
+
+    /** Trừ tồn kho; báo lỗi nếu không đủ hàng (để rollback cả hóa đơn). */
+    private void truTonKho(Connection conn, String maSP, int soLuong) throws SQLException {
+        String sql = "UPDATE SanPham SET SoLuongTon = SoLuongTon - ? WHERE MaSanPham = ? AND SoLuongTon >= ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, soLuong);
+            ps.setString(2, maSP);
+            ps.setInt(3, soLuong);
+            if (ps.executeUpdate() == 0) {
+                throw new SQLException("Sản phẩm " + maSP + " không đủ tồn kho (cần " + soLuong
+                        + ", còn " + getSoLuongTon(conn, maSP) + ").");
+            }
+        }
+    }
+
+    /** Cộng lại tồn kho theo toàn bộ chi tiết hiện có của hóa đơn. */
+    private void hoanTonKho(Connection conn, String maHoaDon) throws SQLException {
+        String sql = """
+            UPDATE SanPham sp
+            JOIN ChiTietHoaDon ct ON ct.MaSanPham = sp.MaSanPham
+            SET sp.SoLuongTon = sp.SoLuongTon + ct.SoLuong
+            WHERE ct.MaHoaDon = ?
+        """;
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, maHoaDon);
+            ps.executeUpdate();
+        }
+    }
+
+    private int getSoLuongTon(Connection conn, String maSP) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement("SELECT SoLuongTon FROM SanPham WHERE MaSanPham = ?")) {
+            ps.setString(1, maSP);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        }
+    }
+
+    /**
+     * Kiểm tra khuyến mãi có áp dụng được không: đang active, ngày hóa đơn nằm trong
+     * khoảng hiệu lực, tổng tiền đạt điều kiện. Trả về null nếu hợp lệ, ngược lại là lý do.
+     */
+    public String kiemTraKhuyenMai(String maKM, double tongTien, String ngayHoaDon) {
+        if (maKM == null || maKM.isBlank()) {
+            return null;
+        }
+        try (Connection conn = DBConnection.open()) {
+            return lyDoKhuyenMaiKhongHopLe(conn, maKM, tongTien, ngayHoaDon);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "Không kiểm tra được khuyến mãi: " + e.getMessage();
+        }
+    }
+
+    private void kiemTraKhuyenMaiHopLe(Connection conn, String maKM, double tongTien, String ngayHoaDon)
+            throws SQLException {
+        if (maKM == null || maKM.isBlank()) {
+            return;
+        }
+        String lyDo = lyDoKhuyenMaiKhongHopLe(conn, maKM, tongTien, ngayHoaDon);
+        if (lyDo != null) {
+            throw new SQLException(lyDo);
+        }
+    }
+
+    private String lyDoKhuyenMaiKhongHopLe(Connection conn, String maKM, double tongTien, String ngayHoaDon)
+            throws SQLException {
+        String sql = "SELECT DieuKien, NgayBatDau, NgayKetThuc, TrangThai FROM KhuyenMai WHERE MaKhuyenMai = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, maKM);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) {
+                    return "Khuyến mãi " + maKM + " không tồn tại.";
+                }
+                if (!"active".equalsIgnoreCase(String.valueOf(rs.getString("TrangThai")).trim())) {
+                    return "Khuyến mãi " + maKM + " đang ngừng áp dụng.";
+                }
+
+                LocalDate ngay;
+                try {
+                    ngay = LocalDate.parse(ngayHoaDon.trim());
+                } catch (Exception e) {
+                    return "Ngày hóa đơn không hợp lệ (định dạng yyyy-MM-dd).";
+                }
+                java.sql.Date bd = rs.getDate("NgayBatDau");
+                java.sql.Date kt = rs.getDate("NgayKetThuc");
+                if (bd != null && ngay.isBefore(bd.toLocalDate())) {
+                    return "Khuyến mãi " + maKM + " chưa bắt đầu (từ " + bd + ").";
+                }
+                if (kt != null && ngay.isAfter(kt.toLocalDate())) {
+                    return "Khuyến mãi " + maKM + " đã hết hạn (đến " + kt + ").";
+                }
+
+                String dieuKien = rs.getString("DieuKien");
+                Matcher m = dieuKien == null ? null : DIEU_KIEN_PATTERN.matcher(dieuKien);
+                if (m != null && m.find()) {
+                    double nguong = Double.parseDouble(m.group(2).replace(",", "").replace(".", ""));
+                    boolean dat = ">".equals(m.group(1)) ? tongTien > nguong : tongTien >= nguong;
+                    if (!dat) {
+                        return "Hóa đơn chưa đạt điều kiện khuyến mãi " + maKM + " (" + dieuKien.trim() + ").";
+                    }
+                }
+                return null;
+            }
+        }
     }
 
     private String extractCode(String value) {
@@ -627,9 +767,9 @@ public class HoaDonDAO {
         String sql = """
             SELECT hd.MaHoaDon,
                 hd.MaKhachHang,
-                CONCAT(kh.Ho, ' ', COALESCE(kh.TenLot, ''), ' ', kh.Ten) AS TenKhachHang,
+                COALESCE(CONCAT_WS(' ', kh.Ho, NULLIF(kh.TenLot, ''), kh.Ten), '') AS TenKhachHang,
                 hd.MaNhanVien,
-                CONCAT(nv.Ho, ' ', COALESCE(nv.TenLot, ''), ' ', nv.Ten) AS TenNhanVien,
+                COALESCE(CONCAT_WS(' ', nv.Ho, NULLIF(nv.TenLot, ''), nv.Ten), '') AS TenNhanVien,
                 hd.TongTien,
                 hd.TienGiam,
                 (hd.TongTien - hd.TienGiam) AS ThanhTien,
@@ -639,7 +779,7 @@ public class HoaDonDAO {
             LEFT JOIN KhachHang kh ON kh.MaKhachHang = hd.MaKhachHang
             LEFT JOIN NhanVien nv ON nv.MaNhanVien = hd.MaNhanVien
             WHERE hd.MaNhanVien = ?
-            ORDER BY hd.MaHoaDon DESC
+            ORDER BY CAST(SUBSTRING(hd.MaHoaDon, 3) AS UNSIGNED) DESC, hd.MaHoaDon DESC
         """;
 
         try (Connection conn = DBConnection.open();
