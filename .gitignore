@@ -1,0 +1,8 @@
+# Thông tin kết nối DB cục bộ
+db.properties
+
+# File biên dịch
+*.class
+bin/
+out/
+build/

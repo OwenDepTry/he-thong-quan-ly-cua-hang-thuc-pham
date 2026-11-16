@@ -110,7 +110,7 @@ public class KhuyenMaiPanel extends AdminTablePanelBase {
                 KhuyenMai km = new KhuyenMai();
                 km.setMaKhuyenMai(row[0]);
                 km.setTenKhuyenMai(row[1]);
-                km.setDieuKien(parseDoubleSafe(row[2]));
+                km.setDieuKien(row[2] == null ? "" : row[2].trim());
                 km.setPhanTramGiam(parseDoubleSafe(row[3]));
                 km.setNgayBatDau(row[4]);
                 km.setNgayKetThuc(row[5]);

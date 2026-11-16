@@ -1,0 +1,7 @@
+# Sao chép file này thành "db.properties" (cùng thư mục) rồi điền thông tin MySQL của máy bạn.
+# db.properties đã nằm trong .gitignore nên mật khẩu sẽ không bị đẩy lên GitHub.
+# Có thể ghi đè bằng biến môi trường DB_URL, DB_USER, DB_PASSWORD.
+
+db.url=jdbc:mysql://127.0.0.1:3306/qlcuahangthucpham?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh
+db.user=root
+db.password=

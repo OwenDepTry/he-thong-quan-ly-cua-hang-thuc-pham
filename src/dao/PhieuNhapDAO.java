@@ -12,34 +12,49 @@ import javax.swing.table.DefaultTableModel;
 
 public class PhieuNhapDAO {
 
-    public List<Object[]> findAllForTable() {
+    /*
+     * Danh sách phiếu nhập lấy kèm tên NCC và tên NV bằng một câu JOIN duy nhất,
+     * thay vì mỗi dòng gọi thêm 2 truy vấn (getTenNhaCungCapById / getTenNhanVienById).
+     */
+    private static final String SELECT_PHIEU_NHAP = """
+        SELECT pn.MaPhieuNhap,
+               pn.MaNhaCungCap,
+               COALESCE(ncc.Ten, '') AS TenNhaCungCap,
+               pn.MaNhanVien,
+               COALESCE(CONCAT_WS(' ', nv.Ho, NULLIF(nv.TenLot, ''), nv.Ten), '') AS TenNhanVien,
+               pn.TongTien,
+               pn.ThoiGian
+        FROM PhieuNhap pn
+        LEFT JOIN NhaCungCap ncc ON ncc.MaNhaCungCap = pn.MaNhaCungCap
+        LEFT JOIN NhanVien nv ON nv.MaNhanVien = pn.MaNhanVien
+        """;
+
+    private static final String ORDER_PHIEU_NHAP =
+            " ORDER BY CAST(SUBSTRING(pn.MaPhieuNhap, 3) AS UNSIGNED) DESC, pn.MaPhieuNhap DESC";
+
+    private List<Object[]> queryPhieuNhap(String where, String... params) {
         List<Object[]> list = new ArrayList<>();
-        String ngayCol = getExistingColumn("PhieuNhap", "NgayNhap", "ThoiGian");
-
-        if (ngayCol == null) {
-            ngayCol = "NgayNhap";
-        }
-
-        String sql = "SELECT MaPhieuNhap, MaNhaCungCap, MaNhanVien, TongTien, " + ngayCol
-                + " FROM PhieuNhap ORDER BY MaPhieuNhap DESC";
+        String sql = SELECT_PHIEU_NHAP + (where == null ? "" : " WHERE " + where) + ORDER_PHIEU_NHAP;
 
         try (Connection conn = DBConnection.open();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+             PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            while (rs.next()) {
-                String maNCC = safe(rs.getString("MaNhaCungCap"));
-                String maNV = safe(rs.getString("MaNhanVien"));
+            for (int i = 0; i < params.length; i++) {
+                ps.setString(i + 1, params[i]);
+            }
 
-                list.add(new Object[]{
-                    rs.getString("MaPhieuNhap"),
-                    maNCC,
-                    getTenNhaCungCapById(maNCC),
-                    maNV,
-                    getTenNhanVienById(maNV),
-                    rs.getDouble("TongTien"),
-                    rs.getString(ngayCol)
-                });
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(new Object[]{
+                        rs.getString("MaPhieuNhap"),
+                        safe(rs.getString("MaNhaCungCap")),
+                        safe(rs.getString("TenNhaCungCap")),
+                        safe(rs.getString("MaNhanVien")),
+                        safe(rs.getString("TenNhanVien")),
+                        rs.getDouble("TongTien"),
+                        rs.getString("ThoiGian")
+                    });
+                }
             }
 
         } catch (Exception e) {
@@ -47,6 +62,14 @@ public class PhieuNhapDAO {
         }
 
         return list;
+    }
+
+    public List<Object[]> findAllForTable() {
+        return queryPhieuNhap(null);
+    }
+
+    public List<Object[]> findAllForTableByNhanVien(String maNhanVien) {
+        return queryPhieuNhap("pn.MaNhanVien = ?", maNhanVien);
     }
 
     public List<Object[]> search(String keyword) {
@@ -54,54 +77,11 @@ public class PhieuNhapDAO {
     }
 
     public List<Object[]> search(String field, String keyword) {
-        List<Object[]> list = new ArrayList<>();
         String normalizedKeyword = keyword == null ? "" : keyword.trim();
-
         if (normalizedKeyword.isEmpty()) {
             return findAllForTable();
         }
-
-        String column = resolveSearchColumn(field);
-        String ngayCol = getExistingColumn("PhieuNhap", "NgayNhap", "ThoiGian");
-
-        if (ngayCol == null) {
-            ngayCol = "NgayNhap";
-        }
-
-        String sql = "SELECT MaPhieuNhap, MaNhaCungCap, MaNhanVien, TongTien, " + ngayCol
-                + " FROM PhieuNhap "
-                + "WHERE " + column + " LIKE ? "
-                + "ORDER BY MaPhieuNhap DESC";
-
-        String k = "%" + normalizedKeyword + "%";
-
-        try (Connection conn = DBConnection.open();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setString(1, k);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    String maNCC = safe(rs.getString("MaNhaCungCap"));
-                    String maNV = safe(rs.getString("MaNhanVien"));
-
-                    list.add(new Object[]{
-                        rs.getString("MaPhieuNhap"),
-                        maNCC,
-                        getTenNhaCungCapById(maNCC),
-                        maNV,
-                        getTenNhanVienById(maNV),
-                        rs.getDouble("TongTien"),
-                        rs.getString(ngayCol)
-                    });
-                }
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return list;
+        return queryPhieuNhap("pn." + resolveSearchColumn(field) + " LIKE ?", "%" + normalizedKeyword + "%");
     }
 
     public List<Object[]> searchByNhanVien(String keyword, String maNhanVien) {
@@ -109,56 +89,12 @@ public class PhieuNhapDAO {
     }
 
     public List<Object[]> searchByNhanVien(String field, String keyword, String maNhanVien) {
-        List<Object[]> list = new ArrayList<>();
         String normalizedKeyword = keyword == null ? "" : keyword.trim();
-
         if (normalizedKeyword.isEmpty()) {
             return findAllForTableByNhanVien(maNhanVien);
         }
-
-        String column = resolveSearchColumn(field);
-        String ngayCol = getExistingColumn("PhieuNhap", "NgayNhap", "ThoiGian");
-
-        if (ngayCol == null) {
-            ngayCol = "NgayNhap";
-        }
-
-        String sql = "SELECT MaPhieuNhap, MaNhaCungCap, MaNhanVien, TongTien, " + ngayCol
-                + " FROM PhieuNhap "
-                + "WHERE MaNhanVien = ? "
-            + "AND " + column + " LIKE ? "
-                + "ORDER BY MaPhieuNhap DESC";
-
-        String k = "%" + normalizedKeyword + "%";
-
-        try (Connection conn = DBConnection.open();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setString(1, maNhanVien);
-            ps.setString(2, k);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    String maNCC = safe(rs.getString("MaNhaCungCap"));
-                    String maNV = safe(rs.getString("MaNhanVien"));
-
-                    list.add(new Object[]{
-                        rs.getString("MaPhieuNhap"),
-                        maNCC,
-                        getTenNhaCungCapById(maNCC),
-                        maNV,
-                        getTenNhanVienById(maNV),
-                        rs.getDouble("TongTien"),
-                        rs.getString(ngayCol)
-                    });
-                }
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return list;
+        return queryPhieuNhap("pn.MaNhanVien = ? AND pn." + resolveSearchColumn(field) + " LIKE ?",
+                maNhanVien, "%" + normalizedKeyword + "%");
     }
 
     private String resolveSearchColumn(String field) {
@@ -683,7 +619,23 @@ public class PhieuNhapDAO {
         return false;
     }
 
+    private static final java.util.Map<String, String> COLUMN_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** Kết quả được cache vì cấu trúc bảng không đổi khi chương trình đang chạy. */
     private String getExistingColumn(String tableName, String... candidates) {
+        String key = tableName + ":" + String.join(",", candidates);
+        String cached = COLUMN_CACHE.get(key);
+        if (cached != null) {
+            return cached;
+        }
+        String found = lookupExistingColumn(tableName, candidates);
+        if (found != null) {
+            COLUMN_CACHE.put(key, found);
+        }
+        return found;
+    }
+
+    private String lookupExistingColumn(String tableName, String... candidates) {
         try (Connection conn = DBConnection.open()) {
             DatabaseMetaData meta = conn.getMetaData();
             try (ResultSet rs = meta.getColumns(conn.getCatalog(), null, tableName, null)) {
@@ -718,47 +670,5 @@ public class PhieuNhapDAO {
         return value == null ? "" : value.trim();
     }
 
-    public List<Object[]> findAllForTableByNhanVien(String maNhanVien) {
-        List<Object[]> list = new ArrayList<>();
-
-        String sql = """
-            SELECT pn.MaPhieuNhap,
-                pn.MaNhaCungCap,
-                ncc.Ten AS TenNhaCungCap,
-                pn.MaNhanVien,
-                CONCAT(nv.Ho, ' ', COALESCE(nv.TenLot, ''), ' ', nv.Ten) AS TenNhanVien,
-                pn.TongTien,
-                pn.ThoiGian
-            FROM PhieuNhap pn
-            LEFT JOIN NhaCungCap ncc ON ncc.MaNhaCungCap = pn.MaNhaCungCap
-            LEFT JOIN NhanVien nv ON nv.MaNhanVien = pn.MaNhanVien
-            WHERE pn.MaNhanVien = ?
-            ORDER BY pn.MaPhieuNhap DESC
-        """;
-
-        try (Connection conn = DBConnection.open();
-            PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setString(1, maNhanVien);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    list.add(new Object[]{
-                        rs.getString("MaPhieuNhap"),
-                        rs.getString("MaNhaCungCap"),
-                        rs.getString("TenNhaCungCap"),
-                        rs.getString("MaNhanVien"),
-                        rs.getString("TenNhanVien").trim(),
-                        rs.getDouble("TongTien"),
-                        rs.getString("ThoiGian")
-                    });
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return list;
-    }
 
 }
