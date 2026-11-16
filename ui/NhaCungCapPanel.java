@@ -163,7 +163,7 @@ public class NhaCungCapPanel extends AdminTablePanelBase {
         if (nhaCungCapDAO.insert(ncc)) {
             loadTableData(nhaCungCapDAO.findAllForTable());
             selectRowById(ncc.getMaNhaCungCap());
-            JOptionPane.showMessageDialog(this, "Thêm nhà cung cấp thành công.");
+            Toast.success(this, "Thêm nhà cung cấp thành công");
         } else {
             JOptionPane.showMessageDialog(this, "Thêm nhà cung cấp thất bại.", "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
@@ -199,7 +199,7 @@ public class NhaCungCapPanel extends AdminTablePanelBase {
         if (nhaCungCapDAO.update(updated)) {
             loadTableData(nhaCungCapDAO.findAllForTable());
             selectRowById(updated.getMaNhaCungCap());
-            JOptionPane.showMessageDialog(this, "Cập nhật nhà cung cấp thành công.");
+            Toast.success(this, "Cập nhật nhà cung cấp thành công");
         } else {
             JOptionPane.showMessageDialog(this, "Cập nhật nhà cung cấp thất bại.", "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
@@ -225,7 +225,7 @@ public class NhaCungCapPanel extends AdminTablePanelBase {
 
         if (nhaCungCapDAO.delete(ma)) {
             loadTableData(nhaCungCapDAO.findAllForTable());
-            JOptionPane.showMessageDialog(this, "Xóa nhà cung cấp thành công.");
+            Toast.success(this, "Xóa nhà cung cấp thành công");
         } else {
             JOptionPane.showMessageDialog(
                     this,

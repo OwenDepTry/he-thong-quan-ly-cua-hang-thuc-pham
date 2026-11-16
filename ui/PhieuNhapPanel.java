@@ -273,7 +273,7 @@ public class PhieuNhapPanel extends AdminTablePanelBase {
 
                 if (confirm == JOptionPane.YES_OPTION) {
                     if (phieuNhapDAO.delete(maPN)) {
-                        JOptionPane.showMessageDialog(this, "Xóa phiếu nhập thành công.");
+                        Toast.success(this, "Xóa phiếu nhập thành công");
                         loadData();
                     } else {
                         JOptionPane.showMessageDialog(this, "Xóa phiếu nhập thất bại.");
@@ -815,7 +815,7 @@ public class PhieuNhapPanel extends AdminTablePanelBase {
 
                 if (ok) {
                     saved = true;
-                    JOptionPane.showMessageDialog(this, "Thêm phiếu nhập thành công.");
+                    Toast.success(this, "Thêm phiếu nhập thành công");
                     dispose();
                 } else {
                     JOptionPane.showMessageDialog(this, "Lưu phiếu nhập thất bại. Kiểm tra console để xem lỗi chi tiết.");
@@ -918,7 +918,7 @@ public class PhieuNhapPanel extends AdminTablePanelBase {
 
                 if (ok) {
                     saved = true;
-                    JOptionPane.showMessageDialog(this, "Cập nhật phiếu nhập thành công.");
+                    Toast.success(this, "Cập nhật phiếu nhập thành công");
                     dispose();
                 } else {
                     JOptionPane.showMessageDialog(this, "Cập nhật phiếu nhập thất bại.");

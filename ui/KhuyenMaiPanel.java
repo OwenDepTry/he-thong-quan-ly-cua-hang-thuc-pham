@@ -173,7 +173,7 @@ public class KhuyenMaiPanel extends AdminTablePanelBase {
         if (khuyenMaiDAO.insert(km)) {
             loadTableData(khuyenMaiDAO.findAllForTable());
             selectRowById(km.getMaKhuyenMai());
-            JOptionPane.showMessageDialog(this, "Thêm khuyến mãi thành công.");
+            Toast.success(this, "Thêm khuyến mãi thành công");
         } else {
             JOptionPane.showMessageDialog(this, "Thêm khuyến mãi thất bại.", "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
@@ -204,7 +204,7 @@ public class KhuyenMaiPanel extends AdminTablePanelBase {
         if (khuyenMaiDAO.update(updated)) {
             loadTableData(khuyenMaiDAO.findAllForTable());
             selectRowById(updated.getMaKhuyenMai());
-            JOptionPane.showMessageDialog(this, "Cập nhật khuyến mãi thành công.");
+            Toast.success(this, "Cập nhật khuyến mãi thành công");
         } else {
             JOptionPane.showMessageDialog(this, "Cập nhật khuyến mãi thất bại.", "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
@@ -230,7 +230,7 @@ public class KhuyenMaiPanel extends AdminTablePanelBase {
 
         if (khuyenMaiDAO.delete(ma)) {
             loadTableData(khuyenMaiDAO.findAllForTable());
-            JOptionPane.showMessageDialog(this, "Xóa khuyến mãi thành công.");
+            Toast.success(this, "Xóa khuyến mãi thành công");
         } else {
             JOptionPane.showMessageDialog(
                     this,

@@ -176,7 +176,7 @@ public class KhachHangPanel extends AdminTablePanelBase {
         if (khachHangDAO.insert(kh)) {
             loadTableData(khachHangDAO.findAllForTable());
             selectRowById(kh.getMaKhachHang());
-            JOptionPane.showMessageDialog(this, "Thêm khách hàng thành công.");
+            Toast.success(this, "Thêm khách hàng thành công");
         } else {
             JOptionPane.showMessageDialog(this, "Thêm khách hàng thất bại.", "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
@@ -210,7 +210,7 @@ public class KhachHangPanel extends AdminTablePanelBase {
         if (khachHangDAO.update(updated)) {
             loadTableData(khachHangDAO.findAllForTable());
             selectRowById(updated.getMaKhachHang());
-            JOptionPane.showMessageDialog(this, "Cập nhật khách hàng thành công.");
+            Toast.success(this, "Cập nhật khách hàng thành công");
         } else {
             JOptionPane.showMessageDialog(this, "Cập nhật khách hàng thất bại.", "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
@@ -235,7 +235,7 @@ public class KhachHangPanel extends AdminTablePanelBase {
 
         if (khachHangDAO.delete(maKhachHang)) {
             loadTableData(khachHangDAO.findAllForTable());
-            JOptionPane.showMessageDialog(this, "Xóa khách hàng thành công.");
+            Toast.success(this, "Xóa khách hàng thành công");
         } else {
             JOptionPane.showMessageDialog(
                     this,

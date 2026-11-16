@@ -1,190 +1,80 @@
 package ui;
 
 import entity.KhuyenMai;
-import java.awt.BorderLayout;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
 import java.awt.Frame;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
 import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
-import javax.swing.BorderFactory;
-import javax.swing.JButton;
 import javax.swing.JComboBox;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
 import javax.swing.JTextField;
 
-public class KhuyenMaiDialog extends JDialog {
+/** Hộp thoại Thêm / Sửa khuyến mãi. */
+public class KhuyenMaiDialog extends FormDialog {
 
-    private final JTextField txtMa = new JTextField();
-    private final JTextField txtTen = new JTextField();
+    private final JTextField txtMa = placeholder(new JTextField(), "VD: KM005");
+    private final JTextField txtTen = placeholder(new JTextField(), "VD: Giảm giá cuối tuần");
     private final JTextField txtDieuKien = new JTextField();
-    private final JTextField txtPhanTramGiam = new JTextField();
-    private final JTextField txtNgayBatDau = new JTextField();
-    private final JTextField txtNgayKetThuc = new JTextField();
-    private final JComboBox<String> cboTrangThai = new JComboBox<>(new String[]{"active", "inactive"});
-
-    private boolean saved = false;
+    private final JTextField txtPhanTramGiam = placeholder(new JTextField(), "0 – 100");
+    private final JTextField txtNgayBatDau = placeholder(new JTextField(), "dd/mm/yyyy");
+    private final JTextField txtNgayKetThuc = placeholder(new JTextField(), "dd/mm/yyyy");
+    private final JComboBox<Choice> cboTrangThai = choices("active", "Đang áp dụng", "inactive", "Tạm ngưng");
 
     public KhuyenMaiDialog(Frame owner, String title, KhuyenMai km, boolean editableId) {
-        super(owner, title, true);
-        setLayout(new BorderLayout(8, 8));
-        setSize(560, 380);
-        setLocationRelativeTo(owner);
-        setResizable(false);
+        super(owner, title, editableId ? "Tạo chương trình khuyến mãi mới."
+                : "Chỉnh sửa chương trình rồi bấm Lưu.", "tag");
 
-        JPanel form = new JPanel(new GridBagLayout());
-        form.setBackground(AppTheme.PANEL_WHITE);
-        form.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(AppTheme.GREEN_BORDER, 1),
-                BorderFactory.createEmptyBorder(14, 14, 10, 14)
-        ));
+        addSection("Chương trình");
+        addField("Mã khuyến mãi", txtMa, true);
+        addField("Trạng thái", cboTrangThai, false);
+        addField("Tên khuyến mãi", txtTen, true, null, true);
 
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(6, 6, 6, 6);
-        gbc.anchor = GridBagConstraints.WEST;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-
-        int row = 0;
-        addRow(form, gbc, row++, "Mã khuyến mãi", txtMa);
-        addRow(form, gbc, row++, "Tên khuyến mãi", txtTen);
-        addRow(form, gbc, row++, "Điều kiện", txtDieuKien);
-        addRow(form, gbc, row++, "Phần trăm giảm", txtPhanTramGiam);
-        addRow(form, gbc, row++, "Ngày bắt đầu", txtNgayBatDau);
-        addRow(form, gbc, row++, "Ngày kết thúc", txtNgayKetThuc);
-        addRow(form, gbc, row++, "Trạng thái", cboTrangThai);
-
-        txtMa.setEditable(editableId);
-        txtMa.setBackground(editableId ? AppTheme.WHITE : new java.awt.Color(245, 245, 245));
+        addSection("Điều kiện và mức giảm");
+        addField("Điều kiện áp dụng", txtDieuKien, true, "VD: >=100000 (hóa đơn từ 100.000 đ)", false);
+        addField("Phần trăm giảm (%)", txtPhanTramGiam, true);
+        addField("Ngày bắt đầu", txtNgayBatDau, true, "Ngày/tháng/năm", false);
+        addField("Ngày kết thúc", txtNgayKetThuc, true, "Ngày/tháng/năm", false);
 
         if (km != null) {
-            fillData(km);
+            txtMa.setText(km.getMaKhuyenMai());
+            txtTen.setText(km.getTenKhuyenMai());
+            txtDieuKien.setText(km.getDieuKien());
+            txtPhanTramGiam.setText(displayNumber(km.getPhanTramGiam()));
+            txtNgayBatDau.setText(toDisplayDate(km.getNgayBatDau()));
+            txtNgayKetThuc.setText(toDisplayDate(km.getNgayKetThuc()));
+            select(cboTrangThai, km.getTrangThai());
         } else {
             txtPhanTramGiam.setText("10");
-            txtNgayBatDau.setText(LocalDate.now().toString());
-            txtNgayKetThuc.setText(LocalDate.now().plusDays(7).toString());
+            txtNgayBatDau.setText(toDisplayDate(LocalDate.now().toString()));
+            txtNgayKetThuc.setText(toDisplayDate(LocalDate.now().plusDays(7).toString()));
             txtDieuKien.setText(">=100000");
         }
-
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
-        buttonPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 8, 0));
-        buttonPanel.setOpaque(false);
-
-        JButton btnSave = new AppButton("Lưu", null, AppButton.Variant.PRIMARY);
-        getRootPane().setDefaultButton(btnSave); // Enter = Lưu
-        btnSave.setPreferredSize(new Dimension(90, 32));
-        btnSave.setBackground(AppTheme.GREEN_TOP);
-        btnSave.setForeground(java.awt.Color.WHITE);
-        btnSave.setFocusPainted(false);
-        btnSave.addActionListener(e -> onSave());
-
-        JButton btnCancel = new AppButton("Hủy");
-        btnCancel.setPreferredSize(new Dimension(90, 32));
-        btnCancel.setFocusPainted(false);
-        btnCancel.addActionListener(e -> dispose());
-
-        buttonPanel.add(btnCancel);
-        buttonPanel.add(btnSave);
-
-        add(form, BorderLayout.CENTER);
-        add(buttonPanel, BorderLayout.SOUTH);
+        if (!editableId) {
+            lockField(txtMa, "Không thể đổi mã khi sửa");
+        }
+        finish();
     }
 
-    private void addRow(JPanel panel, GridBagConstraints gbc, int row, String label, java.awt.Component comp) {
-        gbc.gridx = 0;
-        gbc.gridy = row;
-        gbc.weightx = 0;
-        panel.add(new JLabel(label + ":"), gbc);
-
-        gbc.gridx = 1;
-        gbc.weightx = 1;
-        comp.setPreferredSize(new Dimension(260, 28));
-        panel.add(comp, gbc);
-    }
-
-    private void fillData(KhuyenMai km) {
-        txtMa.setText(km.getMaKhuyenMai());
-        txtTen.setText(km.getTenKhuyenMai());
-        txtDieuKien.setText(km.getDieuKien());
-        txtPhanTramGiam.setText(String.valueOf(km.getPhanTramGiam()));
-        txtNgayBatDau.setText(km.getNgayBatDau());
-        txtNgayKetThuc.setText(km.getNgayKetThuc());
-        cboTrangThai.setSelectedItem(km.getTrangThai());
-    }
-
-    private void onSave() {
-        String error = validateInput();
-        if (error != null) {
-            JOptionPane.showMessageDialog(this, error, "Dữ liệu chưa hợp lệ", JOptionPane.WARNING_MESSAGE);
-            return;
+    @Override
+    protected boolean validateForm() {
+        boolean ok = required(txtMa, "Mã khuyến mãi");
+        ok &= required(txtTen, "Tên khuyến mãi");
+        ok &= required(txtDieuKien, "Điều kiện");
+        ok &= number(txtPhanTramGiam, "Phần trăm giảm", 0, 100);
+        boolean datesOk = date(txtNgayBatDau, "Ngày bắt đầu");
+        datesOk &= date(txtNgayKetThuc, "Ngày kết thúc");
+        if (datesOk && parseDate(text(txtNgayKetThuc)).isBefore(parseDate(text(txtNgayBatDau)))) {
+            datesOk = error(txtNgayKetThuc, "Ngày kết thúc phải sau ngày bắt đầu");
         }
-        saved = true;
-        dispose();
-    }
-
-    private String validateInput() {
-        if (txtMa.getText().trim().isEmpty()) {
-            return "Mã khuyến mãi không được để trống.";
-        }
-        if (txtTen.getText().trim().isEmpty()) {
-            return "Tên khuyến mãi không được để trống.";
-        }
-        if (txtDieuKien.getText().trim().isEmpty()) {
-            return "Điều kiện không được để trống.";
-        }
-
-        try {
-            double ptg = Double.parseDouble(txtPhanTramGiam.getText().trim());
-            if (ptg < 0 || ptg > 100) {
-                return "Phần trăm giảm phải nằm trong khoảng 0 đến 100.";
-            }
-        } catch (NumberFormatException e) {
-            return "Phần trăm giảm phải là số.";
-        }
-
-        if (!isValidDate(txtNgayBatDau.getText().trim())) {
-            return "Ngày bắt đầu phải đúng định dạng yyyy-MM-dd.";
-        }
-        if (!isValidDate(txtNgayKetThuc.getText().trim())) {
-            return "Ngày kết thúc phải đúng định dạng yyyy-MM-dd.";
-        }
-
-        LocalDate start = LocalDate.parse(txtNgayBatDau.getText().trim());
-        LocalDate end = LocalDate.parse(txtNgayKetThuc.getText().trim());
-        if (end.isBefore(start)) {
-            return "Ngày kết thúc không được nhỏ hơn ngày bắt đầu.";
-        }
-
-        return null;
-    }
-
-    private boolean isValidDate(String value) {
-        try {
-            LocalDate.parse(value);
-            return true;
-        } catch (DateTimeParseException e) {
-            return false;
-        }
-    }
-
-    public boolean isSaved() {
-        return saved;
+        return ok && datesOk;
     }
 
     public KhuyenMai getKhuyenMai() {
         return new KhuyenMai(
-                txtMa.getText().trim(),
-                txtTen.getText().trim(),
-                txtDieuKien.getText().trim(),
-                Double.parseDouble(txtPhanTramGiam.getText().trim()),
-                txtNgayBatDau.getText().trim(),
-                txtNgayKetThuc.getText().trim(),
-                cboTrangThai.getSelectedItem().toString()
+                text(txtMa),
+                text(txtTen),
+                text(txtDieuKien),
+                Double.parseDouble(plainNumber(txtPhanTramGiam)),
+                isoDate(txtNgayBatDau),
+                isoDate(txtNgayKetThuc),
+                value(cboTrangThai)
         );
     }
 }

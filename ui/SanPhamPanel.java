@@ -211,7 +211,7 @@ public class SanPhamPanel extends AdminTablePanelBase {
         );
 
         if (ok) {
-            JOptionPane.showMessageDialog(this, "Thêm sản phẩm thành công!");
+            Toast.success(this, "Thêm sản phẩm thành công");
             loadTableData();
         } else {
             JOptionPane.showMessageDialog(this, "Thêm sản phẩm thất bại!");
@@ -253,7 +253,7 @@ public class SanPhamPanel extends AdminTablePanelBase {
         );
 
         if (ok) {
-            JOptionPane.showMessageDialog(this, "Cập nhật sản phẩm thành công!");
+            Toast.success(this, "Cập nhật sản phẩm thành công");
             loadTableData();
         } else {
             JOptionPane.showMessageDialog(this, "Cập nhật sản phẩm thất bại!");
@@ -283,7 +283,7 @@ public class SanPhamPanel extends AdminTablePanelBase {
         boolean ok = sanPhamDAO.deleteById(maSanPham);
 
         if (ok) {
-            JOptionPane.showMessageDialog(this, "Xóa thành công!");
+            Toast.success(this, "Xóa thành công");
             loadTableData();
         } else {
             JOptionPane.showMessageDialog(this, "Xóa thất bại!");

@@ -285,7 +285,7 @@ public class HoaDonPanel extends AdminTablePanelBase {
 
                 if (confirm == JOptionPane.YES_OPTION) {
                     if (hoaDonDAO.delete(maHD)) {
-                        JOptionPane.showMessageDialog(this, "Xóa hóa đơn thành công.");
+                        Toast.success(this, "Xóa hóa đơn thành công");
                         loadData();
                     } else {
                         JOptionPane.showMessageDialog(this, "Xóa hóa đơn thất bại."
@@ -867,7 +867,7 @@ public class HoaDonPanel extends AdminTablePanelBase {
 
                 if (ok) {
                     saved = true;
-                    JOptionPane.showMessageDialog(this, "Thêm hóa đơn thành công.");
+                    Toast.success(this, "Thêm hóa đơn thành công");
                     dispose();
                 } else {
                     JOptionPane.showMessageDialog(this, "Lưu hóa đơn thất bại."
@@ -985,7 +985,7 @@ public class HoaDonPanel extends AdminTablePanelBase {
 
                 if (ok) {
                     saved = true;
-                    JOptionPane.showMessageDialog(this, "Cập nhật hóa đơn thành công.");
+                    Toast.success(this, "Cập nhật hóa đơn thành công");
                     dispose();
                 } else {
                     JOptionPane.showMessageDialog(this, "Cập nhật hóa đơn thất bại."

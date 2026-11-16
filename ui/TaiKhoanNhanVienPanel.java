@@ -164,7 +164,7 @@ public class TaiKhoanNhanVienPanel extends JPanel {
         nv.setDiaChi(txtDiaChi.getText().trim());
 
         if (nhanVienDAO.updateSelfInfo(nv)) {
-            JOptionPane.showMessageDialog(this, "Cập nhật thông tin thành công.");
+            Toast.success(this, "Cập nhật thông tin thành công");
             loadCurrentUser();
         } else {
             JOptionPane.showMessageDialog(this, "Cập nhật thông tin thất bại.");
@@ -224,7 +224,7 @@ public class TaiKhoanNhanVienPanel extends JPanel {
         }
 
         if (nhanVienDAO.changePassword(current.getMaNhanVien(), oldPass, newPass)) {
-            JOptionPane.showMessageDialog(this, "Đổi mật khẩu thành công.");
+            Toast.success(this, "Đổi mật khẩu thành công");
             loadCurrentUser();
         } else {
             JOptionPane.showMessageDialog(this, "Đổi mật khẩu thất bại. Kiểm tra lại mật khẩu cũ.");

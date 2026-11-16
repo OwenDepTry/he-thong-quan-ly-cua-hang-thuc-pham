@@ -1,170 +1,111 @@
 package ui;
 
-import java.awt.BorderLayout;
-import java.awt.Dimension;
-import java.awt.GridLayout;
-import javax.swing.BorderFactory;
-import javax.swing.JButton;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
 import javax.swing.JTextField;
 
-public class SanPhamDialog extends JDialog {
+/** Hộp thoại Thêm / Sửa sản phẩm. */
+public class SanPhamDialog extends FormDialog {
 
-    private JTextField txtMaSanPham;
-    private JTextField txtMaNhom;
-    private JTextField txtTenSanPham;
-    private JTextField txtLoai;
-    private JTextField txtDonViTinh;
-    private JTextField txtHanSuDung;
-    private JTextField txtMoTa;
-    private JTextField txtGia;
-    private JTextField txtSoLuongTon;
-
-    private boolean confirmed = false;
+    private final JTextField txtMaSanPham = placeholder(new JTextField(), "VD: SP021");
+    private final JTextField txtMaNhom = placeholder(new JTextField(), "VD: TH01");
+    private final JTextField txtTenSanPham = placeholder(new JTextField(), "VD: Sữa tươi Vinamilk 1L");
+    private final JTextField txtLoai = placeholder(new JTextField(), "VD: Đồ uống");
+    private final JTextField txtDonViTinh = placeholder(new JTextField(), "VD: Hộp, Kg, Chai");
+    private final JTextField txtHanSuDung = new JTextField();
+    private final JTextField txtMoTa = new JTextField();
+    private final JTextField txtGia = placeholder(new JTextField(), "VD: 25.000");
+    private final JTextField txtSoLuongTon = placeholder(new JTextField(), "VD: 100");
 
     public SanPhamDialog(java.awt.Frame owner, String title) {
-        super(owner, title, true);
-        initUI();
+        super(owner, title, "Điền thông tin sản phẩm rồi bấm Lưu.", "box");
+
+        addSection("Thông tin chung");
+        addField("Mã sản phẩm", txtMaSanPham, true);
+        addField("Mã nhóm", txtMaNhom, false);
+        addField("Tên sản phẩm", txtTenSanPham, true, null, true);
+        addField("Loại", txtLoai, false);
+        addField("Đơn vị tính", txtDonViTinh, false);
+
+        addSection("Giá và tồn kho");
+        addField("Giá (đồng)", txtGia, true);
+        addField("Số lượng tồn", txtSoLuongTon, true);
+        addField("Hạn sử dụng", txtHanSuDung, false);
+        addField("Mô tả", txtMoTa, false, null, true);
+
+        txtSoLuongTon.setText("0");
+        finish();
     }
 
-    private void initUI() {
-        setSize(500, 420);
-        setLocationRelativeTo(getOwner());
-        setLayout(new BorderLayout());
-
-        JPanel form = new JPanel(new GridLayout(9, 2, 8, 8));
-        form.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
-
-        txtMaSanPham = new JTextField();
-        txtMaNhom = new JTextField();
-        txtTenSanPham = new JTextField();
-        txtLoai = new JTextField();
-        txtDonViTinh = new JTextField();
-        txtHanSuDung = new JTextField();
-        txtMoTa = new JTextField();
-        txtGia = new JTextField();
-        txtSoLuongTon = new JTextField();
-
-        form.add(new JLabel("Mã sản phẩm"));
-        form.add(txtMaSanPham);
-
-        form.add(new JLabel("Mã nhóm"));
-        form.add(txtMaNhom);
-
-        form.add(new JLabel("Tên sản phẩm"));
-        form.add(txtTenSanPham);
-
-        form.add(new JLabel("Loại"));
-        form.add(txtLoai);
-
-        form.add(new JLabel("Đơn vị tính"));
-        form.add(txtDonViTinh);
-
-        form.add(new JLabel("Hạn sử dụng"));
-        form.add(txtHanSuDung);
-
-        form.add(new JLabel("Mô tả"));
-        form.add(txtMoTa);
-
-        form.add(new JLabel("Giá"));
-        form.add(txtGia);
-
-        form.add(new JLabel("Số lượng tồn"));
-        form.add(txtSoLuongTon);
-
-        JPanel actions = new JPanel();
-
-        JButton btnSave = new AppButton("Lưu", null, AppButton.Variant.PRIMARY);
-        getRootPane().setDefaultButton(btnSave); // Enter = Lưu
-        JButton btnCancel = new AppButton("Hủy");
-
-        btnSave.setPreferredSize(new Dimension(90, 32));
-        btnCancel.setPreferredSize(new Dimension(90, 32));
-
-        btnSave.addActionListener(e -> handleSave());
-        btnCancel.addActionListener(e -> dispose());
-
-        actions.add(btnSave);
-        actions.add(btnCancel);
-
-        add(form, BorderLayout.CENTER);
-        add(actions, BorderLayout.SOUTH);
+    @Override
+    protected boolean validateForm() {
+        boolean ok = required(txtMaSanPham, "Mã sản phẩm");
+        ok &= required(txtTenSanPham, "Tên sản phẩm");
+        ok &= number(txtGia, "Giá", 0, Double.MAX_VALUE);
+        ok &= integer(txtSoLuongTon, "Số lượng tồn", 0);
+        return ok;
     }
 
-    private void handleSave() {
-        if (getMaSanPham().isEmpty() || getTenSanPham().isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Mã sản phẩm và Tên sản phẩm không được để trống!");
-            return;
-        }
-
-        try {
-            Double.parseDouble(getGia());
-            Integer.parseInt(getSoLuongTon());
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Giá phải là số và Số lượng tồn phải là số nguyên!");
-            return;
-        }
-
-        confirmed = true;
-        dispose();
-    }
-
+    /** Giữ tên cũ cho SanPhamPanel. */
     public boolean isConfirmed() {
-        return confirmed;
+        return isSaved();
     }
 
     public void setData(Object[] row) {
-        txtMaSanPham.setText(String.valueOf(row[0]));
-        txtMaNhom.setText(String.valueOf(row[1]));
-        txtTenSanPham.setText(String.valueOf(row[2]));
-        txtLoai.setText(String.valueOf(row[3]));
-        txtDonViTinh.setText(String.valueOf(row[4]));
-        txtHanSuDung.setText(String.valueOf(row[5]));
-        txtMoTa.setText(String.valueOf(row[6]));
-        txtGia.setText(String.valueOf(row[7]));
-        txtSoLuongTon.setText(String.valueOf(row[8]));
+        txtMaSanPham.setText(str(row[0]));
+        txtMaNhom.setText(str(row[1]));
+        txtTenSanPham.setText(str(row[2]));
+        txtLoai.setText(str(row[3]));
+        txtDonViTinh.setText(str(row[4]));
+        txtHanSuDung.setText(str(row[5]));
+        txtMoTa.setText(str(row[6]));
+        txtGia.setText(displayNumber(row[7]));
+        txtSoLuongTon.setText(displayNumber(row[8]));
     }
 
     public void setMaEditable(boolean editable) {
-        txtMaSanPham.setEditable(editable);
+        if (!editable) {
+            lockField(txtMaSanPham, "Không thể đổi mã khi sửa");
+            setSubtitle("Chỉnh sửa thông tin rồi bấm Lưu.");
+        }
+    }
+
+    private static String str(Object o) {
+        return o == null || "null".equals(String.valueOf(o)) ? "" : String.valueOf(o);
     }
 
     public String getMaSanPham() {
-        return txtMaSanPham.getText().trim();
+        return text(txtMaSanPham);
     }
 
     public String getMaNhom() {
-        return txtMaNhom.getText().trim();
+        return text(txtMaNhom);
     }
 
     public String getTenSanPham() {
-        return txtTenSanPham.getText().trim();
+        return text(txtTenSanPham);
     }
 
     public String getLoai() {
-        return txtLoai.getText().trim();
+        return text(txtLoai);
     }
 
     public String getDonViTinh() {
-        return txtDonViTinh.getText().trim();
+        return text(txtDonViTinh);
     }
 
     public String getHanSuDung() {
-        return txtHanSuDung.getText().trim();
+        return text(txtHanSuDung);
     }
 
     public String getMoTa() {
-        return txtMoTa.getText().trim();
+        return text(txtMoTa);
     }
 
+    /** Số thuần (VD "25000") để Double.parseDouble được. */
     public String getGia() {
-        return txtGia.getText().trim();
+        return plainNumber(txtGia);
     }
 
     public String getSoLuongTon() {
-        return txtSoLuongTon.getText().trim();
+        return plainNumber(txtSoLuongTon);
     }
 }

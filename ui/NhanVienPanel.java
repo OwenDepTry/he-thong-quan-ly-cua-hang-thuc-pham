@@ -185,7 +185,7 @@ public class NhanVienPanel extends AdminTablePanelBase {
         if (nhanVienDAO.insert(nv)) {
             loadTableData(nhanVienDAO.findAllForTable());
             selectRowById(nv.getMaNhanVien());
-            JOptionPane.showMessageDialog(this, "Thêm nhân viên thành công.");
+            Toast.success(this, "Thêm nhân viên thành công");
         } else {
             JOptionPane.showMessageDialog(this, "Thêm nhân viên thất bại.", "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
@@ -221,7 +221,7 @@ public class NhanVienPanel extends AdminTablePanelBase {
         if (nhanVienDAO.update(updated)) {
             loadTableData(nhanVienDAO.findAllForTable());
             selectRowById(updated.getMaNhanVien());
-            JOptionPane.showMessageDialog(this, "Cập nhật nhân viên thành công.");
+            Toast.success(this, "Cập nhật nhân viên thành công");
         } else {
             JOptionPane.showMessageDialog(this, "Cập nhật nhân viên thất bại.", "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
@@ -247,7 +247,7 @@ public class NhanVienPanel extends AdminTablePanelBase {
 
         if (nhanVienDAO.delete(ma)) {
             loadTableData(nhanVienDAO.findAllForTable());
-            JOptionPane.showMessageDialog(this, "Xóa nhân viên thành công.");
+            Toast.success(this, "Xóa nhân viên thành công");
         } else {
             JOptionPane.showMessageDialog(
                     this,

@@ -1,121 +1,62 @@
 package ui;
 
 import entity.NhanVien;
-import java.awt.BorderLayout;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
 import java.awt.Frame;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
-import javax.swing.BorderFactory;
-import javax.swing.JButton;
 import javax.swing.JComboBox;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
+import javax.swing.JPasswordField;
 import javax.swing.JTextField;
 
-public class NhanVienDialog extends JDialog {
+/** Hộp thoại Thêm / Sửa nhân viên. */
+public class NhanVienDialog extends FormDialog {
 
-    private final JTextField txtMa = new JTextField();
-    private final JTextField txtHo = new JTextField();
-    private final JTextField txtTenLot = new JTextField();
-    private final JTextField txtTen = new JTextField();
-    private final JComboBox<String> cboPhai = new JComboBox<>(new String[]{"nam", "nữ", "khác"});
-    private final JTextField txtNgaySinh = new JTextField();
-    private final JTextField txtSDT = new JTextField();
-    private final JTextField txtTinh = new JTextField();
-    private final JTextField txtDiaChi = new JTextField();
-    private final JTextField txtLuong = new JTextField();
-    private final JComboBox<String> cboChucVu = new JComboBox<>(new String[]{"QL", "NV"});
-    private final JComboBox<String> cboTrangThai = new JComboBox<>(new String[]{"active", "inactive"});
-    private final JTextField txtMatKhau = new JTextField();
-
-    private boolean saved = false;
+    private final JTextField txtMa = placeholder(new JTextField(), "VD: NV005");
+    private final JTextField txtHo = placeholder(new JTextField(), "VD: Trần");
+    private final JTextField txtTenLot = placeholder(new JTextField(), "VD: Thị");
+    private final JTextField txtTen = placeholder(new JTextField(), "VD: Bình");
+    private final JComboBox<Choice> cboPhai = choices("nam", "Nam", "nữ", "Nữ", "khác", "Khác");
+    private final JTextField txtNgaySinh = placeholder(new JTextField(), "dd/mm/yyyy");
+    private final JTextField txtSDT = placeholder(new JTextField(), "VD: 0901234567");
+    private final JTextField txtTinh = placeholder(new JTextField(), "VD: Quảng Ngãi");
+    private final JTextField txtDiaChi = placeholder(new JTextField(), "Số nhà, đường, phường/xã…");
+    private final JTextField txtLuong = placeholder(new JTextField(), "VD: 8.000.000");
+    private final JComboBox<Choice> cboChucVu = choices("NV", "Nhân viên", "QL", "Quản lý");
+    private final JComboBox<Choice> cboTrangThai = choices("active", "Đang làm việc", "inactive", "Đã nghỉ / khóa");
+    private final JPasswordField txtMatKhau = new JPasswordField();
 
     public NhanVienDialog(Frame owner, String title, NhanVien nv, boolean editableId) {
-        super(owner, title, true);
-        setLayout(new BorderLayout(8, 8));
-        setSize(560, 500);
-        setLocationRelativeTo(owner);
-        setResizable(false);
+        super(owner, title, editableId ? "Điền thông tin nhân viên rồi bấm Lưu."
+                : "Chỉnh sửa thông tin rồi bấm Lưu.", "users");
 
-        JPanel form = new JPanel(new GridBagLayout());
-        form.setBackground(AppTheme.PANEL_WHITE);
-        form.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(AppTheme.GREEN_BORDER, 1),
-                BorderFactory.createEmptyBorder(14, 14, 10, 14)
-        ));
+        addSection("Thông tin cá nhân");
+        addField("Mã nhân viên", txtMa, true);
+        addField("Phái", cboPhai, false);
+        addField("Họ", txtHo, true);
+        addField("Tên lót", txtTenLot, false);
+        addField("Tên", txtTen, true);
+        addField("Ngày sinh", txtNgaySinh, true, "Ngày/tháng/năm", false);
 
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(6, 6, 6, 6);
-        gbc.anchor = GridBagConstraints.WEST;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
+        addSection("Liên hệ");
+        addField("Số điện thoại", txtSDT, true);
+        addField("Tỉnh / Thành phố", txtTinh, true);
+        addField("Địa chỉ", txtDiaChi, true, null, true);
 
-        int row = 0;
-        addRow(form, gbc, row++, "Mã nhân viên", txtMa);
-        addRow(form, gbc, row++, "Họ", txtHo);
-        addRow(form, gbc, row++, "Tên lót", txtTenLot);
-        addRow(form, gbc, row++, "Tên", txtTen);
-        addRow(form, gbc, row++, "Phái", cboPhai);
-        addRow(form, gbc, row++, "Ngày sinh", txtNgaySinh);
-        addRow(form, gbc, row++, "Số điện thoại", txtSDT);
-        addRow(form, gbc, row++, "Tỉnh", txtTinh);
-        addRow(form, gbc, row++, "Địa chỉ", txtDiaChi);
-        addRow(form, gbc, row++, "Lương", txtLuong);
-        addRow(form, gbc, row++, "Chức vụ", cboChucVu);
-        addRow(form, gbc, row++, "Trạng thái", cboTrangThai);
-        addRow(form, gbc, row++, "Mật khẩu", txtMatKhau);
-
-        txtMa.setEditable(editableId);
-        txtMa.setBackground(editableId ? AppTheme.WHITE : new java.awt.Color(245, 245, 245));
+        addSection("Công việc và tài khoản");
+        addField("Chức vụ", cboChucVu, false);
+        addField("Lương (đồng)", txtLuong, true);
+        addField("Trạng thái", cboTrangThai, false);
+        txtMatKhau.putClientProperty("JPasswordField.showRevealButton", Boolean.TRUE);
+        addField("Mật khẩu đăng nhập", txtMatKhau, true);
 
         if (nv != null) {
             fillData(nv);
         } else {
-            txtNgaySinh.setText("2000-01-01");
-            txtLuong.setText("8000000");
+            txtLuong.setText("8.000.000");
             txtMatKhau.setText("123");
         }
-
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
-        buttonPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 8, 0));
-        buttonPanel.setOpaque(false);
-
-        JButton btnSave = new AppButton("Lưu", null, AppButton.Variant.PRIMARY);
-        getRootPane().setDefaultButton(btnSave); // Enter = Lưu
-        btnSave.setPreferredSize(new Dimension(90, 32));
-        btnSave.setBackground(AppTheme.GREEN_TOP);
-        btnSave.setForeground(java.awt.Color.WHITE);
-        btnSave.setFocusPainted(false);
-        btnSave.addActionListener(e -> onSave());
-
-        JButton btnCancel = new AppButton("Hủy");
-        btnCancel.setPreferredSize(new Dimension(90, 32));
-        btnCancel.setFocusPainted(false);
-        btnCancel.addActionListener(e -> dispose());
-
-        buttonPanel.add(btnCancel);
-        buttonPanel.add(btnSave);
-
-        add(form, BorderLayout.CENTER);
-        add(buttonPanel, BorderLayout.SOUTH);
-    }
-
-    private void addRow(JPanel panel, GridBagConstraints gbc, int row, String label, java.awt.Component comp) {
-        gbc.gridx = 0;
-        gbc.gridy = row;
-        gbc.weightx = 0;
-        panel.add(new JLabel(label + ":"), gbc);
-
-        gbc.gridx = 1;
-        gbc.weightx = 1;
-        comp.setPreferredSize(new Dimension(260, 28));
-        panel.add(comp, gbc);
+        if (!editableId) {
+            lockField(txtMa, "Không thể đổi mã khi sửa");
+        }
+        finish();
     }
 
     private void fillData(NhanVien nv) {
@@ -123,96 +64,46 @@ public class NhanVienDialog extends JDialog {
         txtHo.setText(nv.getHo());
         txtTenLot.setText(nv.getTenLot());
         txtTen.setText(nv.getTen());
-        cboPhai.setSelectedItem(nv.getPhai());
-        txtNgaySinh.setText(nv.getNgaySinh());
+        select(cboPhai, nv.getPhai());
+        txtNgaySinh.setText(toDisplayDate(nv.getNgaySinh()));
         txtSDT.setText(nv.getSoDienThoai());
         txtTinh.setText(nv.getTinh());
         txtDiaChi.setText(nv.getDiaChi());
-        txtLuong.setText(String.valueOf(nv.getLuong()));
-        cboChucVu.setSelectedItem(nv.getChucVu());
-        cboTrangThai.setSelectedItem(nv.getTrangThai());
+        txtLuong.setText(displayNumber(nv.getLuong()));
+        select(cboChucVu, nv.getChucVu());
+        select(cboTrangThai, nv.getTrangThai());
         txtMatKhau.setText(nv.getMatKhau());
     }
 
-    private void onSave() {
-        String error = validateInput();
-        if (error != null) {
-            JOptionPane.showMessageDialog(this, error, "Dữ liệu chưa hợp lệ", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-        saved = true;
-        dispose();
-    }
-
-    private String validateInput() {
-        if (txtMa.getText().trim().isEmpty()) {
-            return "Mã nhân viên không được để trống.";
-        }
-        if (txtHo.getText().trim().isEmpty()) {
-            return "Họ không được để trống.";
-        }
-        if (txtTen.getText().trim().isEmpty()) {
-            return "Tên không được để trống.";
-        }
-        if (!isValidDate(txtNgaySinh.getText().trim())) {
-            return "Ngày sinh phải đúng định dạng yyyy-MM-dd.";
-        }
-        if (txtSDT.getText().trim().isEmpty()) {
-            return "Số điện thoại không được để trống.";
-        }
-        if (!txtSDT.getText().trim().matches("\\d{8,11}")) {
-            return "Số điện thoại phải gồm 8-11 chữ số.";
-        }
-        if (txtTinh.getText().trim().isEmpty()) {
-            return "Tỉnh không được để trống.";
-        }
-        if (txtDiaChi.getText().trim().isEmpty()) {
-            return "Địa chỉ không được để trống.";
-        }
-        if (txtMatKhau.getText().trim().isEmpty()) {
-            return "Mật khẩu không được để trống.";
-        }
-
-        try {
-            double luong = Double.parseDouble(txtLuong.getText().trim());
-            if (luong < 0) {
-                return "Lương không được âm.";
-            }
-        } catch (NumberFormatException e) {
-            return "Lương phải là số.";
-        }
-
-        return null;
-    }
-
-    private boolean isValidDate(String value) {
-        try {
-            LocalDate.parse(value);
-            return true;
-        } catch (DateTimeParseException e) {
-            return false;
-        }
-    }
-
-    public boolean isSaved() {
-        return saved;
+    @Override
+    protected boolean validateForm() {
+        boolean ok = required(txtMa, "Mã nhân viên");
+        ok &= required(txtHo, "Họ");
+        ok &= required(txtTen, "Tên");
+        ok &= date(txtNgaySinh, "Ngày sinh");
+        ok &= phone(txtSDT);
+        ok &= required(txtTinh, "Tỉnh / Thành phố");
+        ok &= required(txtDiaChi, "Địa chỉ");
+        ok &= number(txtLuong, "Lương", 0, Double.MAX_VALUE);
+        ok &= required(txtMatKhau, "Mật khẩu");
+        return ok;
     }
 
     public NhanVien getNhanVien() {
         return new NhanVien(
-                txtMa.getText().trim(),
-                txtHo.getText().trim(),
-                txtTenLot.getText().trim(),
-                txtTen.getText().trim(),
-                cboPhai.getSelectedItem().toString(),
-                txtNgaySinh.getText().trim(),
-                txtSDT.getText().trim(),
-                txtTinh.getText().trim(),
-                txtDiaChi.getText().trim(),
-                Double.parseDouble(txtLuong.getText().trim()),
-                cboChucVu.getSelectedItem().toString(),
-                cboTrangThai.getSelectedItem().toString(),
-                txtMatKhau.getText().trim()
+                text(txtMa),
+                text(txtHo),
+                text(txtTenLot),
+                text(txtTen),
+                value(cboPhai),
+                isoDate(txtNgaySinh),
+                text(txtSDT).replaceAll("[\\s.-]", ""),
+                text(txtTinh),
+                text(txtDiaChi),
+                Double.parseDouble(plainNumber(txtLuong)),
+                value(cboChucVu),
+                value(cboTrangThai),
+                text(txtMatKhau)
         );
     }
 }

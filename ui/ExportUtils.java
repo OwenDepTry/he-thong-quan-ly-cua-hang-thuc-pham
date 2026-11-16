@@ -61,7 +61,7 @@ public class ExportUtils {
                 writer.println();
             }
 
-            JOptionPane.showMessageDialog(parent, "Xuất Excel thành công:\n" + file.getAbsolutePath());
+            Toast.success(parent, "Đã xuất file " + file.getName(), "Mở file", () -> java.awt.Desktop.getDesktop().open(file));
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(parent, "Xuất Excel thất bại:\n" + e.getMessage());
@@ -183,7 +183,7 @@ public class ExportUtils {
             document.add(thank);
 
             document.close();
-            JOptionPane.showMessageDialog(parent, "Xuất PDF hóa đơn thành công:\n" + file.getAbsolutePath());
+            Toast.success(parent, "Đã xuất hóa đơn ra file " + file.getName(), "Mở file", () -> java.awt.Desktop.getDesktop().open(file));
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(parent, "Xuất PDF thất bại:\n" + e.getMessage());
@@ -289,7 +289,7 @@ public class ExportUtils {
             document.add(signTable);
 
             document.close();
-            JOptionPane.showMessageDialog(parent, "Xuất PDF phiếu nhập thành công:\n" + file.getAbsolutePath());
+            Toast.success(parent, "Đã xuất phiếu nhập ra file " + file.getName(), "Mở file", () -> java.awt.Desktop.getDesktop().open(file));
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(parent, "Xuất PDF thất bại:\n" + e.getMessage());

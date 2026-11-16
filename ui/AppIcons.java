@@ -58,6 +58,7 @@ public final class AppIcons {
         PATHS.put("reset", "A 4 4 16 16 -130 285 M3.5 4 V9.6 H9");
         PATHS.put("basket", "M3 9.5 H21 L19 20 H5 Z M8 9.5 L11 3.5 M16 9.5 L13 3.5 M9.5 13.5 V16.5 M14.5 13.5 V16.5");
         PATHS.put("lock", "M5 11 H19 V21 H5 Z M8 11 V7.5 C8 5 9.8 3.5 12 3.5 C14.2 3.5 16 5 16 7.5 V11");
+        PATHS.put("check", "M5 12.5 L10 17.5 L19.5 7");
         PATHS.put("dot", "D 12 12 2.5");
     }
 
