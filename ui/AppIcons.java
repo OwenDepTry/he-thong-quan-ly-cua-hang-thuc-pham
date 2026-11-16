@@ -58,6 +58,8 @@ public final class AppIcons {
         PATHS.put("reset", "A 4 4 16 16 -130 285 M3.5 4 V9.6 H9");
         PATHS.put("basket", "M3 9.5 H21 L19 20 H5 Z M8 9.5 L11 3.5 M16 9.5 L13 3.5 M9.5 13.5 V16.5 M14.5 13.5 V16.5");
         PATHS.put("lock", "M5 11 H19 V21 H5 Z M8 11 V7.5 C8 5 9.8 3.5 12 3.5 C14.2 3.5 16 5 16 7.5 V11");
+        PATHS.put("moon", "M20.5 14.2 C19.3 14.9 17.9 15.3 16.4 15.3 C11.9 15.3 8.3 11.7 8.3 7.2 C8.3 5.7 8.7 4.3 9.4 3.1 C5.6 4.2 2.8 7.7 2.8 11.9 C2.8 16.9 6.9 21 11.9 21 C16.1 21 19.6 18.2 20.5 14.2 Z");
+        PATHS.put("sun", "O 12 12 4 M12 2.5 V4.5 M12 19.5 V21.5 M2.5 12 H4.5 M19.5 12 H21.5 M5.3 5.3 L6.7 6.7 M17.3 17.3 L18.7 18.7 M5.3 18.7 L6.7 17.3 M17.3 6.7 L18.7 5.3");
         PATHS.put("check", "M5 12.5 L10 17.5 L19.5 7");
         PATHS.put("dot", "D 12 12 2.5");
     }
@@ -80,6 +82,8 @@ public final class AppIcons {
             case "Thông tin": return "info";
             case "Lịch sử": return "history";
             case "Đăng Xuất": return "logout";
+            case "Chế độ tối": return "moon";
+            case "Chế độ sáng": return "sun";
             case "Thêm": return "plus";
             case "Xóa": return "trash";
             case "Sửa": return "edit";

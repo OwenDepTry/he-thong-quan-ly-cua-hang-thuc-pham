@@ -51,6 +51,7 @@ public abstract class FormDialog extends JDialog {
 
     private final JPanel form = new JPanel(new GridBagLayout());
     private final JLabel lblSubtitle = new JLabel();
+    private JPanel formWrap;
     private final Map<JComponent, JLabel> errorLabels = new LinkedHashMap<>();
     private final Map<JComponent, Border> normalBorders = new LinkedHashMap<>();
     private int row;
@@ -69,7 +70,7 @@ public abstract class FormDialog extends JDialog {
 
         form.setOpaque(false);
         form.setBorder(BorderFactory.createEmptyBorder(8, 22, 6, 22));
-        JPanel formWrap = new JPanel(new BorderLayout());
+        formWrap = new JPanel(new BorderLayout());
         formWrap.setOpaque(false);
         formWrap.add(form, BorderLayout.NORTH);
         root.add(formWrap, BorderLayout.CENTER);
@@ -265,6 +266,21 @@ public abstract class FormDialog extends JDialog {
     /** Gọi ở cuối constructor của lớp con. */
     protected void finish() {
         pack();
+        // Màn hình thấp (VD laptop 1366x768): hộp thoại cao quá thì cho phần ô nhập cuộn, nút Lưu/Hủy luôn hiện
+        java.awt.Rectangle screen = java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
+        int maxH = screen.height - 30;
+        if (getHeight() > maxH) {
+            java.awt.Container root = getContentPane();
+            root.remove(formWrap);
+            javax.swing.JScrollPane scroll = new javax.swing.JScrollPane(formWrap,
+                    javax.swing.JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, javax.swing.JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+            scroll.setBorder(BorderFactory.createEmptyBorder());
+            scroll.getViewport().setBackground(AppTheme.SURFACE);
+            scroll.getVerticalScrollBar().setUnitIncrement(18);
+            root.add(scroll, BorderLayout.CENTER);
+            setSize(getWidth() + scroll.getVerticalScrollBar().getPreferredSize().width, maxH);
+            validate();
+        }
         setLocationRelativeTo(getOwner());
     }
 

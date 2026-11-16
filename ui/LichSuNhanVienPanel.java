@@ -43,7 +43,7 @@ public class LichSuNhanVienPanel extends JPanel {
 
     private JSplitPane createContent() {
         JPanel top = new JPanel(new BorderLayout(8, 8));
-        top.setBackground(Color.WHITE);
+        top.setBackground(AppTheme.SURFACE);
         top.setBorder(BorderFactory.createTitledBorder("Lịch sử hóa đơn"));
 
         modelHoaDon = new DefaultTableModel(
@@ -59,7 +59,7 @@ public class LichSuNhanVienPanel extends JPanel {
         top.add(new JScrollPane(tblHoaDon), BorderLayout.CENTER);
 
         JPanel bottom = new JPanel(new BorderLayout(8, 8));
-        bottom.setBackground(Color.WHITE);
+        bottom.setBackground(AppTheme.SURFACE);
         bottom.setBorder(BorderFactory.createTitledBorder("Lịch sử phiếu nhập"));
 
         modelPhieuNhap = new DefaultTableModel(

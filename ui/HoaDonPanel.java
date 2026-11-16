@@ -1012,7 +1012,7 @@ public class HoaDonPanel extends AdminTablePanelBase {
                     BorderFactory.createLineBorder(AppTheme.BORDER),
                     BorderFactory.createEmptyBorder(12, 12, 12, 12)
             ));
-            info.setBackground(Color.WHITE);
+            info.setBackground(AppTheme.SURFACE);
 
             JTextField txtMaHD = createReadOnly();
             JTextField txtKH = createReadOnly();
@@ -1082,7 +1082,7 @@ public class HoaDonPanel extends AdminTablePanelBase {
         private static JTextField createReadOnly() {
             JTextField txt = new JTextField();
             txt.setEditable(false);
-            txt.setBackground(Color.WHITE);
+            txt.setBackground(AppTheme.SURFACE);
             txt.setPreferredSize(new Dimension(260, 32));
             return txt;
         }

@@ -58,7 +58,8 @@ public class ThongKePanel extends JPanel {
         add(createTopFilters(), BorderLayout.NORTH);
         add(createCenterContent(), BorderLayout.CENTER);
 
-        loadData();
+        // chạy sau khi màn hình đã gắn vào cửa sổ để lớp "Đang tải…" hiện được
+        javax.swing.SwingUtilities.invokeLater(this::loadData);
     }
 
     private JPanel createTopFilters() {
@@ -217,7 +218,7 @@ public class ThongKePanel extends JPanel {
 
     private JPanel createSectionTable(JTable table) {
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(Color.WHITE);
+        panel.setBackground(AppTheme.SURFACE);
         panel.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(AppTheme.BORDER),
                 BorderFactory.createEmptyBorder(8, 8, 8, 8)
@@ -231,7 +232,7 @@ public class ThongKePanel extends JPanel {
 
     private JPanel createSectionChart(JPanel chart) {
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(Color.WHITE);
+        panel.setBackground(AppTheme.SURFACE);
         panel.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(AppTheme.BORDER),
                 BorderFactory.createEmptyBorder(8, 8, 8, 8)
@@ -240,24 +241,33 @@ public class ThongKePanel extends JPanel {
         return panel;
     }
 
+    /** Tải số liệu ở luồng nền (truy vấn tổng hợp có thể chậm), rồi đổ lên giao diện. */
     private void loadData() {
         int year = Integer.parseInt(cboYear.getSelectedItem().toString());
-
-        double tongDoanhThu = thongKeDAO.getTongDoanhThu(year);
-        int tongHoaDon = thongKeDAO.getTongSoHoaDon(year);
-        int tongPhieuNhap = thongKeDAO.getTongSoPhieuNhap(year);
-
-        cardDoanhThu.setValue(moneyFormat.format(tongDoanhThu));
-        cardHoaDon.setValue(String.valueOf(tongHoaDon));
-        cardPhieuNhap.setValue(String.valueOf(tongPhieuNhap));
-
-        loadSanPham(year);
-        loadNhanVien(year);
-        loadKhachHang(year);
+        AppAsync.run(this, "Đang tính thống kê năm " + year + "…", () -> {
+            Object[] r = new Object[7];
+            r[0] = thongKeDAO.getTongDoanhThu(year);
+            r[1] = thongKeDAO.getTongSoHoaDon(year);
+            r[2] = thongKeDAO.getTongSoPhieuNhap(year);
+            r[3] = thongKeDAO.getThongKeSanPhamTheoNam(year);
+            r[4] = thongKeDAO.getDoanhThuSanPhamTheoQuy(year);
+            r[5] = thongKeDAO.getThongKeNhanVienTheoNam(year);
+            r[6] = thongKeDAO.getThongKeKhachHangTheoNam(year);
+            return r;
+        }, this::render, err -> Toast.error(this, "Không tải được thống kê: " + err.getMessage()));
     }
 
-    private void loadSanPham(int year) {
-        List<Object[]> list = thongKeDAO.getThongKeSanPhamTheoNam(year);
+    @SuppressWarnings("unchecked")
+    private void render(Object[] r) {
+        cardDoanhThu.setValue(AppTable.money(r[0]));
+        cardHoaDon.setValue(String.valueOf(r[1]));
+        cardPhieuNhap.setValue(String.valueOf(r[2]));
+        loadSanPham((List<Object[]>) r[3], (int[]) r[4]);
+        loadNhanVien((List<Object[]>) r[5]);
+        loadKhachHang((List<Object[]>) r[6]);
+    }
+
+    private void loadSanPham(List<Object[]> list, int[] doanhThuTheoQuy) {
         modelSanPham.setRowCount(0);
 
         for (Object[] row : list) {
@@ -270,7 +280,6 @@ public class ThongKePanel extends JPanel {
             });
         }
 
-        int[] doanhThuTheoQuy = thongKeDAO.getDoanhThuSanPhamTheoQuy(year);
         chartSanPham.setData(
                 new String[]{"Quý 1", "Quý 2", "Quý 3", "Quý 4"},
                 doanhThuTheoQuy
@@ -278,8 +287,7 @@ public class ThongKePanel extends JPanel {
         chartSanPham.setChartTitle("Doanh số");
     }
 
-    private void loadNhanVien(int year) {
-        List<Object[]> list = thongKeDAO.getThongKeNhanVienTheoNam(year);
+    private void loadNhanVien(List<Object[]> list) {
         modelNhanVien.setRowCount(0);
 
         String[] labels = new String[list.size()];
@@ -303,8 +311,7 @@ public class ThongKePanel extends JPanel {
         chartNhanVien.setChartTitle("Thống kê nhân viên");
     }
 
-    private void loadKhachHang(int year) {
-        List<Object[]> list = thongKeDAO.getThongKeKhachHangTheoNam(year);
+    private void loadKhachHang(List<Object[]> list) {
         modelKhachHang.setRowCount(0);
 
         String[] labels = new String[list.size()];
@@ -337,7 +344,7 @@ public class ThongKePanel extends JPanel {
         public SimpleAxisChartPanel(String title) {
             this.title = title;
             setPreferredSize(new Dimension(100, 320));
-            setBackground(Color.WHITE);
+            setBackground(AppTheme.SURFACE);
         }
 
         public void setChartTitle(String title) {
@@ -361,17 +368,6 @@ public class ThongKePanel extends JPanel {
             g2.setColor(AppTheme.SURFACE);
             g2.fillRect(0, 0, getWidth(), getHeight());
 
-            int left = 64;
-            int right = 24;
-            int top = 52;
-            int bottom = 44;
-            int chartW = getWidth() - left - right;
-            int chartH = getHeight() - top - bottom;
-
-            g2.setColor(AppTheme.TEXT_DARK);
-            g2.setFont(AppTheme.font(Font.BOLD, 15));
-            g2.drawString(title, left, 28);
-
             int max = 1;
             for (int v : values) {
                 max = Math.max(max, v);
@@ -382,6 +378,19 @@ public class ThongKePanel extends JPanel {
             long step = Math.max(1, (long) (Math.ceil(rawStep / magnitude) * magnitude));
             max = (int) Math.min(Integer.MAX_VALUE, step * 4);
             java.text.NumberFormat nf = java.text.NumberFormat.getIntegerInstance(Locale.forLanguageTag("vi-VN"));
+
+            // Lề trái vừa đủ cho nhãn trục Y dài nhất (VD "12.000.000") để không bị cắt chữ
+            g2.setFont(AppTheme.font(Font.PLAIN, 11));
+            int left = Math.max(48, g2.getFontMetrics().stringWidth(nf.format(max)) + 18);
+            int right = 24;
+            int top = 52;
+            int bottom = 44;
+            int chartW = getWidth() - left - right;
+            int chartH = getHeight() - top - bottom;
+
+            g2.setColor(AppTheme.TEXT_DARK);
+            g2.setFont(AppTheme.font(Font.BOLD, 15));
+            g2.drawString(title, left, 28);
 
             // Lưới ngang + nhãn trục Y
             g2.setFont(AppTheme.font(Font.PLAIN, 11));

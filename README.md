@@ -1,10 +1,8 @@
 # 🛒 HỆ THỐNG QUẢN LÝ CỬA HÀNG THỰC PHẨM
 
-## 📌 Giới thiệu
+Ứng dụng desktop (Java Swing + PostgreSQL) hỗ trợ cửa hàng thực phẩm quản lý bán hàng, kho hàng và nhân sự một cách chính xác, nhanh chóng, giảm sai sót so với quản lý thủ công.
 
-Dự án xây dựng hệ thống quản lý cửa hàng thực phẩm nhằm hỗ trợ việc quản lý bán hàng, kho hàng và nhân sự một cách hiệu quả, chính xác và nhanh chóng.
-
-Hệ thống giúp giảm thiểu sai sót trong quản lý thủ công và tối ưu hóa quy trình vận hành cửa hàng.
+![Trang chủ](docs/screenshots/02-trang-chu.png)
 
 ---
 
@@ -21,28 +19,101 @@ Hệ thống giúp giảm thiểu sai sót trong quản lý thủ công và tố
 
 ---
 
-## ⚙️ Công nghệ sử dụng
+## 🚀 Chức năng chính
 
-* Java (JDK 17)
-* Java Swing (Giao diện)
-* PostgreSQL 16 chạy bằng Docker (Cơ sở dữ liệu)
-* JDBC (Kết nối database)
-* iText (Xuất file PDF)
+**Nghiệp vụ**
+
+* Quản lý sản phẩm, loại sản phẩm, hàng hóa / kho
+* Quản lý khách hàng, nhân viên, nhà cung cấp
+* Lập hóa đơn bán hàng (tự trừ tồn kho, kiểm tra điều kiện khuyến mãi)
+* Lập phiếu nhập hàng
+* Quản lý chương trình khuyến mãi
+* Thống kê doanh thu theo năm / quý, theo sản phẩm, nhân viên, khách hàng
+* Xuất hóa đơn, phiếu nhập ra PDF; xuất bảng ra CSV (mở được bằng Excel)
+* Phân quyền: **Quản lý** dùng toàn bộ chức năng, **Nhân viên** chỉ bán hàng, nhập hàng, tra cứu
+
+**Trải nghiệm**
+
+* Trang chủ có số liệu: doanh thu hôm nay / tháng này, cảnh báo **sắp hết hàng** và **lô hàng sắp hết hạn**
+* Chế độ **sáng / tối**, nhớ lựa chọn cho lần mở sau
+* Bảng: bấm tiêu đề cột để sắp xếp, bấm đúp vào dòng để sửa, phím Delete để xóa
+* Hộp thoại Thêm/Sửa báo lỗi ngay dưới ô nhập sai; nhập ngày `dd/MM/yyyy`, tiền `8.000.000`
+* Tìm kiếm không phân biệt hoa/thường và dấu (gõ "sua" vẫn ra "Sữa")
+* Thông báo dạng toast tự ẩn; xuất file xong có nút "Mở file"
+* Tải dữ liệu ở luồng nền, hiện "Đang tải…" thay vì đứng hình
 
 ---
 
-## 🚀 Chức năng chính
+## 📸 Giao diện
 
-* Quản lý sản phẩm
-* Quản lý loại sản phẩm
-* Quản lý hàng hóa / kho
-* Quản lý khách hàng
-* Quản lý nhân viên
-* Quản lý hóa đơn
-* Quản lý phiếu nhập
-* Quản lý khuyến mãi
-* Thống kê & báo cáo
-* Xuất hóa đơn PDF
+| Đăng nhập | Sản phẩm (sắp xếp theo giá) |
+| --- | --- |
+| ![Đăng nhập](docs/screenshots/01-dang-nhap.png) | ![Sản phẩm](docs/screenshots/03-san-pham.png) |
+| **Hóa đơn** | **Thống kê** |
+| ![Hóa đơn](docs/screenshots/05-hoa-don.png) | ![Thống kê](docs/screenshots/06-thong-ke.png) |
+| **Hộp thoại kiểm tra dữ liệu** | **Chế độ tối** |
+| ![Hộp thoại](docs/screenshots/04-hop-thoai-kiem-tra-du-lieu.png) | ![Chế độ tối](docs/screenshots/07-che-do-toi.png) |
+
+---
+
+## ⚙️ Công nghệ sử dụng
+
+* Java 17+ · Java Swing · [FlatLaf](https://www.formdev.com/flatlaf/) (giao diện hiện đại, sáng/tối)
+* PostgreSQL 16 chạy bằng Docker · JDBC
+* iText 5 (xuất PDF)
+
+Các thư viện `.jar` đã có sẵn trong thư mục `lib/`, không cần tải thêm.
+
+---
+
+## ⚡ Chạy nhanh (Windows)
+
+Yêu cầu: **JDK 17 trở lên** và **Docker Desktop** đang mở.
+
+1. Clone project:
+   ```bash
+   git clone https://github.com/OwenDepTry/he-thong-quan-ly-cua-hang-thuc-pham
+   ```
+2. Bấm đúp **`chay.bat`**.
+
+Lần đầu, script sẽ tự đóng gói ứng dụng, bật PostgreSQL bằng Docker (tự tạo database và nạp dữ liệu mẫu), chờ sẵn sàng rồi mở ứng dụng. Những lần sau chỉ cần bấm đúp `chay.bat` là xong.
+
+> macOS / Linux: chạy `./chay.sh`.
+
+### 🔑 Tài khoản demo
+
+| Vai trò   | Tài khoản | Mật khẩu |
+| --------- | --------- | -------- |
+| Quản lý   | admin     | admin    |
+| Nhân viên | nhanvien  | 123      |
+
+---
+
+## 🛠️ Chạy từ VS Code / IDE (dành cho lập trình)
+
+1. Bật database: mở Docker Desktop, ở thư mục project chạy
+   ```bash
+   docker compose up -d
+   ```
+2. Mở project bằng VS Code (hoặc IntelliJ / NetBeans / Eclipse), thêm các file trong `lib/` vào classpath
+   (VS Code đã cấu hình sẵn `lib/**/*.jar`).
+3. Chạy `src/main/Main.java`.
+
+Kết nối mặc định khớp với `docker-compose.yml`: cổng **55432**, user `postgres`, mật khẩu `postgres`.
+Muốn đổi thì chép `db.properties.example` thành `db.properties` rồi sửa (file này không bị đẩy lên GitHub).
+
+### Đóng gói
+
+`build.bat` (Windows) hoặc `./build.sh` (macOS/Linux) tạo **`dist/QuanLyCuaHang.jar`**: một file duy nhất đã gộp sẵn mọi thư viện, chạy bằng `java -jar dist/QuanLyCuaHang.jar`.
+
+### Lệnh Docker hay dùng
+
+| Việc | Lệnh |
+| --- | --- |
+| Bật database | `docker compose up -d` |
+| Xem trạng thái (phải là `healthy`) | `docker compose ps` |
+| Tắt database | `docker compose stop` |
+| Xóa sạch dữ liệu, nạp lại dữ liệu mẫu | `docker compose down -v` rồi `docker compose up -d` |
 
 ---
 
@@ -50,111 +121,52 @@ Hệ thống giúp giảm thiểu sai sót trong quản lý thủ công và tố
 
 ```
 📦 he-thong-quan-ly-cua-hang-thuc-pham
- ┣ 📂 BaoCao
- ┃ ┣ 📄 BaoCao.docx
- ┃ ┗ 📄 BaoCao.pdf
- ┣ 📂 ChuongTrinh
- ┃ ┣ 📂 src (source code)
- ┃ ┣ 📂 database (file SQL)
- ┃ ┣ 📂 lib (thư viện .jar)
- ┃ ┗ 📄 file chạy (nếu có)
- ┗ 📄 README.md
+ ┣ 📂 src
+ ┃ ┣ 📂 config      kết nối CSDL (DBConnection)
+ ┃ ┣ 📂 dao         truy vấn CSDL
+ ┃ ┣ 📂 entity      lớp dữ liệu
+ ┃ ┣ 📂 images      ảnh dùng trong giao diện
+ ┃ ┗ 📂 main        Main.java – điểm khởi động
+ ┣ 📂 ui            giao diện Swing (màn hình, hộp thoại, thành phần dùng chung)
+ ┣ 📂 sql           script tạo CSDL + dữ liệu mẫu (Docker tự nạp lần đầu)
+ ┣ 📂 lib           thư viện .jar (FlatLaf, PostgreSQL JDBC, iText)
+ ┣ 📂 docs          ảnh chụp màn hình
+ ┣ 📄 docker-compose.yml
+ ┣ 📄 chay.bat / chay.sh     chạy ứng dụng bằng 1 lần bấm
+ ┗ 📄 build.bat / build.sh   đóng gói thành dist/QuanLyCuaHang.jar
 ```
 
----
+Thành phần giao diện dùng chung trong `ui/`:
 
-## 🛠️ Hướng dẫn cài đặt
-
-### 1. Clone project
-
-```bash
-git clone https://github.com/OwenDepTry/he-thong-quan-ly-cua-hang-thuc-pham
-```
-
-### 2. Khởi động database (PostgreSQL bằng Docker)
-
-Mở Docker Desktop, rồi ở thư mục gốc project chạy:
-
-```bash
-docker compose up -d
-```
-
-Lần đầu, Docker tự tạo database `qlcuahangthucpham` và nạp dữ liệu mẫu từ `sql/qlcuahangthucpham.sql`.
-
-* Tắt database: `docker compose stop`
-* Xóa sạch dữ liệu, nạp lại từ đầu: `docker compose down -v` rồi `docker compose up -d`
-
-### 3. Thêm thư viện JDBC của PostgreSQL
-
-Tải `postgresql-42.7.4.jar` tại https://repo1.maven.org/maven2/org/postgresql/postgresql/42.7.4/postgresql-42.7.4.jar
-và chép vào thư mục `lib/` (có thể xóa `mysql-connector-j-*.jar` vì không còn dùng).
-
-Thông tin kết nối mặc định đã khớp với `docker-compose.yml` (user `postgres`, mật khẩu `postgres`, cổng `55432`).
-Muốn đổi thì sao chép `db.properties.example` thành `db.properties` và sửa.
-
-### 4. Chạy chương trình
-
-* Mở project bằng VS Code / IntelliJ / NetBeans / Eclipse
-* Run file `Main.java`
+| File | Vai trò |
+| --- | --- |
+| `AppTheme` | bảng màu sáng/tối, font, cấu hình FlatLaf |
+| `AppIcons` | bộ icon vector vẽ bằng Java2D |
+| `AppTable` | định dạng bảng: tiền `125.000 ₫`, ngày `dd/MM/yyyy`, sắp xếp theo cột |
+| `FormDialog` | khung hộp thoại Thêm/Sửa có kiểm tra dữ liệu |
+| `AppAsync` | chạy truy vấn ở luồng nền kèm lớp phủ "Đang tải…" |
+| `Toast` | thông báo nhỏ tự ẩn |
 
 ---
 
-## 🔑 Tài khoản demo
+## ❓ Gặp lỗi?
 
-| Vai trò   | Tài khoản | Mật khẩu |
-| --------- | --------- | -------- |
-| Admin     | admin     | admin    |
-| Nhân viên | nhanvien  | 123      |
+Khi không kết nối được CSDL, hộp thông báo trong app sẽ ghi rõ nguyên nhân và cách sửa. Một số trường hợp hay gặp:
 
----
-
-## 📊 Yêu cầu hệ thống
-
-* JDK 17 trở lên
-* Docker Desktop (để chạy PostgreSQL)
-* IDE Java (IntelliJ / NetBeans / Eclipse)
-
----
-
-## 📌 Ghi chú
-
-* Cần import database trước khi chạy
-* Nếu lỗi kết nối → kiểm tra DBConnection
-* Nếu lỗi PDF → kiểm tra thư viện iText đã add chưa
-
----
-
-## 📚 Tài liệu tham khảo
-
-* Java Swing UI
-* JDBC Documentation
-* PostgreSQL Documentation
-* iText PDF Library
+* **Docker chưa chạy / `docker compose ps` không hiện gì** → mở Docker Desktop rồi chạy `docker compose up -d`.
+* **Báo trùng cổng (`port is already allocated`)** → đổi `"55432:5432"` trong `docker-compose.yml` sang cổng khác, và tạo `db.properties` dùng cổng đó.
+* **Chữ hơi mờ trên Windows** → bật ClearType (tìm "Adjust ClearType text" trong Windows).
+* **Muốn dữ liệu mẫu ban đầu** → `docker compose down -v` rồi `docker compose up -d`.
 
 ---
 
 ## 🎯 Định hướng phát triển
 
 * Xây dựng phiên bản web
-* Thêm phân quyền chi tiết hơn
+* Phân quyền chi tiết hơn
 * Tích hợp thanh toán online
-* Cải thiện UI/UX
+* Quét mã vạch khi bán hàng
 
 ---
 
 ⭐ Nếu thấy project hữu ích hãy để lại 1 star nhé!
-
----
-
-## 🎨 Giao diện (khuyến nghị cài FlatLaf)
-
-Ứng dụng tự nhận **FlatLaf** nếu có file jar trong thư mục `lib/` (bo góc, ô nhập có placeholder, tab/thanh cuộn hiện đại, nét trên màn hình HiDPI).
-Không có FlatLaf thì app vẫn chạy bình thường với giao diện mặc định.
-
-1. Tải `flatlaf-3.5.4.jar` tại: https://repo1.maven.org/maven2/com/formdev/flatlaf/3.5.4/flatlaf-3.5.4.jar
-2. Chép vào thư mục `lib/` (VS Code đã cấu hình sẵn `lib/**/*.jar`).
-3. Chạy lại `Main`.
-
-Tùy chọn: nhúng font **Be Vietnam Pro** bằng cách đặt `BeVietnamPro-Regular.ttf` và `BeVietnamPro-Bold.ttf` vào `src/fonts/`.
-
-Màu sắc, font dùng chung nằm ở `ui/AppTheme.java`; icon ở `ui/AppIcons.java`; định dạng bảng (tiền tệ, ngày, dòng xen kẽ) ở `ui/AppTable.java`.

@@ -26,6 +26,7 @@ public class MainFrame extends JFrame {
     /** Màn hình chỉ được tạo (và truy vấn CSDL) khi người dùng mở lần đầu → đăng nhập nhanh hơn nhiều. */
     private final Map<String, Supplier<JPanel>> screenFactories = new LinkedHashMap<>();
     private final Set<String> createdScreens = new HashSet<>();
+    private final Map<String, JPanel> screens = new java.util.HashMap<>();
 
     public MainFrame(String role, String displayName) {
         this.role = role;
@@ -89,20 +90,29 @@ public class MainFrame extends JFrame {
     }
 
     private void showScreen(String name) {
-        if (!createdScreens.contains(name)) {
-            Supplier<JPanel> factory = screenFactories.get(name);
-            if (factory == null) {
-                return;
+        if (createdScreens.contains(name)) {
+            cardLayout.show(contentPanel, name);
+            currentScreen = name;
+            JPanel shown = screens.get(name);
+            if (shown instanceof Refreshable) {
+                ((Refreshable) shown).refresh();
             }
-            setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.WAIT_CURSOR));
-            try {
-                contentPanel.add(factory.get(), name);
-                createdScreens.add(name);
-            } finally {
-                setCursor(java.awt.Cursor.getDefaultCursor());
-            }
+            return;
         }
-        cardLayout.show(contentPanel, name);
+        Supplier<JPanel> factory = screenFactories.get(name);
+        if (factory == null) {
+            return;
+        }
+        // Màn hình cũ truy vấn CSDL ngay trong constructor (bắt buộc chạy trên luồng giao diện),
+        // nên hiện "Đang tải…" trước để cửa sổ không trông như bị treo.
+        AppAsync.withOverlay(this, "Đang mở " + name + "…", () -> {
+            JPanel screen = factory.get();
+            screens.put(name, screen);
+            contentPanel.add(screen, name);
+            createdScreens.add(name);
+            cardLayout.show(contentPanel, name);
+            currentScreen = name;
+        });
     }
 
     /** Điều hướng từ trong một màn hình (ví dụ ô truy cập nhanh ở Trang chủ). */
@@ -115,7 +125,26 @@ public class MainFrame extends JFrame {
         return "QL".equalsIgnoreCase(role) || "ADMIN".equalsIgnoreCase(role);
     }
 
+    private String currentScreen = "Trang chủ";
+
+    /** Đổi sáng/tối: lưu lựa chọn, dựng lại cửa sổ ở đúng vị trí và màn hình đang xem. */
+    private void toggleTheme() {
+        AppTheme.setDark(!AppTheme.isDark());
+        MainFrame next = new MainFrame(role, displayName);
+        next.setBounds(getBounds());
+        next.setExtendedState(getExtendedState());
+        next.setVisible(true);
+        if (!"Trang chủ".equals(currentScreen)) {
+            next.navigate(currentScreen);
+        }
+        dispose();
+    }
+
     private void handleMenuClick(String menuName) {
+        if (menuName.startsWith("Chế độ")) {
+            toggleTheme();
+            return;
+        }
         if ("Đăng Xuất".equals(menuName)) {
             int confirm = JOptionPane.showConfirmDialog(
                     this,

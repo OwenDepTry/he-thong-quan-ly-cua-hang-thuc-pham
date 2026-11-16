@@ -52,7 +52,7 @@ public class TaiKhoanNhanVienPanel extends JPanel {
 
     private JPanel createFormPanel() {
         JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBackground(Color.WHITE);
+        panel.setBackground(AppTheme.SURFACE);
         panel.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(AppTheme.BORDER),
                 BorderFactory.createEmptyBorder(20, 20, 20, 20)

@@ -6,3 +6,6 @@ db.properties
 bin/
 out/
 build/
+
+# File đóng gói (tạo bằng build.bat / build.sh)
+dist/

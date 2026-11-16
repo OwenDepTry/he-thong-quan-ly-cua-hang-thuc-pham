@@ -19,7 +19,7 @@ public class SimpleBarChartPanel extends JPanel {
         this.labels = labels;
         this.values = values;
         setOpaque(true);
-        setBackground(Color.WHITE);
+        setBackground(AppTheme.SURFACE);
     }
 
     @Override
@@ -92,7 +92,7 @@ public class SimpleBarChartPanel extends JPanel {
             g2.setColor(AppTheme.PRIMARY_HOVER);
             g2.drawRoundRect(x, y, barW, barH, 12, 12);
 
-            g2.setColor(Color.BLACK);
+            g2.setColor(AppTheme.TEXT_DARK);
             g2.drawString(String.valueOf(values[i]), x + 6, y - 6);
 
             g2.setFont(AppTheme.font(Font.PLAIN, 11));

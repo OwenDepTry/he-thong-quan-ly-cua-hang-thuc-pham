@@ -134,7 +134,15 @@ public class SidebarMenu extends JPanel {
         bottom.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(1, 0, 0, 0, AppTheme.SIDEBAR_HOVER),
                 BorderFactory.createEmptyBorder(10, 10, 12, 10)));
-        bottom.add(new MenuItem("Đăng Xuất", true), BorderLayout.CENTER);
+        JPanel items = new JPanel();
+        items.setOpaque(false);
+        items.setLayout(new BoxLayout(items, BoxLayout.Y_AXIS));
+        MenuItem theme = new MenuItem(AppTheme.isDark() ? "Chế độ sáng" : "Chế độ tối", false);
+        theme.setToolTipText("Đổi giao diện sáng / tối");
+        items.add(theme);
+        items.add(Box.createVerticalStrut(2));
+        items.add(new MenuItem("Đăng Xuất", true));
+        bottom.add(items, BorderLayout.CENTER);
         return bottom;
     }
 
@@ -184,7 +192,7 @@ public class SidebarMenu extends JPanel {
 
                 @Override
                 public void mouseClicked(MouseEvent e) {
-                    if (!logout) {
+                    if (!logout && menuItems.containsKey(menuText)) {
                         setActiveButton(menuText);
                     }
                     menuHandler.accept(menuText);

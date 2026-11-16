@@ -83,8 +83,8 @@ public class AppButton extends JButton {
                 border = fill;
                 break;
             case DANGER:
-                fill = pressed ? new Color(254, 202, 202) : hover ? AppTheme.DANGER_SOFT : AppTheme.SURFACE;
-                border = hover ? new Color(252, 165, 165) : AppTheme.BORDER_STRONG;
+                fill = pressed ? AppTheme.DANGER_SOFT.darker() : hover ? AppTheme.DANGER_SOFT : AppTheme.SURFACE;
+                border = hover ? AppTheme.DANGER : AppTheme.BORDER_STRONG;
                 break;
             case GHOST:
                 fill = pressed ? AppTheme.BORDER : hover ? AppTheme.SURFACE_ALT : new Color(0, 0, 0, 0);

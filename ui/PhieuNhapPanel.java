@@ -226,7 +226,7 @@ public class PhieuNhapPanel extends AdminTablePanelBase {
         JTextField txt = new JTextField();
         txt.setEditable(false);
         txt.setFont(AppTheme.font(Font.PLAIN, 15));
-        txt.setBackground(Color.WHITE);
+        txt.setBackground(AppTheme.SURFACE);
         txt.setPreferredSize(new Dimension(240, 34));
         return txt;
     }
@@ -945,7 +945,7 @@ public class PhieuNhapPanel extends AdminTablePanelBase {
                     BorderFactory.createLineBorder(AppTheme.BORDER),
                     BorderFactory.createEmptyBorder(12, 12, 12, 12)
             ));
-            info.setBackground(Color.WHITE);
+            info.setBackground(AppTheme.SURFACE);
 
             JTextField txtMa = createReadOnly();
             JTextField txtNCC = createReadOnly();
@@ -1006,7 +1006,7 @@ public class PhieuNhapPanel extends AdminTablePanelBase {
         private static JTextField createReadOnly() {
             JTextField txt = new JTextField();
             txt.setEditable(false);
-            txt.setBackground(Color.WHITE);
+            txt.setBackground(AppTheme.SURFACE);
             txt.setPreferredSize(new Dimension(260, 32));
             return txt;
         }

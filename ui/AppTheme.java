@@ -21,54 +21,154 @@ public class AppTheme {
     private AppTheme() {
     }
 
-    // ===== Bảng màu chính =====
-    public static final Color PRIMARY = new Color(22, 163, 74);        // xanh lá chủ đạo
-    public static final Color PRIMARY_HOVER = new Color(21, 128, 61);
-    public static final Color PRIMARY_SOFT = new Color(220, 252, 231); // nền nhạt (chọn dòng, badge)
-    public static final Color PRIMARY_TEXT = new Color(20, 83, 45);
+    // ===== Bảng màu =====
+    // Không để final: giá trị lấy theo chế độ sáng/tối đã lưu (xem applyPalette). Đổi chế độ cần dựng lại cửa sổ.
+    public static Color PRIMARY;          // xanh lá chủ đạo
+    public static Color PRIMARY_HOVER;
+    public static Color PRIMARY_SOFT;     // nền nhạt (chọn dòng, badge)
+    public static Color PRIMARY_TEXT;
 
-    public static final Color SIDEBAR_BG = new Color(20, 61, 38);
-    public static final Color SIDEBAR_HOVER = new Color(30, 82, 52);
-    public static final Color SIDEBAR_ACTIVE = new Color(39, 104, 66);
-    public static final Color SIDEBAR_TEXT = new Color(209, 231, 216);
-    public static final Color SIDEBAR_MUTED = new Color(134, 175, 148);
-    public static final Color ACCENT = new Color(163, 230, 53);         // vạch nhấn mục đang chọn
+    public static Color SIDEBAR_BG;
+    public static Color SIDEBAR_HOVER;
+    public static Color SIDEBAR_ACTIVE;
+    public static Color SIDEBAR_TEXT;
+    public static Color SIDEBAR_MUTED;
+    public static Color ACCENT;           // vạch nhấn mục đang chọn
 
-    public static final Color DANGER = new Color(220, 38, 38);
-    public static final Color DANGER_SOFT = new Color(254, 226, 226);
-    public static final Color WARNING = new Color(217, 119, 6);
-    public static final Color INFO = new Color(37, 99, 235);
+    public static Color DANGER;
+    public static Color DANGER_SOFT;
+    public static Color WARNING;
+    public static Color WARNING_SOFT;
+    public static Color INFO;
 
-    // ===== Màu trung tính =====
-    public static final Color BG_MAIN = new Color(243, 246, 244);
-    public static final Color SURFACE = Color.WHITE;
-    public static final Color SURFACE_ALT = new Color(249, 250, 251);   // dòng xen kẽ trong bảng
-    public static final Color BORDER = new Color(223, 229, 225);
-    public static final Color BORDER_STRONG = new Color(196, 205, 199);
-    public static final Color TEXT_DARK = new Color(31, 41, 55);
-    public static final Color TEXT_MUTED = new Color(107, 114, 128);
+    public static Color BG_MAIN;
+    public static Color SURFACE;
+    public static Color SURFACE_ALT;      // dòng xen kẽ trong bảng
+    public static Color BORDER;
+    public static Color BORDER_STRONG;
+    public static Color TEXT_DARK;        // chữ chính (sáng ở chế độ tối)
+    public static Color TEXT_MUTED;
+    public static Color TABLE_GRID;
     public static final Color WHITE = Color.WHITE;
 
-    // ===== Tên cũ – giữ lại để code cũ vẫn biên dịch, đã trỏ về bảng màu mới =====
-    public static final Color PANEL_WHITE = SURFACE;
-    public static final Color GREEN_TOP = PRIMARY;
-    public static final Color GREEN_TOP_DARK = PRIMARY_HOVER;
-    public static final Color GREEN_SIDEBAR = SIDEBAR_BG;
-    public static final Color GREEN_SIDEBAR_ACTIVE = SIDEBAR_ACTIVE;
-    public static final Color GREEN_SIDEBAR_TOP = SIDEBAR_BG;
-    public static final Color GREEN_BORDER = BORDER;
-    public static final Color GREEN_FORM = BG_MAIN;
-    public static final Color GREEN_SOFT = PRIMARY_SOFT;
-    public static final Color RED_LOGOUT = DANGER;
-    public static final Color PINK_LOGOUT = DANGER_SOFT;
-    public static final Color RED_ACTION = DANGER;
-    public static final Color BLUE_ACTION = INFO;
-    public static final Color CYAN_ACTION = INFO;
-    public static final Color ORANGE_ACTION = WARNING;
-    public static final Color WHITE_ACTION = SURFACE_ALT;
-    public static final Color TABLE_HEADER = SURFACE_ALT;
-    public static final Color TABLE_GRID = new Color(238, 241, 239);
-    public static final Color YELLOW_TEXT = ACCENT;
+    // ===== Tên cũ – giữ lại để code cũ vẫn biên dịch, trỏ về bảng màu mới =====
+    public static Color PANEL_WHITE;
+    public static Color GREEN_TOP;
+    public static Color GREEN_TOP_DARK;
+    public static Color GREEN_SIDEBAR;
+    public static Color GREEN_SIDEBAR_ACTIVE;
+    public static Color GREEN_SIDEBAR_TOP;
+    public static Color GREEN_BORDER;
+    public static Color GREEN_FORM;
+    public static Color GREEN_SOFT;
+    public static Color RED_LOGOUT;
+    public static Color PINK_LOGOUT;
+    public static Color RED_ACTION;
+    public static Color BLUE_ACTION;
+    public static Color CYAN_ACTION;
+    public static Color ORANGE_ACTION;
+    public static Color WHITE_ACTION;
+    public static Color TABLE_HEADER;
+    public static Color YELLOW_TEXT;
+
+    private static final String PREF_DARK = "darkMode";
+    private static boolean dark;
+
+    static {
+        boolean saved = false;
+        try {
+            saved = java.util.prefs.Preferences.userNodeForPackage(AppTheme.class).getBoolean(PREF_DARK, false);
+        } catch (Exception ignored) {
+            // không đọc được cài đặt: dùng chế độ sáng
+        }
+        applyPalette(saved);
+    }
+
+    public static boolean isDark() {
+        return dark;
+    }
+
+    /** Đổi chế độ sáng/tối, lưu lại cho lần mở sau và cài lại Look & Feel. Cửa sổ đang mở cần được dựng lại. */
+    public static void setDark(boolean value) {
+        applyPalette(value);
+        try {
+            java.util.prefs.Preferences.userNodeForPackage(AppTheme.class).putBoolean(PREF_DARK, value);
+        } catch (Exception ignored) {
+            // không lưu được cũng không sao
+        }
+        installLookAndFeel();
+    }
+
+    private static void applyPalette(boolean useDark) {
+        dark = useDark;
+        if (!useDark) {
+            PRIMARY = new Color(22, 163, 74);
+            PRIMARY_HOVER = new Color(21, 128, 61);
+            PRIMARY_SOFT = new Color(220, 252, 231);
+            PRIMARY_TEXT = new Color(20, 83, 45);
+            SIDEBAR_BG = new Color(20, 61, 38);
+            SIDEBAR_HOVER = new Color(30, 82, 52);
+            SIDEBAR_ACTIVE = new Color(39, 104, 66);
+            SIDEBAR_TEXT = new Color(209, 231, 216);
+            SIDEBAR_MUTED = new Color(134, 175, 148);
+            ACCENT = new Color(163, 230, 53);
+            DANGER = new Color(220, 38, 38);
+            DANGER_SOFT = new Color(254, 226, 226);
+            WARNING = new Color(217, 119, 6);
+            WARNING_SOFT = new Color(254, 243, 199);
+            INFO = new Color(37, 99, 235);
+            BG_MAIN = new Color(243, 246, 244);
+            SURFACE = Color.WHITE;
+            SURFACE_ALT = new Color(249, 250, 251);
+            BORDER = new Color(223, 229, 225);
+            BORDER_STRONG = new Color(196, 205, 199);
+            TEXT_DARK = new Color(31, 41, 55);
+            TEXT_MUTED = new Color(107, 114, 128);
+            TABLE_GRID = new Color(238, 241, 239);
+        } else {
+            PRIMARY = new Color(34, 197, 94);
+            PRIMARY_HOVER = new Color(22, 163, 74);
+            PRIMARY_SOFT = new Color(22, 61, 40);
+            PRIMARY_TEXT = new Color(187, 247, 208);
+            SIDEBAR_BG = new Color(12, 20, 16);
+            SIDEBAR_HOVER = new Color(24, 38, 31);
+            SIDEBAR_ACTIVE = new Color(30, 54, 41);
+            SIDEBAR_TEXT = new Color(196, 214, 203);
+            SIDEBAR_MUTED = new Color(116, 145, 128);
+            ACCENT = new Color(163, 230, 53);
+            DANGER = new Color(248, 113, 113);
+            DANGER_SOFT = new Color(66, 28, 28);
+            WARNING = new Color(251, 191, 36);
+            WARNING_SOFT = new Color(64, 50, 16);
+            INFO = new Color(96, 165, 250);
+            BG_MAIN = new Color(17, 24, 20);
+            SURFACE = new Color(26, 35, 30);
+            SURFACE_ALT = new Color(31, 41, 36);
+            BORDER = new Color(49, 63, 55);
+            BORDER_STRONG = new Color(70, 87, 77);
+            TEXT_DARK = new Color(229, 236, 232);
+            TEXT_MUTED = new Color(148, 163, 155);
+            TABLE_GRID = new Color(38, 50, 44);
+        }
+        PANEL_WHITE = SURFACE;
+        GREEN_TOP = PRIMARY;
+        GREEN_TOP_DARK = PRIMARY_HOVER;
+        GREEN_SIDEBAR = SIDEBAR_BG;
+        GREEN_SIDEBAR_ACTIVE = SIDEBAR_ACTIVE;
+        GREEN_SIDEBAR_TOP = SIDEBAR_BG;
+        GREEN_BORDER = BORDER;
+        GREEN_FORM = BG_MAIN;
+        GREEN_SOFT = PRIMARY_SOFT;
+        RED_LOGOUT = DANGER;
+        PINK_LOGOUT = DANGER_SOFT;
+        RED_ACTION = DANGER;
+        BLUE_ACTION = INFO;
+        CYAN_ACTION = INFO;
+        ORANGE_ACTION = WARNING;
+        WHITE_ACTION = SURFACE_ALT;
+        TABLE_HEADER = SURFACE_ALT;
+        YELLOW_TEXT = ACCENT;
+    }
 
     // ===== Font =====
     /** Họ font dùng cho toàn app, chọn tự động font đẹp nhất có trên máy (đều hỗ trợ tiếng Việt). */
@@ -139,7 +239,13 @@ public class AppTheme {
     }
 
     /** Nhấn Esc trong bất kỳ hộp thoại nào (Thêm/Sửa/Chi tiết…) để đóng nó, giống nút Hủy. */
+    private static boolean escapeInstalled;
+
     private static void installEscapeClosesDialogs() {
+        if (escapeInstalled) {
+            return;
+        }
+        escapeInstalled = true;
         java.awt.Toolkit.getDefaultToolkit().addAWTEventListener(event -> {
             java.awt.event.KeyEvent ke = (java.awt.event.KeyEvent) event;
             if (ke.getID() != java.awt.event.KeyEvent.KEY_PRESSED
@@ -211,7 +317,8 @@ public class AppTheme {
 
         boolean flat = false;
         try {
-            Class.forName("com.formdev.flatlaf.FlatLightLaf").getMethod("setup").invoke(null);
+            Class.forName(dark ? "com.formdev.flatlaf.FlatDarkLaf" : "com.formdev.flatlaf.FlatLightLaf")
+                    .getMethod("setup").invoke(null);
             flat = true;
         } catch (Throwable ignored) {
             UIManager.put("swing.boldMetal", Boolean.FALSE);
