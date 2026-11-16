@@ -89,7 +89,7 @@ Lần đầu, Docker tự tạo database `qlcuahangthucpham` và nạp dữ li�
 Tải `postgresql-42.7.4.jar` tại https://repo1.maven.org/maven2/org/postgresql/postgresql/42.7.4/postgresql-42.7.4.jar
 và chép vào thư mục `lib/` (có thể xóa `mysql-connector-j-*.jar` vì không còn dùng).
 
-Thông tin kết nối mặc định đã khớp với `docker-compose.yml` (user `postgres`, mật khẩu `postgres`, cổng `5432`).
+Thông tin kết nối mặc định đã khớp với `docker-compose.yml` (user `postgres`, mật khẩu `postgres`, cổng `55432`).
 Muốn đổi thì sao chép `db.properties.example` thành `db.properties` và sửa.
 
 ### 4. Chạy chương trình

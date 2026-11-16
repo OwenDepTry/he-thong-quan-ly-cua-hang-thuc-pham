@@ -5,6 +5,6 @@
 # Có thể ghi đè bằng biến môi trường DB_URL, DB_USER, DB_PASSWORD.
 
 # stringtype=unspecified: cho phép truyền ngày/số dạng chuỗi như khi dùng MySQL
-db.url=jdbc:postgresql://127.0.0.1:5432/qlcuahangthucpham?stringtype=unspecified
+db.url=jdbc:postgresql://127.0.0.1:55432/qlcuahangthucpham?stringtype=unspecified
 db.user=postgres
 db.password=postgres
