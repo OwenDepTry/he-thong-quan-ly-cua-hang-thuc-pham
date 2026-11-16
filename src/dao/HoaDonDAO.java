@@ -651,9 +651,9 @@ public class HoaDonDAO {
     private void hoanTonKho(Connection conn, String maHoaDon) throws SQLException {
         String sql = """
             UPDATE SanPham sp
-            JOIN ChiTietHoaDon ct ON ct.MaSanPham = sp.MaSanPham
-            SET sp.SoLuongTon = sp.SoLuongTon + ct.SoLuong
-            WHERE ct.MaHoaDon = ?
+            SET SoLuongTon = sp.SoLuongTon + ct.SoLuong
+            FROM ChiTietHoaDon ct
+            WHERE ct.MaSanPham = sp.MaSanPham AND ct.MaHoaDon = ?
         """;
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, maHoaDon);

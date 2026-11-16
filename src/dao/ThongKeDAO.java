@@ -98,10 +98,16 @@ public class ThongKeDAO {
                    sp.TenSanPham,
                    COALESCE(SUM(ct.SoLuong), 0) AS SoLuongBan,
                    COALESCE(SUM(ct.SoLuong * ct.DonGia), 0) AS DoanhThu,
-                   COALESCE(SUM(ct.SoLuong * (ct.DonGia - sp.Gia)), 0) AS LoiNhuan
+                   COALESCE(SUM(ct.SoLuong * (ct.DonGia - COALESCE(gv.GiaVon, sp.Gia))), 0) AS LoiNhuan
             FROM ChiTietHoaDon ct
             JOIN HoaDon hd ON ct.MaHoaDon = hd.MaHoaDon
             JOIN SanPham sp ON ct.MaSanPham = sp.MaSanPham
+            -- Giá vốn = giá nhập trung bình (theo số lượng) từ các phiếu nhập; chưa nhập lần nào thì coi như bằng giá bán
+            LEFT JOIN (
+                SELECT MaSanPham, SUM(SoLuong * DonGia) / NULLIF(SUM(SoLuong), 0) AS GiaVon
+                FROM ChiTietPhieuNhap
+                GROUP BY MaSanPham
+            ) gv ON gv.MaSanPham = sp.MaSanPham
             WHERE EXTRACT(YEAR FROM hd.ThoiGian) = ?
             GROUP BY sp.MaSanPham, sp.TenSanPham
             ORDER BY DoanhThu DESC, sp.MaSanPham ASC

@@ -104,7 +104,7 @@ public class HomePanel extends JPanel implements Refreshable {
                 "Tồn kho từ " + DashboardDAO.LOW_STOCK_THRESHOLD + " trở xuống",
                 "Không có sản phẩm nào sắp hết hàng", manager ? "Sản phẩm" : null);
         expiring = new ListCard("Lô hàng sắp hết hạn", "history",
-                "Hết hạn trong " + DashboardDAO.EXPIRY_WARNING_DAYS + " ngày tới hoặc đã hết hạn",
+                "Hết hạn trong " + DashboardDAO.EXPIRY_WARNING_DAYS + " ngày tới hoặc " + DashboardDAO.EXPIRED_LOOKBACK_DAYS + " ngày qua",
                 "Không có lô hàng nào sắp hết hạn", manager ? "Sản phẩm" : null);
         JPanel lists = new JPanel(new GridLayout(1, 2, 16, 0));
         lists.setOpaque(false);

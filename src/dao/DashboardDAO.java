@@ -17,6 +17,8 @@ public class DashboardDAO {
     public static final int LOW_STOCK_THRESHOLD = 30;
     /** Lô hàng hết hạn trong vòng bấy nhiêu ngày tới (hoặc đã hết hạn) sẽ được cảnh báo. */
     public static final int EXPIRY_WARNING_DAYS = 7;
+    /** Lô đã hết hạn quá số ngày này coi như đã xử lý, không cảnh báo nữa (vẫn xem được ở Quản lý hàng hóa). */
+    public static final int EXPIRED_LOOKBACK_DAYS = 30;
     private static final int LIST_LIMIT = 5;
 
     public static class Data {
@@ -80,7 +82,8 @@ public class DashboardDAO {
 
             String expiryWhere = " FROM HangHoa h JOIN SanPham s ON s.MaSanPham = h.MaSanPham "
                     + "WHERE h.SoLuong > 0 AND h.HanSuDung IS NOT NULL "
-                    + "AND h.HanSuDung <= CURRENT_DATE + " + EXPIRY_WARNING_DAYS;
+                    + "AND h.HanSuDung BETWEEN CURRENT_DATE - " + EXPIRED_LOOKBACK_DAYS
+                    + " AND CURRENT_DATE + " + EXPIRY_WARNING_DAYS;
             d.soLoSapHetHan = count(conn, "SELECT COUNT(*)" + expiryWhere);
             try (PreparedStatement ps = conn.prepareStatement(
                     "SELECT h.MaHang, s.TenSanPham, h.SoLuong, h.HanSuDung" + expiryWhere

@@ -638,16 +638,23 @@ public class PhieuNhapDAO {
     private String lookupExistingColumn(String tableName, String... candidates) {
         try (Connection conn = DBConnection.open()) {
             DatabaseMetaData meta = conn.getMetaData();
-            try (ResultSet rs = meta.getColumns(conn.getCatalog(), null, tableName, null)) {
-                List<String> cols = new ArrayList<>();
-                while (rs.next()) {
-                    cols.add(rs.getString("COLUMN_NAME"));
+            // PostgreSQL lưu tên bảng không đặt trong ngoặc kép ở dạng chữ thường ("phieunhap") và
+            // getColumns so khớp phân biệt hoa/thường, nên thử cả tên gốc, chữ thường, chữ hoa.
+            List<String> cols = new ArrayList<>();
+            for (String name : new String[]{tableName, tableName.toLowerCase(), tableName.toUpperCase()}) {
+                try (ResultSet rs = meta.getColumns(conn.getCatalog(), null, name, null)) {
+                    while (rs.next()) {
+                        cols.add(rs.getString("COLUMN_NAME"));
+                    }
                 }
-                for (String c : candidates) {
-                    for (String real : cols) {
-                        if (real.equalsIgnoreCase(c)) {
-                            return real;
-                        }
+                if (!cols.isEmpty()) {
+                    break;
+                }
+            }
+            for (String c : candidates) {
+                for (String real : cols) {
+                    if (real.equalsIgnoreCase(c)) {
+                        return real;
                     }
                 }
             }

@@ -43,6 +43,7 @@ public final class AppTable {
     /** Cột phần trăm / số lượng không phải tiền dù có chữ "giá" (ví dụ "% giảm giá"). */
     private static final Pattern NOT_MONEY_COLUMN = Pattern.compile("(?iu).*(%|phần trăm|mã|số lượng).*");
 
+    private static final Pattern ISO_DATE_TEXT = Pattern.compile("\\d{4}-\\d{2}-\\d{2}( \\d{2}:\\d{2}(:\\d{2}(\\.\\d+)?)?)?");
     private static final NumberFormat MONEY = NumberFormat.getNumberInstance(Locale.forLanguageTag("vi-VN"));
     private static final NumberFormat NUMBER = NumberFormat.getNumberInstance(Locale.forLanguageTag("vi-VN"));
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -289,6 +290,8 @@ public final class AppTable {
                 display = ((LocalDate) value).format(DATE);
             } else if (value instanceof LocalDateTime) {
                 display = ((LocalDateTime) value).format(DATE_TIME);
+            } else if (value instanceof String && ISO_DATE_TEXT.matcher((String) value).matches()) {
+                display = AppTable.display(value);   // CSDL trả ngày dạng chuỗi "2026-11-17" → 17/11/2026
             }
 
             JLabel c = (JLabel) super.getTableCellRendererComponent(table, display, isSelected, false, row, column);

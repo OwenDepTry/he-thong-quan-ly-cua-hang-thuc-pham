@@ -78,6 +78,16 @@ Yêu cầu: **JDK 17 trở lên** và **Docker Desktop** đang mở.
 
 Lần đầu, script sẽ tự đóng gói ứng dụng, bật PostgreSQL bằng Docker (tự tạo database và nạp dữ liệu mẫu), chờ sẵn sàng rồi mở ứng dụng. Những lần sau chỉ cần bấm đúp `chay.bat` là xong.
 
+### 📦 Dữ liệu mẫu
+
+Database mới tạo đã có sẵn dữ liệu để dùng thử ngay, không cần nhập tay:
+30 sản phẩm, 30 khách hàng, 7 nhân viên, 7 nhà cung cấp, 7 khuyến mãi, khoảng **2.000 hóa đơn** và 100 phiếu nhập
+trải đều **12 tháng gần nhất tính tới hôm nay**, kèm vài sản phẩm sắp hết hàng và lô hàng sắp hết hạn để Trang chủ có cảnh báo.
+
+* Đã có database từ trước (không muốn mất dữ liệu đã nhập)? Bấm đúp **`nap-du-lieu-mau.bat`**. Chạy lại nhiều lần cũng không bị nhân đôi.
+* Muốn làm lại từ đầu với ngày tháng mới: `docker compose down -v` rồi `docker compose up -d`.
+* Script nằm ở `sql/zz_du_lieu_mau.sql`.
+
 > macOS / Linux: chạy `./chay.sh`.
 
 ### 🔑 Tài khoản demo
@@ -86,6 +96,8 @@ Lần đầu, script sẽ tự đóng gói ứng dụng, bật PostgreSQL bằng
 | --------- | --------- | -------- |
 | Quản lý   | admin     | admin    |
 | Nhân viên | nhanvien  | 123      |
+| Nhân viên mẫu | NV01, NV02, NV03 | 123 |
+| Quản lý mẫu | NV04 | 123 |
 
 ---
 
@@ -128,11 +140,12 @@ Muốn đổi thì chép `db.properties.example` thành `db.properties` rồi s�
  ┃ ┣ 📂 images      ảnh dùng trong giao diện
  ┃ ┗ 📂 main        Main.java – điểm khởi động
  ┣ 📂 ui            giao diện Swing (màn hình, hộp thoại, thành phần dùng chung)
- ┣ 📂 sql           script tạo CSDL + dữ liệu mẫu (Docker tự nạp lần đầu)
+ ┣ 📂 sql           script tạo CSDL + dữ liệu mẫu zz_du_lieu_mau.sql (Docker tự nạp lần đầu)
  ┣ 📂 lib           thư viện .jar (FlatLaf, PostgreSQL JDBC, iText)
  ┣ 📂 docs          ảnh chụp màn hình
  ┣ 📄 docker-compose.yml
  ┣ 📄 chay.bat / chay.sh     chạy ứng dụng bằng 1 lần bấm
+ ┣ 📄 nap-du-lieu-mau.bat    nạp dữ liệu mẫu vào database đang có
  ┗ 📄 build.bat / build.sh   đóng gói thành dist/QuanLyCuaHang.jar
 ```
 
@@ -156,7 +169,7 @@ Khi không kết nối được CSDL, hộp thông báo trong app sẽ ghi rõ n
 * **Docker chưa chạy / `docker compose ps` không hiện gì** → mở Docker Desktop rồi chạy `docker compose up -d`.
 * **Báo trùng cổng (`port is already allocated`)** → đổi `"55432:5432"` trong `docker-compose.yml` sang cổng khác, và tạo `db.properties` dùng cổng đó.
 * **Chữ hơi mờ trên Windows** → bật ClearType (tìm "Adjust ClearType text" trong Windows).
-* **Muốn dữ liệu mẫu ban đầu** → `docker compose down -v` rồi `docker compose up -d`.
+* **Muốn có dữ liệu mẫu** → bấm đúp `nap-du-lieu-mau.bat` (giữ dữ liệu cũ), hoặc `docker compose down -v` rồi `docker compose up -d` (làm lại từ đầu).
 
 ---
 
