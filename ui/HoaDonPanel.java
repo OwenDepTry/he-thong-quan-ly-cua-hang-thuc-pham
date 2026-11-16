@@ -139,6 +139,8 @@ public class HoaDonPanel extends AdminTablePanelBase {
         tblHoaDon.getColumnModel().getColumn(9).setPreferredWidth(90);
 
         panel.add(createStyledTable(tblHoaDon), BorderLayout.CENTER);
+
+        installTableShortcuts(tblHoaDon, () -> toolbar);
         return panel;
     }
 

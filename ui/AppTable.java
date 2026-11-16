@@ -170,6 +170,88 @@ public final class AppTable {
         }
     }
 
+    /**
+     * Bấm tiêu đề cột để sắp xếp: tăng dần → giảm dần → về thứ tự ban đầu.
+     * Số/tiền/ngày so sánh theo giá trị, chữ theo bảng chữ cái tiếng Việt.
+     * Chỉ dùng cho bảng mà code đọc dữ liệu qua table.getValueAt(...) (JTable tự quy đổi dòng).
+     */
+    public static void enableSorting(JTable table) {
+        javax.swing.table.TableRowSorter<javax.swing.table.TableModel> sorter =
+                new javax.swing.table.TableRowSorter<javax.swing.table.TableModel>(table.getModel()) {
+            @Override
+            public void toggleSortOrder(int column) {
+                java.util.List<? extends javax.swing.RowSorter.SortKey> keys = getSortKeys();
+                if (!keys.isEmpty() && keys.get(0).getColumn() == column
+                        && keys.get(0).getSortOrder() == javax.swing.SortOrder.DESCENDING) {
+                    setSortKeys(null); // lần bấm thứ 3: về thứ tự gốc
+                    return;
+                }
+                super.toggleSortOrder(column);
+            }
+        };
+        java.util.Comparator<Object> cmp = new SmartComparator();
+        for (int c = 0; c < table.getModel().getColumnCount(); c++) {
+            sorter.setComparator(c, cmp);
+        }
+        sorter.setMaxSortKeys(1);
+        table.setRowSorter(sorter);
+        if (table.getTableHeader() != null) {
+            table.getTableHeader().setToolTipText("Bấm tiêu đề cột để sắp xếp · Bấm đúp vào dòng để sửa · Delete để xóa");
+        }
+    }
+
+    /** So sánh "thông minh": số với số, ngày với ngày, còn lại theo chữ tiếng Việt. */
+    private static final class SmartComparator implements java.util.Comparator<Object> {
+
+        private final java.text.Collator collator = java.text.Collator.getInstance(Locale.forLanguageTag("vi-VN"));
+
+        SmartComparator() {
+            collator.setStrength(java.text.Collator.SECONDARY);
+        }
+
+        @Override
+        public int compare(Object a, Object b) {
+            if (a == null || b == null) {
+                return a == b ? 0 : (a == null ? -1 : 1);
+            }
+            Double na = CellRenderer.toNumber(a);
+            Double nb = CellRenderer.toNumber(b);
+            if (na != null && nb != null) {
+                return Double.compare(na, nb);
+            }
+            LocalDate da = toDate(a);
+            LocalDate db = toDate(b);
+            if (da != null && db != null) {
+                return da.compareTo(db);
+            }
+            return collator.compare(String.valueOf(a).trim(), String.valueOf(b).trim());
+        }
+
+        private static LocalDate toDate(Object o) {
+            if (o instanceof java.sql.Date) {
+                return ((java.sql.Date) o).toLocalDate();
+            }
+            if (o instanceof java.sql.Timestamp) {
+                return ((java.sql.Timestamp) o).toLocalDateTime().toLocalDate();
+            }
+            if (o instanceof LocalDate) {
+                return (LocalDate) o;
+            }
+            String s = String.valueOf(o).trim();
+            try {
+                if (s.matches("\\d{4}-\\d{2}-\\d{2}.*")) {
+                    return LocalDate.parse(s.substring(0, 10));
+                }
+                if (s.matches("\\d{2}/\\d{2}/\\d{4}.*")) {
+                    return LocalDate.parse(s.substring(0, 10), DATE);
+                }
+            } catch (Exception ignored) {
+                // không phải ngày
+            }
+            return null;
+        }
+    }
+
     /** Bọc JScrollPane để hiển thị "Không có dữ liệu" khi bảng trống. */
     public static JComponent withEmptyState(JScrollPane scroll, JTable table, String message) {
         return new JLayer<>(scroll, new EmptyStateUI(table, message));

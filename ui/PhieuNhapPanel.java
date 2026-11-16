@@ -133,6 +133,8 @@ public class PhieuNhapPanel extends AdminTablePanelBase {
         tblPhieuNhap.getColumnModel().getColumn(6).setPreferredWidth(130);
 
         panel.add(createStyledTable(tblPhieuNhap), BorderLayout.CENTER);
+
+        installTableShortcuts(tblPhieuNhap, () -> toolbar);
         return panel;
     }
 

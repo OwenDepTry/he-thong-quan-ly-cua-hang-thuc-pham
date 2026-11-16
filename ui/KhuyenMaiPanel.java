@@ -65,6 +65,7 @@ public class KhuyenMaiPanel extends AdminTablePanelBase {
 
         centerPanel.removeAll();
         centerPanel.add(createStyledTable(table), BorderLayout.CENTER);
+        installTableShortcuts(table, () -> toolbar);
         centerPanel.revalidate();
         centerPanel.repaint();
 
@@ -314,8 +315,11 @@ public class KhuyenMaiPanel extends AdminTablePanelBase {
     private void selectRowById(String ma) {
         for (int i = 0; i < tableModel.getRowCount(); i++) {
             if (ma.equals(String.valueOf(tableModel.getValueAt(i, 0)))) {
-                table.setRowSelectionInterval(i, i);
-                table.scrollRectToVisible(table.getCellRect(i, 0, true));
+                int view = table.convertRowIndexToView(i); // bảng có thể đang được sắp xếp
+                if (view >= 0) {
+                    table.setRowSelectionInterval(view, view);
+                    table.scrollRectToVisible(table.getCellRect(view, 0, true));
+                }
                 break;
             }
         }

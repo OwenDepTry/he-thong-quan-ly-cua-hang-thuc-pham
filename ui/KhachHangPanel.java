@@ -60,6 +60,7 @@ public class KhachHangPanel extends AdminTablePanelBase {
 
         centerPanel.removeAll();
         centerPanel.add(createStyledTable(table), BorderLayout.CENTER);
+        installTableShortcuts(table, () -> toolbar);
         centerPanel.revalidate();
         centerPanel.repaint();
 
@@ -325,8 +326,11 @@ public class KhachHangPanel extends AdminTablePanelBase {
     private void selectRowById(String maKhachHang) {
         for (int i = 0; i < tableModel.getRowCount(); i++) {
             if (maKhachHang.equals(String.valueOf(tableModel.getValueAt(i, 0)))) {
-                table.setRowSelectionInterval(i, i);
-                table.scrollRectToVisible(table.getCellRect(i, 0, true));
+                int view = table.convertRowIndexToView(i); // bảng có thể đang được sắp xếp
+                if (view >= 0) {
+                    table.setRowSelectionInterval(view, view);
+                    table.scrollRectToVisible(table.getCellRect(view, 0, true));
+                }
                 break;
             }
         }

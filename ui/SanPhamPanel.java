@@ -69,6 +69,7 @@ public class SanPhamPanel extends AdminTablePanelBase {
         JPanel panelSanPhamCu = new JPanel(new BorderLayout());
         panelSanPhamCu.setOpaque(false);
         panelSanPhamCu.add(createStyledTable(tb), BorderLayout.CENTER);
+        installTableShortcuts(tb, () -> toolbar);
 
         JTabbedPane tabs = new JTabbedPane();
         tabs.addTab("Quản lý sản phẩm", panelSanPhamCu);
@@ -92,6 +93,9 @@ public class SanPhamPanel extends AdminTablePanelBase {
         }
         if (toolbar.getButton("Sửa") != null) {
             toolbar.getButton("Sửa").addActionListener(e -> suaSanPham());
+        }
+        if (toolbar.getButton("Chi tiết") != null) {
+            toolbar.getButton("Chi tiết").addActionListener(e -> xemChiTietSanPham());
         }
         if (toolbar.getButton("Xóa") != null) {
             toolbar.getButton("Xóa").addActionListener(e -> xoaSanPham());
@@ -258,6 +262,16 @@ public class SanPhamPanel extends AdminTablePanelBase {
         } else {
             JOptionPane.showMessageDialog(this, "Cập nhật sản phẩm thất bại!");
         }
+    }
+
+    private void xemChiTietSanPham() {
+        int row = tb.getSelectedRow();
+        if (row < 0) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn sản phẩm để xem chi tiết!");
+            return;
+        }
+        java.awt.Frame parent = (java.awt.Frame) javax.swing.SwingUtilities.getWindowAncestor(this);
+        new RecordDetailDialog(parent, "Chi tiết sản phẩm", "box", tb, row).setVisible(true);
     }
 
     private void xoaSanPham() {
