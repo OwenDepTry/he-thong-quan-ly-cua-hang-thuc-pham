@@ -69,7 +69,6 @@ public class HoaDonPanel extends AdminTablePanelBase {
         );
 
         buildTopBar(toolbar, searchPanel);
-        beautifyToolbar();
 
         initUI();
         bindEvents();
@@ -77,42 +76,38 @@ public class HoaDonPanel extends AdminTablePanelBase {
         loadData();
     }
 
-    private void beautifyToolbar() {
-        String[] names = {"Thêm", "Xóa", "Sửa", "Chi tiết", "In PDF", "Xuất excel"};
-        Color[] colors = {
-            new Color(46, 204, 113),
-            new Color(255, 99, 99),
-            new Color(240, 173, 78),
-            new Color(91, 192, 222),
-            new Color(255, 109, 87),
-            new Color(55, 196, 108)
-        };
-
-        for (int i = 0; i < names.length; i++) {
-            JButton btn = toolbar.getButton(names[i]);
-            if (btn != null) {
-                btn.setFocusPainted(false);
-                btn.setFont(new Font("Arial", Font.BOLD, 14));
-                btn.setForeground(Color.WHITE);
-                btn.setBackground(colors[i]);
-                btn.setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
-            }
-        }
-    }
 
     private void initUI() {
         centerPanel.setLayout(new BorderLayout(10, 10));
         centerPanel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
         centerPanel.setBackground(AppTheme.BG_MAIN);
 
-        centerPanel.add(createTopTablePanel(), BorderLayout.NORTH);
-        centerPanel.add(createBottomPanel(), BorderLayout.CENTER);
+        // Kéo thanh chia ở giữa để đổi kích thước bảng trên / phần chi tiết dưới
+        javax.swing.JSplitPane split = new javax.swing.JSplitPane(
+                javax.swing.JSplitPane.VERTICAL_SPLIT, createTopTablePanel(), createBottomPanel());
+        split.setResizeWeight(0.45);
+        split.setContinuousLayout(true);
+        split.setDividerSize(10);
+        split.setBorder(BorderFactory.createEmptyBorder());
+        split.setOpaque(false);
+        centerPanel.add(split, BorderLayout.CENTER);
+        split.addComponentListener(new java.awt.event.ComponentAdapter() {
+            private boolean done;
+
+            @Override
+            public void componentResized(java.awt.event.ComponentEvent e) {
+                if (!done && split.getHeight() > 0) {
+                    done = true;
+                    split.setDividerLocation(0.45);
+                }
+            }
+        });
     }
 
     private JPanel createTopTablePanel() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setOpaque(false);
-        panel.setPreferredSize(new Dimension(100, 390));
+        panel.setPreferredSize(new Dimension(100, 250));
 
         String[] cols = {
             "Mã hóa đơn", "Mã KH", "Tên khách hàng", "Mã NV", "Tên nhân viên",
@@ -127,8 +122,9 @@ public class HoaDonPanel extends AdminTablePanelBase {
         };
 
         tblHoaDon = new JTable(modelHoaDon);
+
+        AppTable.style(tblHoaDon);
         tblHoaDon.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        tblHoaDon.setRowHeight(25);
         tblHoaDon.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
 
         tblHoaDon.getColumnModel().getColumn(0).setPreferredWidth(120);
@@ -160,16 +156,15 @@ public class HoaDonPanel extends AdminTablePanelBase {
         wrap.setPreferredSize(new Dimension(420, 100));
 
         JLabel lblTitle = new JLabel("Thông tin hóa đơn", SwingConstants.CENTER);
-        lblTitle.setFont(new Font("Arial", Font.BOLD, 18));
-        lblTitle.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
+        lblTitle.setFont(AppTheme.font(Font.BOLD, 15));
+        lblTitle.setForeground(AppTheme.TEXT_DARK);
+        lblTitle.setHorizontalAlignment(SwingConstants.LEFT);
+        lblTitle.setBorder(BorderFactory.createEmptyBorder(8, 2, 8, 0));
         wrap.add(lblTitle, BorderLayout.NORTH);
 
         JPanel form = new JPanel(new GridBagLayout());
-        form.setBackground(new Color(245, 245, 245));
-        form.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(105, 205, 105), 1),
-                BorderFactory.createEmptyBorder(16, 16, 16, 16)
-        ));
+        form.setBackground(AppTheme.SURFACE);
+        form.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
 
         txtMaHoaDon = createReadOnlyField();
         txtKhachHang = createReadOnlyField();
@@ -181,7 +176,7 @@ public class HoaDonPanel extends AdminTablePanelBase {
         txtKhuyenMai = createReadOnlyField();
 
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(8, 8, 8, 8);
+        gbc.insets = new Insets(4, 6, 4, 6);
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
         addFormRow(form, gbc, 0, "Mã hóa đơn", txtMaHoaDon);
@@ -193,7 +188,13 @@ public class HoaDonPanel extends AdminTablePanelBase {
         addFormRow(form, gbc, 6, "Thành tiền", txtThanhTien);
         addFormRow(form, gbc, 7, "Khuyến mãi", txtKhuyenMai);
 
-        wrap.add(form, BorderLayout.CENTER);
+        JPanel formTop = new JPanel(new BorderLayout());
+        formTop.setBackground(AppTheme.SURFACE);
+        formTop.add(form, BorderLayout.NORTH);
+        JScrollPane formScroll = new JScrollPane(formTop);
+        formScroll.setBorder(BorderFactory.createLineBorder(AppTheme.BORDER, 1));
+        formScroll.getVerticalScrollBar().setUnitIncrement(16);
+        wrap.add(formScroll, BorderLayout.CENTER);
         return wrap;
     }
 
@@ -202,8 +203,10 @@ public class HoaDonPanel extends AdminTablePanelBase {
         wrap.setOpaque(false);
 
         JLabel lblTitle = new JLabel("Chi tiết hóa đơn", SwingConstants.CENTER);
-        lblTitle.setFont(new Font("Arial", Font.BOLD, 18));
-        lblTitle.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
+        lblTitle.setFont(AppTheme.font(Font.BOLD, 15));
+        lblTitle.setForeground(AppTheme.TEXT_DARK);
+        lblTitle.setHorizontalAlignment(SwingConstants.LEFT);
+        lblTitle.setBorder(BorderFactory.createEmptyBorder(8, 2, 8, 0));
         wrap.add(lblTitle, BorderLayout.NORTH);
 
         String[] cols = {"Mã SP", "Tên sản phẩm", "Số lượng", "Đơn giá", "Thành tiền"};
@@ -215,7 +218,8 @@ public class HoaDonPanel extends AdminTablePanelBase {
         };
 
         tblChiTiet = new JTable(modelChiTiet);
-        tblChiTiet.setRowHeight(24);
+
+        AppTable.style(tblChiTiet);
         tblChiTiet.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
 
         tblChiTiet.getColumnModel().getColumn(0).setPreferredWidth(110);
@@ -231,22 +235,23 @@ public class HoaDonPanel extends AdminTablePanelBase {
     private JTextField createReadOnlyField() {
         JTextField txt = new JTextField();
         txt.setEditable(false);
-        txt.setFont(new Font("Arial", Font.PLAIN, 15));
-        txt.setBackground(Color.WHITE);
-        txt.setPreferredSize(new Dimension(230, 34));
+        txt.setFont(AppTheme.font(Font.PLAIN, 13));
+        txt.setBackground(AppTheme.SURFACE_ALT);
+        txt.setPreferredSize(new Dimension(200, 30));
         return txt;
     }
 
     private void addFormRow(JPanel panel, GridBagConstraints gbc, int row, String label, JTextField field) {
         gbc.gridx = 0;
         gbc.gridy = row;
-        gbc.weightx = 0.35;
+        gbc.weightx = 0;
         JLabel lbl = new JLabel(label);
-        lbl.setFont(new Font("Arial", Font.BOLD, 14));
+        lbl.setFont(AppTheme.font(Font.BOLD, 13));
+        lbl.setForeground(AppTheme.TEXT_MUTED);
         panel.add(lbl, gbc);
 
         gbc.gridx = 1;
-        gbc.weightx = 0.65;
+        gbc.weightx = 1;
         panel.add(field, gbc);
     }
 
@@ -449,10 +454,10 @@ public class HoaDonPanel extends AdminTablePanelBase {
         txtMaHoaDon.setText(maHD);
         txtKhachHang.setText(tblHoaDon.getValueAt(row, 1) + " - " + tblHoaDon.getValueAt(row, 2));
         txtNhanVien.setText(tblHoaDon.getValueAt(row, 3) + " - " + tblHoaDon.getValueAt(row, 4));
-        txtTongTien.setText(String.valueOf(tblHoaDon.getValueAt(row, 5)));
-        txtTienGiam.setText(String.valueOf(tblHoaDon.getValueAt(row, 6)));
-        txtThanhTien.setText(String.valueOf(tblHoaDon.getValueAt(row, 7)));
-        txtThoiGian.setText(String.valueOf(tblHoaDon.getValueAt(row, 8)));
+        txtTongTien.setText(AppTable.money(tblHoaDon.getValueAt(row, 5)));
+        txtTienGiam.setText(AppTable.money(tblHoaDon.getValueAt(row, 6)));
+        txtThanhTien.setText(AppTable.money(tblHoaDon.getValueAt(row, 7)));
+        txtThoiGian.setText(AppTable.display(tblHoaDon.getValueAt(row, 8)));
         txtKhuyenMai.setText(String.valueOf(tblHoaDon.getValueAt(row, 9)));
 
         modelChiTiet.setRowCount(0);
@@ -560,10 +565,10 @@ public class HoaDonPanel extends AdminTablePanelBase {
         private JPanel createTopForm() {
             JPanel form = new JPanel(new GridBagLayout());
             form.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createLineBorder(new Color(210, 210, 210)),
+                    BorderFactory.createLineBorder(AppTheme.BORDER),
                     BorderFactory.createEmptyBorder(16, 16, 16, 16)
             ));
-            form.setBackground(new Color(248, 248, 248));
+            form.setBackground(AppTheme.SURFACE);
 
             txtMaHoaDon = new JTextField(hoaDonDAO.generateNextMaHoaDon());
             cboKhachHang = new JComboBox<>();
@@ -638,7 +643,8 @@ public class HoaDonPanel extends AdminTablePanelBase {
             };
 
             tblItems = new JTable(itemModel);
-            tblItems.setRowHeight(28);
+
+            AppTable.style(tblItems);
             tblItems.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
 
             JComboBox<String> cboSanPham = new JComboBox<>();
@@ -711,11 +717,21 @@ public class HoaDonPanel extends AdminTablePanelBase {
         }
 
         private JButton createActionButton(String text, Color bg) {
-            JButton btn = new JButton(text);
-            btn.setFocusPainted(false);
-            btn.setForeground(Color.WHITE);
-            btn.setBackground(bg);
-            btn.setFont(new Font("Arial", Font.BOLD, 14));
+            AppButton.Variant variant;
+            switch (text) {
+                case "Lưu":
+                case "Tính tiền":
+                    variant = AppButton.Variant.PRIMARY;
+                    break;
+                case "Xóa dòng":
+                    variant = AppButton.Variant.DANGER;
+                    break;
+                default:
+                    variant = AppButton.Variant.SECONDARY;
+                    break;
+            }
+            String icon = text.startsWith("Thêm") ? "plus" : text.startsWith("Xóa") ? "trash" : null;
+            AppButton btn = new AppButton(text, icon, variant);
             btn.setPreferredSize(new Dimension(120, 36));
             return btn;
         }
@@ -725,7 +741,7 @@ public class HoaDonPanel extends AdminTablePanelBase {
             gbc.gridy = y;
             gbc.weightx = 0;
             JLabel lbl = new JLabel(label);
-            lbl.setFont(new Font("Arial", Font.BOLD, 14));
+            lbl.setFont(AppTheme.font(Font.BOLD, 14));
             panel.add(lbl, gbc);
 
             gbc.gridx = x + 1;
@@ -991,7 +1007,7 @@ public class HoaDonPanel extends AdminTablePanelBase {
 
             JPanel info = new JPanel(new GridBagLayout());
             info.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createLineBorder(new Color(210, 210, 210)),
+                    BorderFactory.createLineBorder(AppTheme.BORDER),
                     BorderFactory.createEmptyBorder(12, 12, 12, 12)
             ));
             info.setBackground(Color.WHITE);
@@ -1042,7 +1058,8 @@ public class HoaDonPanel extends AdminTablePanelBase {
             };
 
             JTable table = new JTable(model);
-            table.setRowHeight(26);
+
+            AppTable.style(table);
 
             List<Object[]> details = hoaDonDAO.findDetailsByHoaDon(maHoaDon);
             for (Object[] d : details) {

@@ -37,7 +37,7 @@ public class KhuyenMaiDAO {
         }
 
         String column = resolveSearchColumn(field);
-        String sql = "SELECT * FROM KhuyenMai WHERE " + column + " LIKE ? ORDER BY MaKhuyenMai";
+        String sql = "SELECT * FROM KhuyenMai WHERE unaccent(CAST(" + column + " AS TEXT)) ILIKE unaccent(?) ORDER BY MaKhuyenMai";
 
         try (Connection conn = DBConnection.open();
              PreparedStatement ps = conn.prepareStatement(sql)) {

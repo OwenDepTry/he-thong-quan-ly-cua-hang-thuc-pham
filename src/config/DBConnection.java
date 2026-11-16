@@ -16,7 +16,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
 /**
- * Quản lý kết nối MySQL.
+ * Quản lý kết nối PostgreSQL (chạy bằng Docker: xem docker-compose.yml).
  *
  * - Thông tin kết nối đọc từ file db.properties (không commit lên Git),
  *   hoặc biến môi trường DB_URL / DB_USER / DB_PASSWORD.
@@ -29,7 +29,8 @@ import java.util.concurrent.BlockingQueue;
 public final class DBConnection {
 
     private static final String DEFAULT_URL =
-            "jdbc:mysql://127.0.0.1:3306/qlcuahangthucpham?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh";
+            // stringtype=unspecified: để PostgreSQL tự ép chuỗi '2026-11-04' sang DATE như MySQL
+            "jdbc:postgresql://127.0.0.1:55432/qlcuahangthucpham?stringtype=unspecified";
     private static final int MAX_IDLE = 5;
     private static final int VALIDATE_TIMEOUT_SECONDS = 2;
 
@@ -42,8 +43,8 @@ public final class DBConnection {
     static {
         Properties props = loadProperties();
         URL = pick("DB_URL", props.getProperty("db.url"), DEFAULT_URL);
-        USER = pick("DB_USER", props.getProperty("db.user"), "root");
-        PASSWORD = pick("DB_PASSWORD", props.getProperty("db.password"), "");
+        USER = pick("DB_USER", props.getProperty("db.user"), "postgres");
+        PASSWORD = pick("DB_PASSWORD", props.getProperty("db.password"), "postgres");
 
         Runtime.getRuntime().addShutdownHook(new Thread(DBConnection::closeAll));
     }
@@ -66,7 +67,8 @@ public final class DBConnection {
         } catch (SQLException e) {
             throw new RuntimeException(
                     "Lỗi kết nối DB (" + URL + ", user=" + USER + "). "
-                    + "Kiểm tra MySQL đang chạy và file db.properties. Chi tiết: " + e.getMessage(), e);
+                    + "Kiểm tra PostgreSQL đang chạy (docker compose up -d) và file db.properties. Chi tiết: "
+                    + e.getMessage(), e);
         }
     }
 

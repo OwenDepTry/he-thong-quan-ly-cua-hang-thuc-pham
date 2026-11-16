@@ -33,7 +33,7 @@ public class LichSuNhanVienPanel extends JPanel {
         setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
 
         lblHeader = new JLabel("Lịch sử làm việc của nhân viên", SwingConstants.CENTER);
-        lblHeader.setFont(new Font("Arial", Font.BOLD, 22));
+        lblHeader.setFont(AppTheme.font(Font.BOLD, 22));
         add(lblHeader, BorderLayout.NORTH);
 
         add(createContent(), BorderLayout.CENTER);
@@ -55,7 +55,7 @@ public class LichSuNhanVienPanel extends JPanel {
             }
         };
         JTable tblHoaDon = new JTable(modelHoaDon);
-        tblHoaDon.setRowHeight(24);
+        AppTable.style(tblHoaDon);
         top.add(new JScrollPane(tblHoaDon), BorderLayout.CENTER);
 
         JPanel bottom = new JPanel(new BorderLayout(8, 8));
@@ -71,7 +71,7 @@ public class LichSuNhanVienPanel extends JPanel {
             }
         };
         JTable tblPhieuNhap = new JTable(modelPhieuNhap);
-        tblPhieuNhap.setRowHeight(24);
+        AppTable.style(tblPhieuNhap);
         bottom.add(new JScrollPane(tblPhieuNhap), BorderLayout.CENTER);
 
         JSplitPane split = new JSplitPane(JSplitPane.VERTICAL_SPLIT, top, bottom);

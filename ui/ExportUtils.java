@@ -395,8 +395,15 @@ public class ExportUtils {
         if (s == null || s.trim().isEmpty()) return 0;
         String cleaned = s.replace("VNĐ", "")
                 .replace("VND", "")
+                .replace("₫", "")
+                .replace("đ", "")
+                .replace("\u00a0", "")
                 .replace(",", "")
                 .trim();
+        // Định dạng hiển thị kiểu Việt Nam "52.500" (dấu chấm ngăn hàng nghìn)
+        if (cleaned.matches("-?\\d{1,3}(\\.\\d{3})+")) {
+            cleaned = cleaned.replace(".", "");
+        }
         try {
             return Double.parseDouble(cleaned);
         } catch (Exception e) {

@@ -31,6 +31,8 @@ public class SimpleBarChartPanel extends JPanel {
         }
 
         Graphics2D g2 = (Graphics2D) g.create();
+
+        AppTheme.applyTextHints(g2);
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
         int width = getWidth();
@@ -45,12 +47,12 @@ public class SimpleBarChartPanel extends JPanel {
         int chartH = height - top - bottom;
 
         // title
-        g2.setColor(new Color(20, 100, 40));
-        g2.setFont(new Font("Arial", Font.BOLD, 18));
+        g2.setColor(AppTheme.TEXT_DARK);
+        g2.setFont(AppTheme.font(Font.BOLD, 18));
         g2.drawString(title, 20, 28);
 
         // axis
-        g2.setColor(new Color(120, 120, 120));
+        g2.setColor(AppTheme.TEXT_MUTED);
         g2.setStroke(new BasicStroke(1.5f));
         g2.drawLine(left, top, left, top + chartH);
         g2.drawLine(left, top + chartH, left + chartW, top + chartH);
@@ -63,15 +65,15 @@ public class SimpleBarChartPanel extends JPanel {
         }
 
         // grid + y labels
-        g2.setFont(new Font("Arial", Font.PLAIN, 11));
+        g2.setFont(AppTheme.font(Font.PLAIN, 11));
         for (int i = 0; i <= 5; i++) {
             int y = top + chartH - (i * chartH / 5);
             int val = max * i / 5;
 
-            g2.setColor(new Color(230, 230, 230));
+            g2.setColor(AppTheme.TABLE_GRID);
             g2.drawLine(left, y, left + chartW, y);
 
-            g2.setColor(new Color(80, 80, 80));
+            g2.setColor(AppTheme.TEXT_MUTED);
             g2.drawString(String.valueOf(val), 8, y + 4);
         }
 
@@ -84,16 +86,16 @@ public class SimpleBarChartPanel extends JPanel {
             int barH = (int) ((values[i] * 1.0 / max) * (chartH - 10));
             int y = top + chartH - barH;
 
-            g2.setColor(new Color(70, 190, 90));
+            g2.setColor(AppTheme.PRIMARY);
             g2.fillRoundRect(x, y, barW, barH, 12, 12);
 
-            g2.setColor(new Color(40, 130, 60));
+            g2.setColor(AppTheme.PRIMARY_HOVER);
             g2.drawRoundRect(x, y, barW, barH, 12, 12);
 
             g2.setColor(Color.BLACK);
             g2.drawString(String.valueOf(values[i]), x + 6, y - 6);
 
-            g2.setFont(new Font("Arial", Font.PLAIN, 11));
+            g2.setFont(AppTheme.font(Font.PLAIN, 11));
             String label = labels[i];
             int textW = g2.getFontMetrics().stringWidth(label);
             g2.drawString(label, x + (barW - textW) / 2, top + chartH + 18);

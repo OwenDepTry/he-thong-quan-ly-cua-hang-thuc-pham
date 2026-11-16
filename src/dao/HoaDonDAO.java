@@ -40,7 +40,7 @@ public class HoaDonDAO {
             FROM HoaDon hd
             LEFT JOIN KhachHang kh ON kh.MaKhachHang = hd.MaKhachHang
             LEFT JOIN NhanVien nv ON nv.MaNhanVien = hd.MaNhanVien
-            ORDER BY CAST(SUBSTRING(hd.MaHoaDon, 3) AS UNSIGNED) DESC, hd.MaHoaDon DESC
+            ORDER BY CAST(NULLIF(REGEXP_REPLACE(SUBSTRING(hd.MaHoaDon FROM 3), '[^0-9]', '', 'g'), '') AS BIGINT) DESC NULLS LAST, hd.MaHoaDon DESC
         """;
 
         try (Connection conn = DBConnection.open();
@@ -97,8 +97,8 @@ public class HoaDonDAO {
             FROM HoaDon hd
             LEFT JOIN KhachHang kh ON kh.MaKhachHang = hd.MaKhachHang
             LEFT JOIN NhanVien nv ON nv.MaNhanVien = hd.MaNhanVien
-            WHERE %s LIKE ?
-            ORDER BY CAST(SUBSTRING(hd.MaHoaDon, 3) AS UNSIGNED) DESC, hd.MaHoaDon DESC
+            WHERE unaccent(CAST(%s AS TEXT)) ILIKE unaccent(?)
+            ORDER BY CAST(NULLIF(REGEXP_REPLACE(SUBSTRING(hd.MaHoaDon FROM 3), '[^0-9]', '', 'g'), '') AS BIGINT) DESC NULLS LAST, hd.MaHoaDon DESC
         """.formatted(column);
 
         String k = "%" + normalizedKeyword + "%";
@@ -160,8 +160,8 @@ public class HoaDonDAO {
             LEFT JOIN KhachHang kh ON kh.MaKhachHang = hd.MaKhachHang
             LEFT JOIN NhanVien nv ON nv.MaNhanVien = hd.MaNhanVien
             WHERE hd.MaNhanVien = ?
-              AND %s LIKE ?
-            ORDER BY CAST(SUBSTRING(hd.MaHoaDon, 3) AS UNSIGNED) DESC, hd.MaHoaDon DESC
+              AND unaccent(CAST(%s AS TEXT)) ILIKE unaccent(?)
+            ORDER BY CAST(NULLIF(REGEXP_REPLACE(SUBSTRING(hd.MaHoaDon FROM 3), '[^0-9]', '', 'g'), '') AS BIGINT) DESC NULLS LAST, hd.MaHoaDon DESC
         """.formatted(column);
 
         String k = "%" + normalizedKeyword + "%";
@@ -280,7 +280,7 @@ public class HoaDonDAO {
     public List<String> getKhuyenMaiOptions() {
         List<String> list = new ArrayList<>();
         String sql = "SELECT MaKhuyenMai, TenKhuyenMai FROM KhuyenMai "
-                + "WHERE TrangThai = 'active' AND CURDATE() BETWEEN NgayBatDau AND NgayKetThuc";
+                + "WHERE TrangThai = 'active' AND CURRENT_DATE BETWEEN NgayBatDau AND NgayKetThuc";
 
         try (Connection conn = DBConnection.open();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -779,7 +779,7 @@ public class HoaDonDAO {
             LEFT JOIN KhachHang kh ON kh.MaKhachHang = hd.MaKhachHang
             LEFT JOIN NhanVien nv ON nv.MaNhanVien = hd.MaNhanVien
             WHERE hd.MaNhanVien = ?
-            ORDER BY CAST(SUBSTRING(hd.MaHoaDon, 3) AS UNSIGNED) DESC, hd.MaHoaDon DESC
+            ORDER BY CAST(NULLIF(REGEXP_REPLACE(SUBSTRING(hd.MaHoaDon FROM 3), '[^0-9]', '', 'g'), '') AS BIGINT) DESC NULLS LAST, hd.MaHoaDon DESC
         """;
 
         try (Connection conn = DBConnection.open();

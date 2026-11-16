@@ -25,7 +25,7 @@ Hệ thống giúp giảm thiểu sai sót trong quản lý thủ công và tố
 
 * Java (JDK 17)
 * Java Swing (Giao diện)
-* MySQL (Cơ sở dữ liệu)
+* PostgreSQL 16 chạy bằng Docker (Cơ sở dữ liệu)
 * JDBC (Kết nối database)
 * iText (Xuất file PDF)
 
@@ -71,23 +71,30 @@ Hệ thống giúp giảm thiểu sai sót trong quản lý thủ công và tố
 git clone https://github.com/OwenDepTry/he-thong-quan-ly-cua-hang-thuc-pham
 ```
 
-### 2. Import database
+### 2. Khởi động database (PostgreSQL bằng Docker)
 
-* Mở MySQL
-* Chạy file `.sql` trong thư mục `database`
+Mở Docker Desktop, rồi ở thư mục gốc project chạy:
 
-### 3. Cấu hình kết nối
+```bash
+docker compose up -d
+```
 
-* Mở file `DBConnection.java`
-* Chỉnh lại:
+Lần đầu, Docker tự tạo database `qlcuahangthucpham` và nạp dữ liệu mẫu từ `sql/qlcuahangthucpham.sql`.
 
-  * URL
-  * Username
-  * Password
+* Tắt database: `docker compose stop`
+* Xóa sạch dữ liệu, nạp lại từ đầu: `docker compose down -v` rồi `docker compose up -d`
+
+### 3. Thêm thư viện JDBC của PostgreSQL
+
+Tải `postgresql-42.7.4.jar` tại https://repo1.maven.org/maven2/org/postgresql/postgresql/42.7.4/postgresql-42.7.4.jar
+và chép vào thư mục `lib/` (có thể xóa `mysql-connector-j-*.jar` vì không còn dùng).
+
+Thông tin kết nối mặc định đã khớp với `docker-compose.yml` (user `postgres`, mật khẩu `postgres`, cổng `5432`).
+Muốn đổi thì sao chép `db.properties.example` thành `db.properties` và sửa.
 
 ### 4. Chạy chương trình
 
-* Mở project bằng IntelliJ / NetBeans / Eclipse
+* Mở project bằng VS Code / IntelliJ / NetBeans / Eclipse
 * Run file `Main.java`
 
 ---
@@ -104,7 +111,7 @@ git clone https://github.com/OwenDepTry/he-thong-quan-ly-cua-hang-thuc-pham
 ## 📊 Yêu cầu hệ thống
 
 * JDK 17 trở lên
-* MySQL Server
+* Docker Desktop (để chạy PostgreSQL)
 * IDE Java (IntelliJ / NetBeans / Eclipse)
 
 ---
@@ -121,7 +128,7 @@ git clone https://github.com/OwenDepTry/he-thong-quan-ly-cua-hang-thuc-pham
 
 * Java Swing UI
 * JDBC Documentation
-* MySQL Documentation
+* PostgreSQL Documentation
 * iText PDF Library
 
 ---
@@ -136,3 +143,18 @@ git clone https://github.com/OwenDepTry/he-thong-quan-ly-cua-hang-thuc-pham
 ---
 
 ⭐ Nếu thấy project hữu ích hãy để lại 1 star nhé!
+
+---
+
+## 🎨 Giao diện (khuyến nghị cài FlatLaf)
+
+Ứng dụng tự nhận **FlatLaf** nếu có file jar trong thư mục `lib/` (bo góc, ô nhập có placeholder, tab/thanh cuộn hiện đại, nét trên màn hình HiDPI).
+Không có FlatLaf thì app vẫn chạy bình thường với giao diện mặc định.
+
+1. Tải `flatlaf-3.5.4.jar` tại: https://repo1.maven.org/maven2/com/formdev/flatlaf/3.5.4/flatlaf-3.5.4.jar
+2. Chép vào thư mục `lib/` (VS Code đã cấu hình sẵn `lib/**/*.jar`).
+3. Chạy lại `Main`.
+
+Tùy chọn: nhúng font **Be Vietnam Pro** bằng cách đặt `BeVietnamPro-Regular.ttf` và `BeVietnamPro-Bold.ttf` vào `src/fonts/`.
+
+Màu sắc, font dùng chung nằm ở `ui/AppTheme.java`; icon ở `ui/AppIcons.java`; định dạng bảng (tiền tệ, ngày, dòng xen kẽ) ở `ui/AppTable.java`.

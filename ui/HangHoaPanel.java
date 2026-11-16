@@ -20,6 +20,8 @@ public class HangHoaPanel extends JPanel {
             new String[]{"Mã hàng", "Mã SP", "Số lượng", "Ngày nhập", "HSD"}, 0);
 
         table = new JTable(model);
+
+        AppTable.style(table);
         add(new JScrollPane(table), BorderLayout.CENTER);
 
         load();

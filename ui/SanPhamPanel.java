@@ -22,8 +22,9 @@ public class SanPhamPanel extends AdminTablePanelBase {
     public SanPhamPanel() {
         super();
 
+        // "Nhập excel" chưa làm cho sản phẩm nên tạm ẩn nút, tránh người dùng bấm vào thông báo "chưa nối"
         toolbar = new CrudToolbarPanel(
-                "Thêm", "Xóa", "Sửa", "Chi tiết", "Xuất excel", "Nhập excel"
+                "Thêm", "Xóa", "Sửa", "Chi tiết", "Xuất excel"
         );
 
         searchPanel = new SearchPanel(
@@ -61,6 +62,8 @@ public class SanPhamPanel extends AdminTablePanelBase {
         };
 
         tb = new JTable(model);
+
+        AppTable.style(tb);
         tb.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
 
         JPanel panelSanPhamCu = new JPanel(new BorderLayout());

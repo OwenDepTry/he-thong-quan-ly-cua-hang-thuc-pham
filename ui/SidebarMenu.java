@@ -2,11 +2,12 @@ package ui;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Font;
-import java.awt.GridLayout;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.LinkedHashMap;
@@ -15,28 +16,22 @@ import java.util.function.Consumer;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
-import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 
+/**
+ * Thanh menu bên trái: nền xanh đậm, mục đang chọn có nền sáng hơn + vạch nhấn bên trái.
+ */
 public class SidebarMenu extends JPanel {
+
+    private static final int WIDTH = 230;
+    private static final int ITEM_HEIGHT = 44;
 
     private final String role;
     private final String displayName;
     private final Consumer<String> menuHandler;
-    private final Map<String, MenuItemPanel> menuItems = new LinkedHashMap<>();
-
-    private static final Color SIDEBAR_BG = new Color(145, 233, 140);
-    private static final Color HEADER_BG = new Color(0, 132, 60);
-    private static final Color ITEM_BG = new Color(145, 233, 140);
-    private static final Color ITEM_HOVER = new Color(137, 228, 132);
-    private static final Color ITEM_ACTIVE = new Color(137, 228, 132);
-    private static final Color ITEM_BORDER = new Color(104, 207, 99);
-    private static final Color OUTER_BORDER = new Color(203, 235, 81);
-    private static final Color TEXT_COLOR = new Color(41, 74, 45);
-    private static final Color LOGOUT_BG = new Color(255, 102, 102);
-    private static final Color LOGOUT_BORDER = new Color(224, 80, 80);
+    private final Map<String, MenuItem> menuItems = new LinkedHashMap<>();
 
     public SidebarMenu(String role, String displayName, Consumer<String> menuHandler) {
         this.role = role;
@@ -44,68 +39,63 @@ public class SidebarMenu extends JPanel {
         this.menuHandler = menuHandler;
 
         setLayout(new BorderLayout());
-        setPreferredSize(new Dimension(215, 0));
-        setBackground(SIDEBAR_BG);
-        setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(OUTER_BORDER, 2),
-                BorderFactory.createLineBorder(ITEM_BORDER, 1)
-        ));
+        setPreferredSize(new Dimension(WIDTH, 0));
+        setBackground(AppTheme.SIDEBAR_BG);
 
-        initUI();
-    }
-
-    private void initUI() {
         add(createHeader(), BorderLayout.NORTH);
         add(createMenuPanel(), BorderLayout.CENTER);
         add(createBottomPanel(), BorderLayout.SOUTH);
     }
 
+    private boolean isManager() {
+        return "QL".equalsIgnoreCase(role) || "ADMIN".equalsIgnoreCase(role);
+    }
+
     private JPanel createHeader() {
-        JPanel header = new JPanel(new BorderLayout());
-        header.setPreferredSize(new Dimension(215, 58));
-        header.setBackground(HEADER_BG);
-        header.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, ITEM_BORDER));
+        JPanel header = new JPanel(new BorderLayout(10, 0));
+        header.setOpaque(false);
+        header.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, AppTheme.SIDEBAR_HOVER),
+                BorderFactory.createEmptyBorder(18, 16, 18, 16)));
 
-        JPanel logoWrap = new JPanel(new BorderLayout());
-        logoWrap.setOpaque(false);
-        logoWrap.setBorder(BorderFactory.createEmptyBorder(7, 10, 7, 6));
-        logoWrap.setPreferredSize(new Dimension(60, 58));
-
-        JLabel logo = new JLabel("✥", SwingConstants.CENTER);
-        logo.setOpaque(true);
-        logo.setBackground(new Color(175, 255, 250));
-        logo.setForeground(Color.BLACK);
-        logo.setFont(new Font("Segoe UI Symbol", Font.BOLD, 22));
-        logo.setBorder(BorderFactory.createLineBorder(new Color(108, 218, 205), 1));
-        logoWrap.add(logo, BorderLayout.CENTER);
+        JLabel logo = new JLabel(AppIcons.get("basket", 22, AppTheme.SIDEBAR_BG), SwingConstants.CENTER) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(AppTheme.ACCENT);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        logo.setPreferredSize(new Dimension(40, 40));
+        header.add(logo, BorderLayout.WEST);
 
         JPanel textWrap = new JPanel();
         textWrap.setOpaque(false);
         textWrap.setLayout(new BoxLayout(textWrap, BoxLayout.Y_AXIS));
-        textWrap.setBorder(BorderFactory.createEmptyBorder(8, 0, 4, 6));
 
         JLabel lblName = new JLabel(displayName);
-        lblName.setForeground(Color.WHITE);
-        lblName.setAlignmentX(Component.LEFT_ALIGNMENT);
-        lblName.setFont(new Font("Arial", Font.BOLD, 14));
+        lblName.setForeground(AppTheme.WHITE);
+        lblName.setFont(AppTheme.font(Font.BOLD, 14));
 
-        JLabel lblRole = new JLabel(role);
-        lblRole.setForeground(Color.WHITE);
-        lblRole.setAlignmentX(Component.LEFT_ALIGNMENT);
-        lblRole.setFont(new Font("Arial", Font.BOLD, 11));
+        JLabel lblRole = new JLabel(isManager() ? "Quản lý" : "Nhân viên bán hàng");
+        lblRole.setForeground(AppTheme.SIDEBAR_MUTED);
+        lblRole.setFont(AppTheme.font(Font.PLAIN, 12));
 
+        textWrap.add(Box.createVerticalGlue());
         textWrap.add(lblName);
         textWrap.add(Box.createVerticalStrut(2));
         textWrap.add(lblRole);
-
-        header.add(logoWrap, BorderLayout.WEST);
+        textWrap.add(Box.createVerticalGlue());
         header.add(textWrap, BorderLayout.CENTER);
 
         return header;
     }
 
     private JPanel createMenuPanel() {
-        String[] items = ("QL".equalsIgnoreCase(role) || "ADMIN".equalsIgnoreCase(role))
+        String[] items = isManager()
                 ? new String[]{
                     "Trang chủ", "Sản phẩm", "Nhân viên", "Khách hàng",
                     "Nhà cung cấp", "Hóa đơn", "Nhập hàng", "Khuyến mãi", "Thống kê"
@@ -114,162 +104,119 @@ public class SidebarMenu extends JPanel {
                     "Trang chủ", "Hóa đơn", "Nhập hàng", "Khách hàng", "Thông tin", "Lịch sử"
                 };
 
-        JPanel menuPanel = new JPanel(new GridLayout(items.length, 1, 0, 1));
-        menuPanel.setBackground(SIDEBAR_BG);
+        JPanel menuPanel = new JPanel();
+        menuPanel.setOpaque(false);
+        menuPanel.setLayout(new BoxLayout(menuPanel, BoxLayout.Y_AXIS));
+        menuPanel.setBorder(BorderFactory.createEmptyBorder(12, 10, 12, 10));
+
+        JLabel section = new JLabel("MENU");
+        section.setFont(AppTheme.font(Font.BOLD, 11));
+        section.setForeground(AppTheme.SIDEBAR_MUTED);
+        section.setBorder(BorderFactory.createEmptyBorder(0, 10, 8, 0));
+        section.setAlignmentX(LEFT_ALIGNMENT);
+        menuPanel.add(section);
 
         for (String item : items) {
-            MenuItemPanel menuItem = new MenuItemPanel(item);
+            MenuItem menuItem = new MenuItem(item, false);
+            menuItem.setAlignmentX(LEFT_ALIGNMENT);
             menuItems.put(item, menuItem);
             menuPanel.add(menuItem);
+            menuPanel.add(Box.createVerticalStrut(2));
         }
+        menuPanel.add(Box.createVerticalGlue());
 
         return menuPanel;
     }
 
     private JPanel createBottomPanel() {
         JPanel bottom = new JPanel(new BorderLayout());
-        bottom.setBackground(SIDEBAR_BG);
-        bottom.setPreferredSize(new Dimension(215, 60));
-        bottom.setBorder(BorderFactory.createEmptyBorder(14, 0, 0, 0));
-
-        JButton btnLogout = new JButton("Đăng Xuất");
-        btnLogout.setFocusPainted(false);
-        btnLogout.setFont(new Font("Arial", Font.BOLD, 14));
-        btnLogout.setForeground(Color.BLACK);
-        btnLogout.setBackground(LOGOUT_BG);
-        btnLogout.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(LOGOUT_BORDER, 1),
-                BorderFactory.createEmptyBorder(12, 10, 12, 10)
-        ));
-        btnLogout.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnLogout.addActionListener(e -> menuHandler.accept("Đăng Xuất"));
-
-        bottom.add(btnLogout, BorderLayout.CENTER);
+        bottom.setOpaque(false);
+        bottom.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(1, 0, 0, 0, AppTheme.SIDEBAR_HOVER),
+                BorderFactory.createEmptyBorder(10, 10, 12, 10)));
+        bottom.add(new MenuItem("Đăng Xuất", true), BorderLayout.CENTER);
         return bottom;
     }
 
     public void setActiveButton(String text) {
-        for (Map.Entry<String, MenuItemPanel> entry : menuItems.entrySet()) {
+        for (Map.Entry<String, MenuItem> entry : menuItems.entrySet()) {
             entry.getValue().setActive(entry.getKey().equals(text));
         }
     }
 
-    private class MenuItemPanel extends JPanel {
+    private class MenuItem extends JPanel {
 
-        private final String menuText;
-        private final JLabel lblIcon;
-        private final JLabel lblText;
-        private boolean active = false;
+        private final boolean logout;
+        private final String iconName;
+        private boolean active;
+        private boolean hover;
 
-        public MenuItemPanel(String menuText) {
-            this.menuText = menuText;
-
+        MenuItem(String menuText, boolean logout) {
+            this.logout = logout;
+            this.iconName = AppIcons.nameFor(menuText);
             setLayout(new BorderLayout());
-            setPreferredSize(new Dimension(215, 58));
-            setBackground(ITEM_BG);
-            setBorder(BorderFactory.createLineBorder(ITEM_BORDER, 1));
-            setCursor(new Cursor(Cursor.HAND_CURSOR));
+            setOpaque(false);
+            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            setMaximumSize(new Dimension(Integer.MAX_VALUE, ITEM_HEIGHT));
+            setPreferredSize(new Dimension(WIDTH - 20, ITEM_HEIGHT));
 
-            lblIcon = new JLabel(getIconText(menuText), SwingConstants.CENTER);
-            lblIcon.setPreferredSize(new Dimension(38, 58));
-            lblIcon.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 16));
-            lblIcon.setForeground(getIconColor(menuText));
+            Color fg = logout ? new Color(252, 165, 165) : AppTheme.SIDEBAR_TEXT;
+            JLabel lbl = new JLabel(logout ? "Đăng xuất" : menuText,
+                    AppIcons.get(AppIcons.nameFor(menuText), 18, fg), SwingConstants.LEFT);
+            lbl.setIconTextGap(12);
+            lbl.setForeground(fg);
+            lbl.setFont(AppTheme.font(Font.PLAIN, 14));
+            lbl.setBorder(BorderFactory.createEmptyBorder(0, 14, 0, 8));
+            add(lbl, BorderLayout.CENTER);
 
-            lblText = new JLabel(menuText);
-            lblText.setFont(new Font("Arial", Font.BOLD, 13));
-            lblText.setForeground(TEXT_COLOR);
-            lblText.setBorder(BorderFactory.createEmptyBorder(0, 4, 0, 8));
-
-            add(lblIcon, BorderLayout.WEST);
-            add(lblText, BorderLayout.CENTER);
-
-            MouseAdapter mouseHandler = new MouseAdapter() {
+            addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseEntered(MouseEvent e) {
-                    if (!active) {
-                        setBackground(ITEM_HOVER);
-                    }
+                    hover = true;
+                    repaint();
                 }
 
                 @Override
                 public void mouseExited(MouseEvent e) {
-                    if (!active) {
-                        setBackground(ITEM_BG);
-                    }
+                    hover = false;
+                    repaint();
                 }
 
                 @Override
                 public void mouseClicked(MouseEvent e) {
-                    setActiveButton(menuText);
+                    if (!logout) {
+                        setActiveButton(menuText);
+                    }
                     menuHandler.accept(menuText);
                 }
-            };
-
-            addMouseListener(mouseHandler);
-            lblIcon.addMouseListener(mouseHandler);
-            lblText.addMouseListener(mouseHandler);
+            });
         }
 
-        public void setActive(boolean active) {
+        void setActive(boolean active) {
             this.active = active;
-            setBackground(active ? ITEM_ACTIVE : ITEM_BG);
-            setBorder(BorderFactory.createLineBorder(ITEM_BORDER, active ? 2 : 1));
+            JLabel lbl = (JLabel) getComponent(0);
+            lbl.setFont(AppTheme.font(active ? Font.BOLD : Font.PLAIN, 14));
+            Color fg = active ? AppTheme.WHITE : AppTheme.SIDEBAR_TEXT;
+            lbl.setForeground(fg);
+            lbl.setIcon(AppIcons.get(iconName, 18, active ? AppTheme.ACCENT : fg));
+            repaint();
         }
 
-        private String getIconText(String text) {
-            switch (text) {
-                case "Trang chủ":
-                    return "🏠";
-                case "Sản phẩm":
-                    return "📦";
-                case "Nhân viên":
-                    return "👥";
-                case "Khách hàng":
-                    return "👤";
-                case "Nhà cung cấp":
-                    return "🤝";
-                case "Hóa đơn":
-                    return "🧾";
-                case "Nhập hàng":
-                    return "📄";
-                case "Khuyến mãi":
-                    return "🎁";
-                case "Thống kê":
-                    return "📊";
-                case "Thông tin":
-                    return "ℹ";
-                case "Thêm khách hàng":
-                    return "➕";
-                case "Lịch sử":
-                    return "🕘";
-                default:
-                    return "•";
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            if (active) {
+                g2.setColor(AppTheme.SIDEBAR_ACTIVE);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                g2.setColor(AppTheme.ACCENT);
+                g2.fillRoundRect(0, 10, 4, getHeight() - 20, 4, 4);
+            } else if (hover) {
+                g2.setColor(logout ? new Color(127, 29, 29, 120) : AppTheme.SIDEBAR_HOVER);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
             }
-        }
-
-        private Color getIconColor(String text) {
-            switch (text) {
-                case "Trang chủ":
-                    return new Color(255, 102, 102);
-                case "Sản phẩm":
-                    return new Color(190, 140, 70);
-                case "Nhân viên":
-                    return new Color(60, 170, 255);
-                case "Khách hàng":
-                    return new Color(255, 180, 70);
-                case "Nhà cung cấp":
-                    return new Color(255, 190, 70);
-                case "Hóa đơn":
-                    return new Color(60, 140, 255);
-                case "Nhập hàng":
-                    return new Color(120, 140, 255);
-                case "Khuyến mãi":
-                    return new Color(255, 70, 120);
-                case "Thống kê":
-                    return new Color(80, 120, 80);
-                default:
-                    return TEXT_COLOR;
-            }
+            g2.dispose();
+            super.paintComponent(g);
         }
     }
 }

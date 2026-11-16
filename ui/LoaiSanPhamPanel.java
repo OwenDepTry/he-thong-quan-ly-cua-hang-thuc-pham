@@ -18,6 +18,7 @@ public class LoaiSanPhamPanel extends JPanel {
 
         model = new DefaultTableModel(new String[]{"Mã loại", "Tên loại"}, 0);
         table = new JTable(model);
+        AppTable.style(table);
 
         add(new JScrollPane(table), BorderLayout.CENTER);
 

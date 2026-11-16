@@ -106,7 +106,7 @@ public class NhanVienDAO {
         }
 
         String column = resolveSearchColumn(field);
-        String sql = "SELECT * FROM NhanVien WHERE " + column + " LIKE ? ORDER BY MaNhanVien";
+        String sql = "SELECT * FROM NhanVien WHERE unaccent(CAST(" + column + " AS TEXT)) ILIKE unaccent(?) ORDER BY MaNhanVien";
 
         try (Connection conn = DBConnection.open();
              PreparedStatement ps = conn.prepareStatement(sql)) {

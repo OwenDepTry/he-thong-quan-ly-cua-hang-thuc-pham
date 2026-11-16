@@ -1,7 +1,10 @@
-# Sao chép file này thành "db.properties" (cùng thư mục) rồi điền thông tin MySQL của máy bạn.
+# Sao chép file này thành "db.properties" (cùng thư mục) nếu muốn đổi thông tin kết nối.
+# Không có db.properties thì app dùng mặc định bên dưới – khớp với docker-compose.yml,
+# nên chạy "docker compose up -d" là kết nối được ngay.
 # db.properties đã nằm trong .gitignore nên mật khẩu sẽ không bị đẩy lên GitHub.
 # Có thể ghi đè bằng biến môi trường DB_URL, DB_USER, DB_PASSWORD.
 
-db.url=jdbc:mysql://127.0.0.1:3306/qlcuahangthucpham?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh
-db.user=root
-db.password=
+# stringtype=unspecified: cho phép truyền ngày/số dạng chuỗi như khi dùng MySQL
+db.url=jdbc:postgresql://127.0.0.1:5432/qlcuahangthucpham?stringtype=unspecified
+db.user=postgres
+db.password=postgres

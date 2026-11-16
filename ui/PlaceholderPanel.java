@@ -1,9 +1,8 @@
 package ui;
 
-import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.Font;
-import javax.swing.BorderFactory;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
@@ -11,23 +10,27 @@ import javax.swing.SwingConstants;
 public class PlaceholderPanel extends JPanel {
 
     public PlaceholderPanel(String title) {
-        setLayout(new BorderLayout());
-        setBackground(Color.WHITE);
-        setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
+        setLayout(new GridBagLayout());
+        setBackground(AppTheme.BG_MAIN);
 
-        JLabel lblTitle = new JLabel(title, SwingConstants.CENTER);
-        lblTitle.setFont(new Font("Arial", Font.BOLD, 30));
-        lblTitle.setForeground(new Color(25, 100, 45));
+        JLabel lblTitle = new JLabel(title, AppIcons.get(AppIcons.nameFor(title), 40, AppTheme.PRIMARY),
+                SwingConstants.CENTER);
+        lblTitle.setHorizontalTextPosition(SwingConstants.CENTER);
+        lblTitle.setVerticalTextPosition(SwingConstants.BOTTOM);
+        lblTitle.setIconTextGap(14);
+        lblTitle.setFont(AppTheme.font(Font.BOLD, 24));
+        lblTitle.setForeground(AppTheme.TEXT_DARK);
 
-        JLabel lblDesc = new JLabel("Khu vực này sẽ làm chức năng sau", SwingConstants.CENTER);
-        lblDesc.setFont(new Font("Arial", Font.PLAIN, 18));
-        lblDesc.setForeground(new Color(100, 100, 100));
+        JLabel lblDesc = new JLabel("Chức năng này đang được phát triển", SwingConstants.CENTER);
+        lblDesc.setFont(AppTheme.font(Font.PLAIN, 14));
+        lblDesc.setForeground(AppTheme.TEXT_MUTED);
 
-        JPanel center = new JPanel(new BorderLayout());
-        center.setBackground(Color.WHITE);
-        center.add(lblTitle, BorderLayout.CENTER);
-        center.add(lblDesc, BorderLayout.SOUTH);
-
-        add(center, BorderLayout.CENTER);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        add(lblTitle, gbc);
+        gbc.gridy = 1;
+        gbc.insets = new java.awt.Insets(8, 0, 0, 0);
+        add(lblDesc, gbc);
     }
 }

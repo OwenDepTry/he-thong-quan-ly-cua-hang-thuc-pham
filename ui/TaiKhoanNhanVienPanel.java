@@ -41,7 +41,7 @@ public class TaiKhoanNhanVienPanel extends JPanel {
         setBorder(BorderFactory.createEmptyBorder(16, 16, 16, 16));
 
         JLabel title = new JLabel("Thông tin cá nhân nhân viên", SwingConstants.CENTER);
-        title.setFont(new Font("Arial", Font.BOLD, 22));
+        title.setFont(AppTheme.font(Font.BOLD, 22));
         add(title, BorderLayout.NORTH);
 
         add(createFormPanel(), BorderLayout.CENTER);
@@ -54,7 +54,7 @@ public class TaiKhoanNhanVienPanel extends JPanel {
         JPanel panel = new JPanel(new GridBagLayout());
         panel.setBackground(Color.WHITE);
         panel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(210, 210, 210)),
+                BorderFactory.createLineBorder(AppTheme.BORDER),
                 BorderFactory.createEmptyBorder(20, 20, 20, 20)
         ));
 
@@ -118,7 +118,7 @@ public class TaiKhoanNhanVienPanel extends JPanel {
         gbc.gridy = row;
         gbc.weightx = 0.3;
         JLabel lbl = new JLabel(label);
-        lbl.setFont(new Font("Arial", Font.BOLD, 14));
+        lbl.setFont(AppTheme.font(Font.BOLD, 14));
         panel.add(lbl, gbc);
 
         gbc.gridx = 1;

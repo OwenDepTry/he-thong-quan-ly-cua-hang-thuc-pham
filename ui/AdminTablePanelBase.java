@@ -1,68 +1,64 @@
 package ui;
 
 import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
 import javax.swing.BorderFactory;
+import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 
+/**
+ * Khung chung cho các màn hình dạng bảng:
+ * một "thẻ" trắng phía trên chứa thanh công cụ + tìm kiếm, một thẻ trắng phía dưới chứa bảng.
+ */
 public class AdminTablePanelBase extends JPanel {
 
     protected JTable table;
+    /** Giữ lại cho tương thích – không còn hiển thị. */
     protected JPanel topPanel;
     protected JPanel centerPanel;
 
     public AdminTablePanelBase() {
-        setLayout(new BorderLayout());
+        setLayout(new BorderLayout(0, 12));
         setBackground(AppTheme.BG_MAIN);
-        setBorder(BorderFactory.createEmptyBorder(3, 3, 3, 3));
+        setBorder(BorderFactory.createEmptyBorder(16, 16, 16, 16));
 
         topPanel = new JPanel(new BorderLayout());
-        topPanel.setBackground(AppTheme.GREEN_TOP);
-        topPanel.setPreferredSize(new Dimension(100, 44));
-        topPanel.setBorder(BorderFactory.createLineBorder(AppTheme.GREEN_BORDER, 1));
-        add(topPanel, BorderLayout.NORTH);
+        topPanel.setOpaque(false);
 
         centerPanel = new JPanel(new BorderLayout());
-        centerPanel.setBackground(Color.WHITE);
-        centerPanel.setBorder(BorderFactory.createLineBorder(new Color(205, 205, 205), 1));
+        centerPanel.setBackground(AppTheme.SURFACE);
+        centerPanel.setBorder(BorderFactory.createLineBorder(AppTheme.BORDER, 1));
         add(centerPanel, BorderLayout.CENTER);
     }
 
     protected void buildTopBar(JPanel leftPanel, JPanel rightPanel) {
-        JPanel topBar = new JPanel(new BorderLayout(10, 0));
-        topBar.setOpaque(false);
-        topBar.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
-        topBar.setPreferredSize(new Dimension(100, 120));
+        JPanel card = new JPanel(new BorderLayout(0, 12));
+        card.setBackground(AppTheme.SURFACE);
+        card.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(AppTheme.BORDER, 1),
+                BorderFactory.createEmptyBorder(14, 14, 14, 14)));
 
-        JPanel leftWrap = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        leftWrap.setOpaque(false);
-        leftWrap.add(leftPanel);
+        // Hàng trên: các nút thao tác; hàng dưới: tìm kiếm / sắp xếp
+        card.add(leftPanel, BorderLayout.NORTH);
+        JPanel divider = new JPanel();
+        divider.setBackground(AppTheme.BORDER);
+        divider.setPreferredSize(new java.awt.Dimension(1, 1));
+        card.add(divider, BorderLayout.CENTER);
+        card.add(rightPanel, BorderLayout.SOUTH);
 
-        JPanel rightWrap = new JPanel(new BorderLayout());
-        rightWrap.setOpaque(false);
-        rightWrap.add(rightPanel, BorderLayout.CENTER);
-
-        topBar.add(leftWrap, BorderLayout.WEST);
-        topBar.add(rightWrap, BorderLayout.CENTER);
-
-        add(topBar, BorderLayout.NORTH);
+        add(card, BorderLayout.NORTH);
     }
 
-    protected JScrollPane createStyledTable(JTable table) {
-        table.setRowHeight(26);
+    protected JComponent createStyledTable(JTable table) {
+        AppTable.style(table);
         table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
-
-        table.getTableHeader().setReorderingAllowed(false);
         table.getTableHeader().setResizingAllowed(true);
 
         JScrollPane scroll = new JScrollPane(table);
-        scroll.setBorder(BorderFactory.createLineBorder(new Color(210, 210, 210)));
-        scroll.getViewport().setBackground(Color.WHITE);
+        scroll.setBorder(BorderFactory.createEmptyBorder());
+        scroll.getViewport().setBackground(AppTheme.SURFACE);
 
-        return scroll;
+        return AppTable.withEmptyState(scroll, table, "Không có dữ liệu");
     }
 }

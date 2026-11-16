@@ -11,7 +11,7 @@ public class ThongKeDAO {
 
     public double getTongDoanhThu(int year) {
         String sql = "SELECT COALESCE(SUM(TongTien - TienGiam), 0) "
-                + "FROM HoaDon WHERE YEAR(ThoiGian) = ?";
+                + "FROM HoaDon WHERE EXTRACT(YEAR FROM ThoiGian) = ?";
 
         try (Connection conn = DBConnection.open();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -29,7 +29,7 @@ public class ThongKeDAO {
     }
 
     public int getTongSoHoaDon(int year) {
-        String sql = "SELECT COUNT(*) FROM HoaDon WHERE YEAR(ThoiGian) = ?";
+        String sql = "SELECT COUNT(*) FROM HoaDon WHERE EXTRACT(YEAR FROM ThoiGian) = ?";
 
         try (Connection conn = DBConnection.open();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -47,7 +47,7 @@ public class ThongKeDAO {
     }
 
     public int getTongSoPhieuNhap(int year) {
-        String sql = "SELECT COUNT(*) FROM PhieuNhap WHERE YEAR(ThoiGian) = ?";
+        String sql = "SELECT COUNT(*) FROM PhieuNhap WHERE EXTRACT(YEAR FROM ThoiGian) = ?";
 
         try (Connection conn = DBConnection.open();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -66,9 +66,9 @@ public class ThongKeDAO {
 
     public int[] getDoanhThuTheoThang(int year) {
         int[] data = new int[12];
-        String sql = "SELECT MONTH(ThoiGian) AS Thang, COALESCE(SUM(TongTien - TienGiam), 0) AS DoanhThu "
-                + "FROM HoaDon WHERE YEAR(ThoiGian) = ? "
-                + "GROUP BY MONTH(ThoiGian)";
+        String sql = "SELECT EXTRACT(MONTH FROM ThoiGian) AS Thang, COALESCE(SUM(TongTien - TienGiam), 0) AS DoanhThu "
+                + "FROM HoaDon WHERE EXTRACT(YEAR FROM ThoiGian) = ? "
+                + "GROUP BY EXTRACT(MONTH FROM ThoiGian)";
 
         try (Connection conn = DBConnection.open();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -102,7 +102,7 @@ public class ThongKeDAO {
             FROM ChiTietHoaDon ct
             JOIN HoaDon hd ON ct.MaHoaDon = hd.MaHoaDon
             JOIN SanPham sp ON ct.MaSanPham = sp.MaSanPham
-            WHERE YEAR(hd.ThoiGian) = ?
+            WHERE EXTRACT(YEAR FROM hd.ThoiGian) = ?
             GROUP BY sp.MaSanPham, sp.TenSanPham
             ORDER BY DoanhThu DESC, sp.MaSanPham ASC
         """;
@@ -134,12 +134,12 @@ public class ThongKeDAO {
         int[] data = new int[4];
 
         String sql = """
-            SELECT QUARTER(hd.ThoiGian) AS Quy,
+            SELECT EXTRACT(QUARTER FROM hd.ThoiGian) AS Quy,
                    COALESCE(SUM(ct.SoLuong * ct.DonGia), 0) AS DoanhThu
             FROM ChiTietHoaDon ct
             JOIN HoaDon hd ON ct.MaHoaDon = hd.MaHoaDon
-            WHERE YEAR(hd.ThoiGian) = ?
-            GROUP BY QUARTER(hd.ThoiGian)
+            WHERE EXTRACT(YEAR FROM hd.ThoiGian) = ?
+            GROUP BY EXTRACT(QUARTER FROM hd.ThoiGian)
         """;
 
         try (Connection conn = DBConnection.open();
@@ -175,7 +175,7 @@ public class ThongKeDAO {
             FROM NhanVien nv
             LEFT JOIN HoaDon hd
                    ON nv.MaNhanVien = hd.MaNhanVien
-                  AND YEAR(hd.ThoiGian) = ?
+                  AND EXTRACT(YEAR FROM hd.ThoiGian) = ?
             GROUP BY nv.MaNhanVien, nv.Ho, nv.Ten
             ORDER BY TongSoTien DESC, nv.MaNhanVien ASC
         """;
@@ -215,7 +215,7 @@ public class ThongKeDAO {
             FROM KhachHang kh
             LEFT JOIN HoaDon hd
                    ON kh.MaKhachHang = hd.MaKhachHang
-                  AND YEAR(hd.ThoiGian) = ?
+                  AND EXTRACT(YEAR FROM hd.ThoiGian) = ?
             LEFT JOIN ChiTietHoaDon ct
                    ON hd.MaHoaDon = ct.MaHoaDon
             GROUP BY kh.MaKhachHang, kh.Ho, kh.Ten

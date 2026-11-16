@@ -30,7 +30,7 @@ public class PhieuNhapDAO {
         """;
 
     private static final String ORDER_PHIEU_NHAP =
-            " ORDER BY CAST(SUBSTRING(pn.MaPhieuNhap, 3) AS UNSIGNED) DESC, pn.MaPhieuNhap DESC";
+            " ORDER BY CAST(NULLIF(REGEXP_REPLACE(SUBSTRING(pn.MaPhieuNhap FROM 3), '[^0-9]', '', 'g'), '') AS BIGINT) DESC NULLS LAST, pn.MaPhieuNhap DESC";
 
     private List<Object[]> queryPhieuNhap(String where, String... params) {
         List<Object[]> list = new ArrayList<>();
@@ -81,7 +81,7 @@ public class PhieuNhapDAO {
         if (normalizedKeyword.isEmpty()) {
             return findAllForTable();
         }
-        return queryPhieuNhap("pn." + resolveSearchColumn(field) + " LIKE ?", "%" + normalizedKeyword + "%");
+        return queryPhieuNhap("unaccent(CAST(pn." + resolveSearchColumn(field) + " AS TEXT)) ILIKE unaccent(?)", "%" + normalizedKeyword + "%");
     }
 
     public List<Object[]> searchByNhanVien(String keyword, String maNhanVien) {
@@ -93,7 +93,7 @@ public class PhieuNhapDAO {
         if (normalizedKeyword.isEmpty()) {
             return findAllForTableByNhanVien(maNhanVien);
         }
-        return queryPhieuNhap("pn.MaNhanVien = ? AND pn." + resolveSearchColumn(field) + " LIKE ?",
+        return queryPhieuNhap("pn.MaNhanVien = ? AND unaccent(CAST(pn." + resolveSearchColumn(field) + " AS TEXT)) ILIKE unaccent(?)",
                 maNhanVien, "%" + normalizedKeyword + "%");
     }
 

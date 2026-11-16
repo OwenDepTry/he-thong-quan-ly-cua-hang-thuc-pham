@@ -1,6 +1,5 @@
 package ui;
 
-import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
@@ -11,12 +10,16 @@ import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JTextField;
-import javax.swing.SwingConstants;
 
+/**
+ * Khối tìm kiếm + sắp xếp phía trên bảng.
+ * Hàng 1: ô từ khóa, sắp xếp, nút Đặt lại / Làm mới.  Hàng 2: tìm theo trường nào + số kết quả.
+ */
 public class SearchPanel extends JPanel {
 
     private final JComboBox<String> cboSort;
@@ -26,59 +29,47 @@ public class SearchPanel extends JPanel {
     private final JLabel lblResult;
     private final ButtonGroup buttonGroup;
     private final List<JRadioButton> radios;
-    private final JLabel lblSort;
-    private final JLabel lblKeyword;
 
     public SearchPanel(String title, String... radioNames) {
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         setOpaque(false);
-        setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 10));
 
-        JPanel row1 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 4));
+        JPanel row1 = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         row1.setOpaque(false);
+        row1.setAlignmentX(LEFT_ALIGNMENT);
 
-        JPanel row2 = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 2));
+        JPanel row2 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         row2.setOpaque(false);
-
-        lblSort = new JLabel("Sắp xếp:");
-        lblSort.setFont(new Font("Arial", Font.BOLD, 12));
-        lblSort.setForeground(new Color(22, 58, 33));
-        row1.add(lblSort);
-
-        cboSort = new JComboBox<>(new String[]{"none"});
-        cboSort.setPreferredSize(new Dimension(100, 28));
-        cboSort.setFont(new Font("Arial", Font.PLAIN, 12));
-        row1.add(cboSort);
-
-        lblKeyword = new JLabel("Từ khóa:");
-        lblKeyword.setFont(new Font("Arial", Font.BOLD, 12));
-        lblKeyword.setForeground(new Color(22, 58, 33));
-        row1.add(lblKeyword);
+        row2.setAlignmentX(LEFT_ALIGNMENT);
+        row2.setBorder(BorderFactory.createEmptyBorder(8, 0, 0, 0));
 
         txtKeyword = new JTextField();
-        txtKeyword.setPreferredSize(new Dimension(170, 28));
-        txtKeyword.setFont(new Font("Arial", Font.PLAIN, 12));
-        txtKeyword.setForeground(new Color(25, 25, 25));
-        txtKeyword.setBackground(Color.WHITE);
-        txtKeyword.setBorder(BorderFactory.createLineBorder(new Color(180, 180, 180), 1));
+        txtKeyword.setPreferredSize(new Dimension(260, 34));
+        AppTheme.styleField(txtKeyword, "Nhập từ khóa rồi nhấn Enter…");
+        txtKeyword.putClientProperty("JTextField.leadingIcon", AppIcons.get("search", 16, AppTheme.TEXT_MUTED));
         row1.add(txtKeyword);
 
-        btnReset = new JButton("Đặt lại");
-        styleSmallButton(btnReset, 88);
+        row1.add(mutedLabel("Sắp xếp"));
+        cboSort = new JComboBox<>(new String[]{"Mặc định"});
+        cboSort.setPreferredSize(new Dimension(170, 34));
+        row1.add(cboSort);
+
+        btnReset = new AppButton("Đặt lại", "reset", AppButton.Variant.GHOST);
+        btnReset.setToolTipText("Xóa từ khóa và đưa sắp xếp về mặc định");
         row1.add(btnReset);
 
-        btnRefresh = new JButton("Refresh");
-        styleSmallButton(btnRefresh, 88);
+        btnRefresh = new AppButton("Làm mới", "refresh", AppButton.Variant.GHOST);
+        btnRefresh.setToolTipText("Tải lại dữ liệu từ cơ sở dữ liệu");
         row1.add(btnRefresh);
 
+        row2.add(mutedLabel("Tìm theo:"));
         buttonGroup = new ButtonGroup();
         radios = new ArrayList<>();
-
         for (int i = 0; i < radioNames.length; i++) {
             JRadioButton r = new JRadioButton(radioNames[i]);
             r.setOpaque(false);
-            r.setForeground(new Color(20, 58, 32));
-            r.setFont(new Font("Arial", Font.BOLD, 12));
+            r.setForeground(AppTheme.TEXT_DARK);
+            r.setFocusPainted(false);
             if (i == 0) {
                 r.setSelected(true);
             }
@@ -88,24 +79,21 @@ public class SearchPanel extends JPanel {
         }
 
         lblResult = new JLabel(title);
-        lblResult.setHorizontalAlignment(SwingConstants.LEFT);
-        lblResult.setForeground(new Color(16, 54, 29));
-        lblResult.setFont(new Font("Arial", Font.BOLD, 12));
+        lblResult.setForeground(AppTheme.TEXT_MUTED);
+        lblResult.setFont(AppTheme.font(Font.PLAIN, 12));
+        lblResult.setBorder(BorderFactory.createEmptyBorder(0, 12, 0, 0));
         row2.add(lblResult);
 
         add(row1);
         add(row2);
-
-        setPreferredSize(new Dimension(520, 70));
     }
 
-    private void styleSmallButton(JButton btn, int width) {
-        btn.setFocusPainted(false);
-        btn.setFont(new Font("Arial", Font.BOLD, 12));
-        btn.setPreferredSize(new Dimension(width, 28));
-        btn.setForeground(new Color(30, 30, 30));
-        btn.setBackground(new Color(246, 246, 246));
-        btn.setBorder(BorderFactory.createLineBorder(new Color(180, 180, 180), 1));
+    private static JComponent mutedLabel(String text) {
+        JLabel lbl = new JLabel(text);
+        lbl.setForeground(AppTheme.TEXT_MUTED);
+        lbl.setFont(AppTheme.font(Font.BOLD, 12));
+        lbl.setBorder(BorderFactory.createEmptyBorder(0, 6, 0, 0));
+        return lbl;
     }
 
     public JComboBox<String> getCboSort() {

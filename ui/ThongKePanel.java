@@ -13,6 +13,7 @@ import java.text.DecimalFormat;
 import java.time.Year;
 import java.util.List;
 import javax.swing.BorderFactory;
+import java.util.Locale;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
@@ -51,7 +52,7 @@ public class ThongKePanel extends JPanel {
 
     public ThongKePanel() {
         setLayout(new BorderLayout(10, 10));
-        setBackground(new Color(245, 245, 245));
+        setBackground(AppTheme.BG_MAIN);
         setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         add(createTopFilters(), BorderLayout.NORTH);
@@ -76,16 +77,18 @@ public class ThongKePanel extends JPanel {
         summary.add(cardPhieuNhap);
 
         JPanel filter = new JPanel(new BorderLayout());
-        filter.setBackground(new Color(0, 180, 50));
-        filter.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
+        filter.setBackground(AppTheme.SURFACE);
+        filter.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(AppTheme.BORDER, 1),
+                BorderFactory.createEmptyBorder(6, 12, 6, 12)));
         filter.setPreferredSize(new Dimension(100, 54));
 
         JPanel left = new JPanel();
         left.setOpaque(false);
 
         JLabel lblKieu = new JLabel("Kiểu thống kê");
-        lblKieu.setForeground(Color.WHITE);
-        lblKieu.setFont(new Font("Arial", Font.BOLD, 13));
+        lblKieu.setForeground(AppTheme.TEXT_MUTED);
+        lblKieu.setFont(AppTheme.font(Font.BOLD, 13));
 
         cboKieuThongKe = new JComboBox<>(new String[]{"Theo năm", "Theo tháng", "Theo ngày"});
         cboKieuThongKe.setPreferredSize(new Dimension(120, 28));
@@ -97,8 +100,8 @@ public class ThongKePanel extends JPanel {
         right.setOpaque(false);
 
         JLabel lblYear = new JLabel("Chọn năm");
-        lblYear.setForeground(Color.WHITE);
-        lblYear.setFont(new Font("Arial", Font.BOLD, 13));
+        lblYear.setForeground(AppTheme.TEXT_MUTED);
+        lblYear.setFont(AppTheme.font(Font.BOLD, 13));
 
         int currentYear = Year.now().getValue();
         cboYear = new JComboBox<>(new String[]{
@@ -110,7 +113,7 @@ public class ThongKePanel extends JPanel {
         cboYear.setSelectedItem(String.valueOf(currentYear));
         cboYear.setPreferredSize(new Dimension(90, 28));
 
-        JButton btnThongKe = new JButton("Thống kê");
+        JButton btnThongKe = new AppButton("Thống kê", "chart", AppButton.Variant.PRIMARY);
         btnThongKe.setFocusPainted(false);
         btnThongKe.addActionListener(e -> loadData());
 
@@ -154,7 +157,8 @@ public class ThongKePanel extends JPanel {
         };
 
         tblSanPham = new JTable(modelSanPham);
-        tblSanPham.setRowHeight(24);
+
+        AppTable.style(tblSanPham);
 
         chartSanPham = new SimpleAxisChartPanel("Doanh số");
 
@@ -177,7 +181,8 @@ public class ThongKePanel extends JPanel {
         };
 
         tblNhanVien = new JTable(modelNhanVien);
-        tblNhanVien.setRowHeight(24);
+
+        AppTable.style(tblNhanVien);
 
         chartNhanVien = new SimpleAxisChartPanel("Thống kê nhân viên");
 
@@ -200,7 +205,8 @@ public class ThongKePanel extends JPanel {
         };
 
         tblKhachHang = new JTable(modelKhachHang);
-        tblKhachHang.setRowHeight(24);
+
+        AppTable.style(tblKhachHang);
 
         chartKhachHang = new SimpleAxisChartPanel("Thống kê khách hàng");
 
@@ -213,11 +219,13 @@ public class ThongKePanel extends JPanel {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(Color.WHITE);
         panel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(210, 210, 210)),
+                BorderFactory.createLineBorder(AppTheme.BORDER),
                 BorderFactory.createEmptyBorder(8, 8, 8, 8)
         ));
         panel.setPreferredSize(new Dimension(100, 190));
-        panel.add(new JScrollPane(table), BorderLayout.CENTER);
+        JScrollPane sp = new JScrollPane(table);
+        sp.setBorder(BorderFactory.createEmptyBorder());
+        panel.add(sp, BorderLayout.CENTER);
         return panel;
     }
 
@@ -225,7 +233,7 @@ public class ThongKePanel extends JPanel {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(Color.WHITE);
         panel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(210, 210, 210)),
+                BorderFactory.createLineBorder(AppTheme.BORDER),
                 BorderFactory.createEmptyBorder(8, 8, 8, 8)
         ));
         panel.add(chart, BorderLayout.CENTER);
@@ -347,70 +355,85 @@ public class ThongKePanel extends JPanel {
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
 
-            Graphics2D g2 = (Graphics2D) g;
-            g2.setColor(Color.WHITE);
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+            AppTheme.applyTextHints(g2);
+            g2.setColor(AppTheme.SURFACE);
             g2.fillRect(0, 0, getWidth(), getHeight());
 
-            int left = 60;
-            int right = 30;
-            int top = 50;
-            int bottom = 60;
-
+            int left = 64;
+            int right = 24;
+            int top = 52;
+            int bottom = 44;
             int chartW = getWidth() - left - right;
             int chartH = getHeight() - top - bottom;
 
-            g2.setColor(Color.BLACK);
-            g2.setFont(new Font("Arial", Font.BOLD, 16));
-            int titleW = g2.getFontMetrics().stringWidth(title);
-            g2.drawString(title, (getWidth() - titleW) / 2, 28);
-
-            g2.setColor(new Color(230, 230, 230));
-            g2.fillRect(left, top, chartW, chartH);
-
-            g2.setColor(Color.GRAY);
-            g2.drawRect(left, top, chartW, chartH);
-
-            if (values.length == 0) {
-                g2.setColor(Color.DARK_GRAY);
-                g2.drawString("Không có dữ liệu", left + 20, top + 30);
-                return;
-            }
+            g2.setColor(AppTheme.TEXT_DARK);
+            g2.setFont(AppTheme.font(Font.BOLD, 15));
+            g2.drawString(title, left, 28);
 
             int max = 1;
             for (int v : values) {
-                if (v > max) max = v;
+                max = Math.max(max, v);
+            }
+            // Làm tròn trục Y lên số "đẹp" chia hết cho 4 vạch (vd 1.234 → 1.600)
+            double rawStep = max / 4.0;
+            double magnitude = Math.pow(10, Math.floor(Math.log10(Math.max(rawStep, 1))));
+            long step = Math.max(1, (long) (Math.ceil(rawStep / magnitude) * magnitude));
+            max = (int) Math.min(Integer.MAX_VALUE, step * 4);
+            java.text.NumberFormat nf = java.text.NumberFormat.getIntegerInstance(Locale.forLanguageTag("vi-VN"));
+
+            // Lưới ngang + nhãn trục Y
+            g2.setFont(AppTheme.font(Font.PLAIN, 11));
+            for (int i = 0; i <= 4; i++) {
+                int y = top + chartH - (int) (chartH * i / 4.0);
+                g2.setColor(i == 0 ? AppTheme.BORDER_STRONG : AppTheme.TABLE_GRID);
+                g2.drawLine(left, y, left + chartW, y);
+                String lbl = nf.format(Math.round(max * i / 4.0));
+                g2.setColor(AppTheme.TEXT_MUTED);
+                g2.drawString(lbl, left - 8 - g2.getFontMetrics().stringWidth(lbl), y + 4);
+            }
+
+            if (values.length == 0) {
+                g2.setColor(AppTheme.TEXT_MUTED);
+                g2.setFont(AppTheme.font(Font.PLAIN, 14));
+                String msg = "Không có dữ liệu";
+                g2.drawString(msg, left + (chartW - g2.getFontMetrics().stringWidth(msg)) / 2, top + chartH / 2);
+                g2.dispose();
+                return;
             }
 
             int n = values.length;
-            int barWidth = Math.max(20, chartW / Math.max(n * 2, 1));
-            int gap = Math.max(10, (chartW - n * barWidth) / Math.max(n + 1, 1));
-
-            g2.setColor(new Color(255, 80, 80));
+            int slot = chartW / n;
+            int barWidth = Math.max(12, Math.min(56, (int) (slot * 0.55)));
 
             for (int i = 0; i < n; i++) {
-                int barHeight = (int) ((values[i] * 1.0 / max) * (chartH - 30));
-                int x = left + gap + i * (barWidth + gap);
+                int barHeight = (int) ((values[i] * 1.0 / max) * (chartH - 18));
+                int x = left + i * slot + (slot - barWidth) / 2;
                 int y = top + chartH - barHeight;
 
-                g2.fillRect(x, y, barWidth, barHeight);
-
-                g2.setColor(Color.BLACK);
-                String valueText = String.valueOf(values[i]);
-                int vw = g2.getFontMetrics().stringWidth(valueText);
-                g2.drawString(valueText, x + (barWidth - vw) / 2, y - 5);
-
-                if (labels != null && i < labels.length) {
-                    String lb = labels[i];
-                    int lw = g2.getFontMetrics().stringWidth(lb);
-                    g2.drawString(lb, x + (barWidth - lw) / 2, top + chartH + 20);
+                g2.setColor(AppTheme.PRIMARY);
+                if (barHeight > 0) {
+                    g2.fillRoundRect(x, y, barWidth, barHeight + 6, 6, 6);
+                    g2.setColor(AppTheme.SURFACE);
+                    g2.fillRect(x, top + chartH + 1, barWidth, 6);
                 }
 
-                g2.setColor(new Color(255, 80, 80));
-            }
+                g2.setFont(AppTheme.font(Font.BOLD, 11));
+                g2.setColor(AppTheme.TEXT_DARK);
+                String valueText = nf.format(values[i]);
+                int vw = g2.getFontMetrics().stringWidth(valueText);
+                g2.drawString(valueText, x + (barWidth - vw) / 2, y - 6);
 
-            g2.setColor(Color.BLACK);
-            g2.drawLine(left, top + chartH, left + chartW, top + chartH);
-            g2.drawLine(left, top, left, top + chartH);
+                if (labels != null && i < labels.length) {
+                    g2.setFont(AppTheme.font(Font.PLAIN, 12));
+                    g2.setColor(AppTheme.TEXT_MUTED);
+                    String lb = labels[i];
+                    int lw = g2.getFontMetrics().stringWidth(lb);
+                    g2.drawString(lb, x + (barWidth - lw) / 2, top + chartH + 22);
+                }
+            }
+            g2.dispose();
         }
     }
 }

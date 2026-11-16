@@ -86,14 +86,15 @@ public class NhanVienDialog extends JDialog {
         buttonPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 8, 0));
         buttonPanel.setOpaque(false);
 
-        JButton btnSave = new JButton("Lưu");
+        JButton btnSave = new AppButton("Lưu", null, AppButton.Variant.PRIMARY);
+        getRootPane().setDefaultButton(btnSave); // Enter = Lưu
         btnSave.setPreferredSize(new Dimension(90, 32));
         btnSave.setBackground(AppTheme.GREEN_TOP);
         btnSave.setForeground(java.awt.Color.WHITE);
         btnSave.setFocusPainted(false);
         btnSave.addActionListener(e -> onSave());
 
-        JButton btnCancel = new JButton("Hủy");
+        JButton btnCancel = new AppButton("Hủy");
         btnCancel.setPreferredSize(new Dimension(90, 32));
         btnCancel.setFocusPainted(false);
         btnCancel.addActionListener(e -> dispose());

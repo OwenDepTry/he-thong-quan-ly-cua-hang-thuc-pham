@@ -54,6 +54,8 @@ public class KhachHangPanel extends AdminTablePanelBase {
         };
 
         table = new JTable(tableModel);
+
+        AppTable.style(table);
         table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
 
         centerPanel.removeAll();

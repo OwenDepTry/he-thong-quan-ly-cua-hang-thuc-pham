@@ -77,8 +77,9 @@ public class SanPhamDialog extends JDialog {
 
         JPanel actions = new JPanel();
 
-        JButton btnSave = new JButton("Lưu");
-        JButton btnCancel = new JButton("Hủy");
+        JButton btnSave = new AppButton("Lưu", null, AppButton.Variant.PRIMARY);
+        getRootPane().setDefaultButton(btnSave); // Enter = Lưu
+        JButton btnCancel = new AppButton("Hủy");
 
         btnSave.setPreferredSize(new Dimension(90, 32));
         btnCancel.setPreferredSize(new Dimension(90, 32));

@@ -1,6 +1,15 @@
-    DROP DATABASE IF EXISTS qlcuahangthucpham;
-    CREATE DATABASE qlcuahangthucpham;
-    USE qlcuahangthucpham;
+-- =====================================================================
+-- CSDL PostgreSQL cho "Hệ thống quản lý cửa hàng thực phẩm"
+--
+-- Chạy bằng Docker (khuyến nghị): ở thư mục gốc project gõ
+--     docker compose up -d
+-- Lần đầu khởi động, Docker tự tạo database "qlcuahangthucpham" và chạy file này.
+-- Muốn xóa sạch dữ liệu và nạp lại từ đầu:
+--     docker compose down -v && docker compose up -d
+-- =====================================================================
+
+-- Cho phép tìm kiếm không phân biệt dấu (gõ "sua" vẫn ra "Sữa"), giống MySQL trước đây
+CREATE EXTENSION IF NOT EXISTS unaccent;
 
     -- =========================
     -- 1. BẢNG NHÂN VIÊN
@@ -15,7 +24,7 @@
         SoDienThoai VARCHAR(20),
         Tinh VARCHAR(100),
         DiaChi VARCHAR(255),
-        Luong DOUBLE,
+        Luong DOUBLE PRECISION,
         ChucVu VARCHAR(10),
         TrangThai VARCHAR(20),
         MatKhau VARCHAR(100)
@@ -82,7 +91,7 @@
         DonViTinh VARCHAR(50),
         HanSuDung VARCHAR(50),
         MoTa VARCHAR(255),
-        Gia DOUBLE,
+        Gia DOUBLE PRECISION,
         SoLuongTon INT
     );
 
@@ -108,7 +117,7 @@
         MaKhuyenMai VARCHAR(50) PRIMARY KEY,
         TenKhuyenMai VARCHAR(100),
         DieuKien VARCHAR(100),
-        PhanTramGiam DOUBLE,
+        PhanTramGiam DOUBLE PRECISION,
         NgayBatDau DATE,
         NgayKetThuc DATE,
         TrangThai VARCHAR(20)
@@ -129,8 +138,8 @@
         MaHoaDon VARCHAR(50) PRIMARY KEY,
         MaKhachHang VARCHAR(50),
         MaNhanVien VARCHAR(50),
-        TongTien DOUBLE,
-        TienGiam DOUBLE,
+        TongTien DOUBLE PRECISION,
+        TienGiam DOUBLE PRECISION,
         ThoiGian DATE,
         MaKhuyenMai VARCHAR(50),
         FOREIGN KEY (MaKhachHang) REFERENCES KhachHang(MaKhachHang),
@@ -151,7 +160,7 @@
         MaHoaDon VARCHAR(50),
         MaSanPham VARCHAR(50),
         SoLuong INT,
-        DonGia DOUBLE,
+        DonGia DOUBLE PRECISION,
         PRIMARY KEY (MaHoaDon, MaSanPham),
         FOREIGN KEY (MaHoaDon) REFERENCES HoaDon(MaHoaDon),
         FOREIGN KEY (MaSanPham) REFERENCES SanPham(MaSanPham)
@@ -171,7 +180,7 @@
         MaPhieuNhap VARCHAR(50) PRIMARY KEY,
         MaNhaCungCap VARCHAR(50),
         MaNhanVien VARCHAR(50),
-        TongTien DOUBLE,
+        TongTien DOUBLE PRECISION,
         ThoiGian DATE,
         FOREIGN KEY (MaNhaCungCap) REFERENCES NhaCungCap(MaNhaCungCap),
         FOREIGN KEY (MaNhanVien) REFERENCES NhanVien(MaNhanVien)
@@ -189,7 +198,7 @@
         MaPhieuNhap VARCHAR(50),
         MaSanPham VARCHAR(50),
         SoLuong INT,
-        DonGia DOUBLE,
+        DonGia DOUBLE PRECISION,
         PRIMARY KEY (MaPhieuNhap, MaSanPham),
         FOREIGN KEY (MaPhieuNhap) REFERENCES PhieuNhap(MaPhieuNhap),
         FOREIGN KEY (MaSanPham) REFERENCES SanPham(MaSanPham)

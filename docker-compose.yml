@@ -1,0 +1,28 @@
+# PostgreSQL cho project. Cách dùng (ở thư mục gốc project):
+#   docker compose up -d        # khởi động (lần đầu sẽ tự nạp sql/qlcuahangthucpham.sql)
+#   docker compose stop         # tắt
+#   docker compose down -v      # xóa hẳn dữ liệu (lần up sau sẽ nạp lại dữ liệu mẫu)
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: qlcuahangthucpham-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: qlcuahangthucpham
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      TZ: Asia/Ho_Chi_Minh
+      PGTZ: Asia/Ho_Chi_Minh
+    ports:
+      - "55432:5432"   # cổng 55432 trên máy, ít bị chương trình khác chiếm
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./sql:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d qlcuahangthucpham"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  db-data:
