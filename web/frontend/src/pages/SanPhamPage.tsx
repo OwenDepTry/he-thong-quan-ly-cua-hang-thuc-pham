@@ -1,4 +1,6 @@
 import { cloneElement, useMemo, useState, type FormEvent, type ReactElement } from 'react';
+import { ArrowDown, ArrowUp, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { categoryOf } from '../lib/category';
 import { ApiError, api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { formatMoney, formatNumber, normalize, parseMoneyInput } from '../lib/format';
@@ -57,44 +59,60 @@ export default function SanPhamPage() {
 
   const header = (key: SortKey, label: string, cls = '') => (
     <th className={`sortable ${cls}`} onClick={() => toggleSort(key)} aria-sort={sort.key === key ? (sort.asc ? 'ascending' : 'descending') : 'none'}>
-      {label} {sort.key === key ? (sort.asc ? '▲' : '▼') : ''}
+      {label}
+      {sort.key === key && <span className="sort">{sort.asc ? <ArrowUp size={14} /> : <ArrowDown size={14} />}</span>}
     </th>
   );
+  const maxStock = Math.max(100, ...(list.data ?? []).map((s) => s.soLuongTon));
 
   return (
     <div className="page">
       <header className="page-head">
         <div>
           <h1>Sản phẩm</h1>
-          <p className="muted">
-            {list.data ? `${rows.length} / ${list.data.length} sản phẩm` : ' '}
-            {!isQuanLy && ' · chỉ quản lý được thêm, sửa, xóa'}
+          <p>
+            {list.data ? (rows.length === list.data.length ? `${list.data.length} sản phẩm` : `Đang hiện ${rows.length} trên ${list.data.length} sản phẩm`) : ' '}
+            {!isQuanLy && '. Chỉ quản lý được thêm, sửa, xóa'}
           </p>
         </div>
         {isQuanLy && (
           <button className="btn btn-primary" onClick={() => setEditing('new')}>
-            + Thêm sản phẩm
+            <Plus size={17} aria-hidden="true" /> Thêm sản phẩm
           </button>
         )}
       </header>
 
       <div className="toolbar">
-        <input
-          className="search"
-          placeholder="Tìm theo mã, tên… (không cần dấu)"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          aria-label="Tìm sản phẩm"
-        />
-        <select value={loaiFilter} onChange={(e) => setLoaiFilter(e.target.value)} aria-label="Lọc theo loại">
-          <option value="">Tất cả loại</option>
-          {(loai.data ?? []).map((l) => (
-            <option key={l.maLoai} value={l.tenLoai}>
-              {l.tenLoai}
-            </option>
-          ))}
-        </select>
+        <div className="search-box">
+          <Search size={17} aria-hidden="true" />
+          <input
+            placeholder="Tìm theo tên, mã hoặc mô tả, gõ không dấu cũng được"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            aria-label="Tìm sản phẩm"
+          />
+        </div>
       </div>
+      {(loai.data ?? []).length > 0 && (
+        <div className="filters" role="group" aria-label="Lọc theo loại" style={{ marginBottom: 16 }}>
+          <button className="filter" aria-pressed={loaiFilter === ''} onClick={() => setLoaiFilter('')}>
+            Tất cả loại
+          </button>
+          {(loai.data ?? []).map((l) => {
+            const c = categoryOf(l.tenLoai);
+            return (
+              <button
+                key={l.maLoai}
+                className={`filter cat cat-${c.key}`}
+                aria-pressed={loaiFilter === l.tenLoai}
+                onClick={() => setLoaiFilter(loaiFilter === l.tenLoai ? '' : l.tenLoai)}
+              >
+                <c.icon size={15} aria-hidden="true" /> {l.tenLoai}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {list.loading && !list.data && <Loading />}
       {list.error && <ErrorState message={list.error} onRetry={list.reload} />}
@@ -104,39 +122,54 @@ export default function SanPhamPage() {
           <table className="table">
             <thead>
               <tr>
-                {header('maSanPham', 'Mã')}
-                {header('tenSanPham', 'Tên sản phẩm')}
-                <th>Loại</th>
-                <th>ĐVT</th>
-                {header('gia', 'Giá', 'num')}
+                {header('tenSanPham', 'Sản phẩm')}
+                <th className="hide-sm">Loại</th>
+                {header('gia', 'Giá bán', 'num')}
                 {header('soLuongTon', 'Tồn kho', 'num')}
-                {isQuanLy && <th className="num">Thao tác</th>}
+                {isQuanLy && <th className="num"><span className="sr-only">Thao tác</span></th>}
               </tr>
             </thead>
             <tbody>
               {rows.map((s) => (
                 <tr key={s.maSanPham} onDoubleClick={() => isQuanLy && setEditing(s)}>
-                  <td className="mono">{s.maSanPham}</td>
                   <td>
                     <strong>{s.tenSanPham}</strong>
-                    {s.moTa && <small className="muted block">{s.moTa}</small>}
+                    <small className="muted block">
+                      {s.maSanPham}
+                      {s.moTa ? `, ${s.moTa}` : ''}
+                    </small>
                   </td>
-                  <td>{s.loai ?? '—'}</td>
-                  <td>{s.donViTinh ?? '—'}</td>
-                  <td className="num">{formatMoney(s.gia)}</td>
+                  <td className="hide-sm">
+                    {s.loai ? (
+                      <span className={`chip cat cat-${categoryOf(s.loai, s.tenSanPham).key}`}>{s.loai}</span>
+                    ) : (
+                      <span className="muted">—</span>
+                    )}
+                  </td>
                   <td className="num">
-                    <span className={s.soLuongTon <= 0 ? 'text-danger' : s.soLuongTon <= 30 ? 'text-warn' : ''}>
-                      {formatNumber(s.soLuongTon)}
+                    {formatMoney(s.gia)}
+                    <small className="muted block">mỗi {s.donViTinh ?? 'đơn vị'}</small>
+                  </td>
+                  <td className="num">
+                    <span className={`stock${s.soLuongTon <= 0 ? ' out' : s.soLuongTon <= 30 ? ' low' : ''}`}>
+                      <span className={s.soLuongTon <= 0 ? 'text-danger' : s.soLuongTon <= 30 ? 'text-warn' : ''}>
+                        {s.soLuongTon <= 0 ? 'Hết hàng' : formatNumber(s.soLuongTon)}
+                      </span>
+                      <span className="stock-bar hide-sm" aria-hidden="true">
+                        <i style={{ width: `${Math.min(100, (s.soLuongTon / maxStock) * 100)}%` }} />
+                      </span>
                     </span>
                   </td>
                   {isQuanLy && (
                     <td className="num nowrap">
-                      <button className="btn btn-sm" onClick={() => setEditing(s)}>
-                        Sửa
-                      </button>{' '}
-                      <button className="btn btn-sm btn-danger-ghost" onClick={() => setDeleting(s)}>
-                        Xóa
-                      </button>
+                      <span className="row-actions">
+                        <button className="icon-btn" onClick={() => setEditing(s)} aria-label={`Sửa ${s.tenSanPham}`} title="Sửa">
+                          <Pencil size={16} />
+                        </button>
+                        <button className="icon-btn danger" onClick={() => setDeleting(s)} aria-label={`Xóa ${s.tenSanPham}`} title="Xóa">
+                          <Trash2 size={16} />
+                        </button>
+                      </span>
                     </td>
                   )}
                 </tr>

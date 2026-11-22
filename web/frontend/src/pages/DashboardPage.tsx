@@ -1,8 +1,13 @@
+import { CalendarClock, CheckCircle2, PackageX, ShoppingBasket } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
-import { formatDate, formatMoney, formatMoneyShort, formatNumber } from '../lib/format';
+import { formatDate, formatMoney, formatNumber } from '../lib/format';
+import type { Dashboard } from '../lib/types';
 import { ErrorState, Loading, useLoad } from '../components/ui';
+import { RevenueChart, type DayRevenue } from '../components/RevenueChart';
+
+const CHART_DAYS = 14;
 
 export default function DashboardPage() {
   const { user, isQuanLy } = useAuth();
@@ -12,18 +17,12 @@ export default function DashboardPage() {
     <div className="page">
       <header className="page-head">
         <div>
-          <h1>Xin chào, {user?.hoTen || user?.maNhanVien}</h1>
-          <p className="muted">
-            {isQuanLy ? 'Tình hình cửa hàng hôm nay' : 'Chúc bạn một ca làm việc thuận lợi'}
-            {data && ` · ${formatDate(data.ngay)}`}
-          </p>
+          <h1>{greeting()}, {user?.hoTen || user?.maNhanVien}</h1>
+          <p>{data ? longDate(data.ngay) : ' '}</p>
         </div>
         <div className="actions">
-          <button className="btn" onClick={reload} disabled={loading}>
-            Làm mới
-          </button>
           <Link className="btn btn-primary" to="/ban-hang">
-            + Lập hóa đơn
+            <ShoppingBasket size={17} aria-hidden="true" /> Bán hàng
           </Link>
         </div>
       </header>
@@ -32,118 +31,190 @@ export default function DashboardPage() {
       {error && <ErrorState message={error} onRetry={reload} />}
 
       {data && (
-        <>
-          <section className="stats">
-            {isQuanLy ? (
-              <>
-                <Stat
-                  label="Doanh thu hôm nay"
-                  value={formatMoneyShort(data.doanhThuHomNay)}
-                  title={formatMoney(data.doanhThuHomNay)}
-                  sub={`${data.hoaDonHomNay} hóa đơn`}
-                />
-                <Stat
-                  label="Doanh thu tháng này"
-                  value={formatMoneyShort(data.doanhThuThangNay)}
-                  title={formatMoney(data.doanhThuThangNay)}
-                  sub={`${formatNumber(data.hoaDonThangNay)} hóa đơn`}
-                />
-              </>
-            ) : (
-              <>
-                <Stat label="Hóa đơn hôm nay" value={formatNumber(data.hoaDonHomNay)} sub="toàn cửa hàng" />
-                <Stat label="Hóa đơn tháng này" value={formatNumber(data.hoaDonThangNay)} sub="toàn cửa hàng" />
-              </>
-            )}
-            <Stat
-              label="Sản phẩm"
-              value={formatNumber(data.tongSanPham)}
-              sub={data.soSapHetHang > 0 ? `${data.soSapHetHang} sắp hết hàng` : 'Tồn kho ổn định'}
-              warn={data.soSapHetHang > 0}
-            />
-            <Stat label="Khách hàng" value={formatNumber(data.tongKhachHang)} sub="khách hàng thành viên" />
-          </section>
-
-          <section className="grid-2">
-            <div className="card">
-              <div className="card-head">
-                <h2>Sắp hết hàng</h2>
-                <span className="badge badge-warn">{data.soSapHetHang}</span>
-              </div>
-              <p className="muted small">Tồn kho từ {data.nguongSapHetHang} trở xuống</p>
-              {data.sapHetHang.length === 0 ? (
-                <p className="muted">Không có sản phẩm nào sắp hết hàng.</p>
-              ) : (
-                <ul className="list">
-                  {data.sapHetHang.map((s) => (
-                    <li key={s.maSanPham}>
-                      <div>
-                        <strong>{s.tenSanPham}</strong>
-                        <small className="muted">{s.maSanPham}</small>
-                      </div>
-                      <span className={`pill ${s.soLuongTon <= 0 ? 'pill-danger' : 'pill-warn'}`}>
-                        {s.soLuongTon <= 0 ? 'Hết hàng' : `Còn ${s.soLuongTon} ${s.donViTinh ?? ''}`}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {data.soSapHetHang > data.sapHetHang.length && (
-                <p className="muted small">và {data.soSapHetHang - data.sapHetHang.length} sản phẩm khác…</p>
-              )}
-              {isQuanLy && (
-                <Link to="/san-pham" className="link small">
-                  Xem sản phẩm →
-                </Link>
-              )}
-            </div>
-
-            <div className="card">
-              <div className="card-head">
-                <h2>Lô hàng sắp hết hạn</h2>
-                <span className="badge badge-danger">{data.soLoSapHetHan}</span>
-              </div>
-              <p className="muted small">Hết hạn trong {data.soNgayCanhBaoHetHan} ngày tới hoặc vừa hết hạn</p>
-              {data.sapHetHan.length === 0 ? (
-                <p className="muted">Không có lô hàng nào sắp hết hạn.</p>
-              ) : (
-                <ul className="list">
-                  {data.sapHetHan.map((h) => (
-                    <li key={h.maHang}>
-                      <div>
-                        <strong>{h.tenSanPham}</strong>
-                        <small className="muted">
-                          Lô {h.maHang} · {h.soLuong} · HSD {formatDate(h.hanSuDung)}
-                        </small>
-                      </div>
-                      <span className={`pill ${h.soNgayConLai <= 0 ? 'pill-danger' : 'pill-warn'}`}>
-                        {h.soNgayConLai < 0
-                          ? `Quá hạn ${-h.soNgayConLai} ngày`
-                          : h.soNgayConLai === 0
-                            ? 'Hết hạn hôm nay'
-                            : `Còn ${h.soNgayConLai} ngày`}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {data.soLoSapHetHan > data.sapHetHan.length && (
-                <p className="muted small">và {data.soLoSapHetHan - data.sapHetHan.length} lô khác…</p>
-              )}
-            </div>
-          </section>
-        </>
+        <div className="overview">
+          <SalesPanel data={data} isQuanLy={isQuanLy} />
+          <TodoPanel data={data} isQuanLy={isQuanLy} />
+        </div>
       )}
     </div>
   );
 }
 
-function Stat({ label, value, sub, warn, title }: { label: string; value: string; sub: string; warn?: boolean; title?: string }) {
+function SalesPanel({ data, isQuanLy }: { data: Dashboard; isQuanLy: boolean }) {
   return (
-    <div className="stat" title={title}>
-      <span className="stat-label">{label}</span>
-      <strong className="stat-value">{value}</strong>
-      <span className={`stat-sub${warn ? ' warn' : ''}`}>{sub}</span>
-    </div>
+    <section className="panel sales" aria-label="Bán hàng">
+      {isQuanLy ? (
+        <>
+          <span className="sales-label">Doanh thu hôm nay</span>
+          <div className="sales-figure">
+            {formatNumber(Math.round(data.doanhThuHomNay ?? 0))}
+            <span className="unit">₫</span>
+          </div>
+          <span className="sales-sub">{data.hoaDonHomNay} hóa đơn</span>
+          <SalesChart endDate={data.ngay} />
+        </>
+      ) : (
+        <>
+          <span className="sales-label">Hóa đơn hôm nay</span>
+          <div className="sales-figure">{formatNumber(data.hoaDonHomNay)}</div>
+          <span className="sales-sub">của cả cửa hàng</span>
+        </>
+      )}
+
+      <dl className="figures">
+        <div className="figure">
+          <dt>Tháng này</dt>
+          <dd>
+            {isQuanLy ? formatMoney(data.doanhThuThangNay) : formatNumber(data.hoaDonThangNay)}
+            <small>{isQuanLy ? `${formatNumber(data.hoaDonThangNay)} hóa đơn` : 'hóa đơn'}</small>
+          </dd>
+        </div>
+        <div className="figure">
+          <dt>Sản phẩm đang bán</dt>
+          <dd>
+            {formatNumber(data.tongSanPham)}
+            <small className={data.soSapHetHang > 0 ? 'warn' : ''}>
+              {data.soSapHetHang > 0 ? `${data.soSapHetHang} sắp hết hàng` : 'Tồn kho ổn định'}
+            </small>
+          </dd>
+        </div>
+        <div className="figure">
+          <dt>Khách hàng thành viên</dt>
+          <dd>
+            {formatNumber(data.tongKhachHang)}
+            <small>khách hàng</small>
+          </dd>
+        </div>
+      </dl>
+    </section>
   );
+}
+
+/**
+ * Doanh thu 14 ngày: tổng hợp từ API danh sách hóa đơn (mỗi lần tối đa 200 hóa đơn).
+ * Đủ cho cửa hàng nhỏ; khi dữ liệu lớn nên thêm endpoint thống kê theo ngày ở backend.
+ */
+function SalesChart({ endDate }: { endDate: string }) {
+  const { data, error } = useLoad(() => loadDays(endDate), [endDate]);
+  if (error) return null; // biểu đồ là phần phụ: lỗi thì ẩn, không làm hỏng trang
+  if (!data) return <div className="chart skeleton" style={{ height: 150 }} aria-hidden="true" />;
+  const total = data.reduce((s, d) => s + d.doanhThu, 0);
+  const best = data.reduce((a, b) => (b.doanhThu > a.doanhThu ? b : a), data[0]);
+  return (
+    <>
+      <RevenueChart days={data} />
+      <div className="chart-note">
+        <span>{CHART_DAYS} ngày gần nhất: {formatMoney(total)}</span>
+        {best.doanhThu > 0 && <span>Cao nhất {formatDate(best.ngay)}</span>}
+      </div>
+    </>
+  );
+}
+
+async function loadDays(endDate: string): Promise<DayRevenue[]> {
+  const end = new Date(`${endDate}T00:00:00`);
+  const days: DayRevenue[] = [];
+  for (let i = CHART_DAYS - 1; i >= 0; i--) {
+    const d = new Date(end);
+    d.setDate(end.getDate() - i);
+    days.push({ ngay: iso(d), doanhThu: 0, soHoaDon: 0 });
+  }
+  const byDay = new Map(days.map((d) => [d.ngay, d]));
+  const size = 200;
+  for (let page = 0; page < 10; page++) {
+    const res = await api.hoaDon({ tuNgay: days[0].ngay, denNgay: endDate, page, size });
+    for (const h of res.items) {
+      const day = h.thoiGian ? byDay.get(h.thoiGian.slice(0, 10)) : undefined;
+      if (day) {
+        day.doanhThu += h.thanhTien;
+        day.soHoaDon += 1;
+      }
+    }
+    if ((page + 1) * size >= res.total) break;
+  }
+  return days;
+}
+
+type TodoItem = { key: string; kind: 'stock' | 'expiry'; title: string; detail: string; badge: string; danger: boolean; order: number };
+
+function TodoPanel({ data, isQuanLy }: { data: Dashboard; isQuanLy: boolean }) {
+  // Gộp hàng sắp hết và lô sắp hết hạn thành một danh sách việc cần làm, nặng nhất lên đầu
+  const items: TodoItem[] = [
+    ...data.sapHetHang.map((s) => ({
+      key: `s-${s.maSanPham}`,
+      kind: 'stock' as const,
+      title: s.tenSanPham,
+      detail: s.soLuongTon <= 0 ? 'Cần nhập thêm hàng' : `Tồn kho dưới ${data.nguongSapHetHang}`,
+      badge: s.soLuongTon <= 0 ? 'Hết hàng' : `Còn ${s.soLuongTon} ${s.donViTinh ?? ''}`.trim(),
+      danger: s.soLuongTon <= 0,
+      order: s.soLuongTon <= 0 ? 0 : 2,
+    })),
+    ...data.sapHetHan.map((h) => ({
+      key: `h-${h.maHang}`,
+      kind: 'expiry' as const,
+      title: h.tenSanPham,
+      detail: `Lô ${h.maHang}, ${h.soLuong} sản phẩm, hạn ${formatDate(h.hanSuDung)}`,
+      badge: h.soNgayConLai < 0 ? `Quá hạn ${-h.soNgayConLai} ngày` : h.soNgayConLai === 0 ? 'Hết hạn hôm nay' : `Còn ${h.soNgayConLai} ngày`,
+      danger: h.soNgayConLai <= 0,
+      order: h.soNgayConLai <= 0 ? 1 : 3,
+    })),
+  ].sort((a, b) => a.order - b.order);
+
+  const total = data.soSapHetHang + data.soLoSapHetHan;
+  const hidden = total - items.length;
+
+  return (
+    <section className="panel todo" aria-labelledby="todo-title">
+      <div className="todo-head">
+        <h2 id="todo-title">Cần xử lý</h2>
+        {total > 0 && <span className="total">{total} việc</span>}
+      </div>
+      {items.length === 0 ? (
+        <p className="todo-empty">
+          <CheckCircle2 size={20} aria-hidden="true" /> Không có hàng sắp hết hay lô sắp hết hạn.
+        </p>
+      ) : (
+        <ul className="todo-list">
+          {items.map((it) => (
+            <li key={it.key}>
+              <span className={`todo-icon ${it.kind}`} aria-hidden="true">
+                {it.kind === 'stock' ? <PackageX size={17} /> : <CalendarClock size={17} />}
+              </span>
+              <div>
+                <strong>{it.title}</strong>
+                <small>{it.detail}</small>
+              </div>
+              <span className={`pill ${it.danger ? 'pill-danger' : 'pill-warn'}`}>{it.badge}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {(hidden > 0 || isQuanLy) && (
+        <div className="todo-foot">
+          <span>{hidden > 0 ? `Còn ${hidden} việc khác` : `Tồn kho dưới ${data.nguongSapHetHang} và hạn trong ${data.soNgayCanhBaoHetHan} ngày`}</span>
+          {isQuanLy && (
+            <Link to="/san-pham" className="link">
+              Xem kho hàng
+            </Link>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function greeting(): string {
+  const h = new Date().getHours();
+  return h < 11 ? 'Chào buổi sáng' : h < 14 ? 'Chào buổi trưa' : h < 18 ? 'Chào buổi chiều' : 'Chào buổi tối';
+}
+
+function longDate(isoDate: string): string {
+  const d = new Date(`${isoDate}T00:00:00`);
+  const thu = ['Chủ nhật', 'Thứ hai', 'Thứ ba', 'Thứ tư', 'Thứ năm', 'Thứ sáu', 'Thứ bảy'][d.getDay()];
+  return `${thu}, ${formatDate(isoDate)}`;
+}
+
+function iso(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }

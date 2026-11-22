@@ -77,7 +77,7 @@ describe('App', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Đăng nhập' }));
 
     expect(await screen.findByText('Doanh thu hôm nay')).toBeInTheDocument();
-    expect(screen.getByText('1,5 tr ₫')).toBeInTheDocument();
+    expect(screen.getByText('1.500.000')).toBeInTheDocument(); // hiện đủ số tiền, không làm tròn
     expect(screen.getByText('Rau muống')).toBeInTheDocument();
     expect(calls[0].body).toEqual({ maNhanVien: 'admin', matKhau: 'admin' });
     expect(tokenStore.get()).toBe('t-ql');

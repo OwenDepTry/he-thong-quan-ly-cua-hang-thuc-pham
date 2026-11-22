@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { AlertCircle, CheckCircle2, Info, PackageOpen, X } from 'lucide-react';
 
 // ---------- Toast ----------
 
@@ -27,7 +28,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       <div className="toasts" role="status" aria-live="polite">
         {items.map((t) => (
           <div key={t.id} className={`toast toast-${t.kind}`}>
-            {t.text}
+            {t.kind === 'success' ? <CheckCircle2 size={18} /> : t.kind === 'error' ? <AlertCircle size={18} /> : <Info size={18} />}
+            <span>{t.text}</span>
           </div>
         ))}
       </div>
@@ -52,12 +54,14 @@ export function Modal({
   children,
   footer,
   wide,
+  className,
 }: {
   title: string;
   onClose: () => void;
   children: ReactNode;
   footer?: ReactNode;
   wide?: boolean;
+  className?: string;
 }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -67,11 +71,11 @@ export function Modal({
 
   return (
     <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className={`modal${wide ? ' modal-wide' : ''}`} role="dialog" aria-modal="true" aria-label={title}>
+      <div className={`modal${wide ? ' modal-wide' : ''}${className ? ` ${className}` : ''}`} role="dialog" aria-modal="true" aria-label={title}>
         <div className="modal-head">
           <h2>{title}</h2>
           <button className="icon-btn" onClick={onClose} aria-label="Đóng">
-            ×
+            <X size={18} />
           </button>
         </div>
         <div className="modal-body">{children}</div>
@@ -130,7 +134,8 @@ export function Loading({ text = 'Đang tải…' }: { text?: string }) {
 
 export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
-    <div className="state state-error">
+    <div className="state state-error" role="alert">
+      <AlertCircle size={28} />
       <p>{message}</p>
       {onRetry && (
         <button className="btn" onClick={onRetry}>
@@ -142,7 +147,12 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry?: ()
 }
 
 export function Empty({ children }: { children: ReactNode }) {
-  return <div className="state state-empty">{children}</div>;
+  return (
+    <div className="state state-empty">
+      <PackageOpen size={32} />
+      <div>{children}</div>
+    </div>
+  );
 }
 
 /** Hook tải dữ liệu đơn giản: {data, error, loading, reload}. */

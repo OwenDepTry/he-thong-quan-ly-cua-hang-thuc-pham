@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from 'react';
+import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
-import { formatDate, formatMoney } from '../lib/format';
+import { formatDate, formatMoney, formatNumber } from '../lib/format';
 import type { HoaDonChiTiet } from '../lib/types';
 import { Empty, ErrorState, Loading, Modal, useLoad, useToast } from '../components/ui';
 import { HoaDonView } from './BanHangPage';
@@ -42,21 +43,23 @@ export default function HoaDonPage() {
       <header className="page-head">
         <div>
           <h1>Hóa đơn</h1>
-          <p className="muted">
+          <p>
             {isQuanLy ? 'Tất cả hóa đơn của cửa hàng' : 'Hóa đơn do bạn lập'}
-            {list.data && ` · ${list.data.total} hóa đơn`}
+            {list.data ? `, ${formatNumber(list.data.total)} hóa đơn` : ''}. Bấm vào một dòng để xem chi tiết.
           </p>
         </div>
       </header>
 
       <form className="toolbar" onSubmit={search}>
-        <input
-          className="search"
-          placeholder="Mã hóa đơn hoặc mã khách hàng"
-          value={filter.q}
-          onChange={(e) => setFilter({ ...filter, q: e.target.value })}
-          aria-label="Tìm hóa đơn"
-        />
+        <div className="search-box">
+          <Search size={17} aria-hidden="true" />
+          <input
+            placeholder="Mã hóa đơn hoặc mã khách hàng"
+            value={filter.q}
+            onChange={(e) => setFilter({ ...filter, q: e.target.value })}
+            aria-label="Tìm hóa đơn"
+          />
+        </div>
         <label className="inline">
           Từ
           <input type="date" value={filter.tuNgay} onChange={(e) => setFilter({ ...filter, tuNgay: e.target.value })} />
@@ -65,7 +68,7 @@ export default function HoaDonPage() {
           Đến
           <input type="date" value={filter.denNgay} onChange={(e) => setFilter({ ...filter, denNgay: e.target.value })} />
         </label>
-        <button className="btn" type="submit">
+        <button className="btn btn-primary" type="submit">
           Tìm
         </button>
       </form>
@@ -79,26 +82,29 @@ export default function HoaDonPage() {
             <table className="table">
               <thead>
                 <tr>
-                  <th>Mã</th>
-                  <th>Ngày</th>
+                  <th>Hóa đơn</th>
                   <th>Khách hàng</th>
-                  {isQuanLy && <th>Nhân viên</th>}
-                  <th className="num">Tổng tiền</th>
-                  <th className="num">Giảm</th>
+                  {isQuanLy && <th className="hide-sm">Thu ngân</th>}
+                  <th className="num hide-sm">Tiền hàng</th>
+                  <th className="num hide-sm">Giảm giá</th>
                   <th className="num">Thành tiền</th>
                 </tr>
               </thead>
               <tbody>
                 {list.data.items.map((h) => (
                   <tr key={h.maHoaDon} className="clickable" onClick={() => open(h.maHoaDon)}>
-                    <td className="mono">{h.maHoaDon}</td>
-                    <td>{formatDate(h.thoiGian)}</td>
+                    <td>
+                      <strong>{h.maHoaDon}</strong>
+                      <small className="muted block">{formatDate(h.thoiGian)}</small>
+                    </td>
                     <td>{h.maKhachHang ? h.tenKhachHang || h.maKhachHang : <span className="muted">Khách lẻ</span>}</td>
-                    {isQuanLy && <td>{h.tenNhanVien || h.maNhanVien}</td>}
-                    <td className="num">{formatMoney(h.tongTien)}</td>
-                    <td className="num">
+                    {isQuanLy && <td className="hide-sm">{h.tenNhanVien || h.maNhanVien}</td>}
+                    <td className="num hide-sm">{formatMoney(h.tongTien)}</td>
+                    <td className="num hide-sm">
                       {h.tienGiam > 0 ? (
-                        <span title={h.maKhuyenMai ?? ''}>-{formatMoney(h.tienGiam)}</span>
+                        <span className="pill pill-ok" title={h.maKhuyenMai ?? ''}>
+                          −{formatMoney(h.tienGiam)}
+                        </span>
                       ) : (
                         <span className="muted">—</span>
                       )}
@@ -112,25 +118,23 @@ export default function HoaDonPage() {
             </table>
           </div>
           <div className="pager">
-            <button className="btn btn-sm" disabled={page === 0 || list.loading} onClick={() => setPage((p) => p - 1)}>
-              ← Trước
-            </button>
             <span>
-              Trang {page + 1} / {totalPages}
+              Trang {page + 1} trên {formatNumber(totalPages)}
             </span>
-            <button
-              className="btn btn-sm"
-              disabled={page + 1 >= totalPages || list.loading}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              Sau →
-            </button>
+            <span className="btns">
+              <button className="btn btn-sm" disabled={page === 0 || list.loading} onClick={() => setPage((p) => p - 1)}>
+                <ChevronLeft size={16} aria-hidden="true" /> Trang trước
+              </button>
+              <button className="btn btn-sm" disabled={page + 1 >= totalPages || list.loading} onClick={() => setPage((p) => p + 1)}>
+                Trang sau <ChevronRight size={16} aria-hidden="true" />
+              </button>
+            </span>
           </div>
         </>
       )}
 
       {detail && (
-        <Modal title={`Hóa đơn ${detail.hoaDon.maHoaDon}`} onClose={() => setDetail(null)} wide>
+        <Modal title="Chi tiết hóa đơn" onClose={() => setDetail(null)} className="receipt-modal">
           <HoaDonView hd={detail} />
         </Modal>
       )}
