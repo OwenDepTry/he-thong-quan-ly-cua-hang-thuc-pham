@@ -62,6 +62,7 @@ Repo đã có sẵn `render.yaml` ở thư mục gốc, mô tả 2 service: `qlc
    - `CORS_ORIGINS`: `https://qlcuahang-frontend.onrender.com` (URL của frontend, sửa lại ở bước 4 nếu Render đặt tên khác).
    - `VITE_API_URL`: `https://qlcuahang-backend.onrender.com` (URL của backend, **không** có `/api` và không có `/` ở cuối).
    - `JWT_SECRET` được Render tự sinh ngẫu nhiên.
+   - `VITE_DEMO=true` đã đặt sẵn trong `render.yaml` để trang đăng nhập hiện tài khoản dùng thử. Dùng cho cửa hàng thật thì xóa biến này.
 3. Bấm **Apply**. Backend build Docker mất khoảng 5–8 phút lần đầu.
 4. Khi xong, mở trang service để xem URL thật. Nếu URL khác với giá trị đã điền:
    - Backend → **Environment** → sửa `CORS_ORIGINS` → **Save, rebuild and deploy**.
@@ -69,7 +70,9 @@ Repo đã có sẵn `render.yaml` ở thư mục gốc, mô tả 2 service: `qlc
      (Vite ghi địa chỉ API vào file JS **lúc build**, nên đổi biến này bắt buộc phải build lại.)
 5. Kiểm tra:
    - `https://<backend>/actuator/health` → `{"status":"UP"}`
-   - Mở frontend, đăng nhập `admin` / `admin` → **đổi mật khẩu các tài khoản mẫu ngay** (trên app desktop: mục Tài khoản / Nhân viên).
+   - `https://<backend>/swagger-ui.html` → trang tài liệu API
+   - Mở frontend, đăng nhập `admin` / `admin`.
+   - Dùng cho cửa hàng thật: **đổi mật khẩu các tài khoản mẫu ngay** ở trang Nhân viên, và tắt Swagger bằng `SWAGGER_ENABLED=false` nếu không cần.
 
 ### Tự tạo từng service (không dùng Blueprint)
 
@@ -92,7 +95,13 @@ Repo đã có sẵn `render.yaml` ở thư mục gốc, mô tả 2 service: `qlc
 - Không đặt `JWT_SECRET` ngắn hơn 32 ký tự – backend sẽ từ chối khởi động.
 - Backend tự mã hóa BCrypt mật khẩu còn lưu dạng chữ thường mỗi lần khởi động, nên quên chạy `zzz_ma_hoa_mat_khau.sql` cũng không sao.
 
-## 4. App desktop dùng chung database Neon (tùy chọn)
+## 4. Bản demo công khai (để gắn vào CV)
+
+- Giữ nguyên tài khoản mẫu và `VITE_DEMO=true` để người xem đăng nhập thử được ngay.
+- Người xem có thể lập hóa đơn, sửa dữ liệu. Muốn làm mới toàn bộ: trên Neon xóa và tạo lại database (hoặc tạo branch mới), rồi nạp lại 3 file `sql/` như bước 1.3. Dữ liệu mẫu luôn tính theo ngày nạp, nên biểu đồ và cảnh báo sẽ có số liệu "hôm nay".
+- Ghi link frontend vào README ở mục "Xem thử" và vào CV. Lần mở đầu sau một lúc không ai dùng sẽ chậm khoảng 1 phút do Render Free khởi động lại backend.
+
+## 5. App desktop dùng chung database Neon (tùy chọn)
 
 Tạo file `db.properties` cạnh `QuanLyCuaHang.jar`:
 

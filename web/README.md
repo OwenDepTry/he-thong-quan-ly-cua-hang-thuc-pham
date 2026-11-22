@@ -8,12 +8,18 @@ Bản web dùng **chung database PostgreSQL** với app desktop: hóa đơn lậ
 | Frontend | React 19 + Vite 8 + TypeScript, React Router | `web/frontend` |
 | Database | PostgreSQL 16 (schema có sẵn trong `sql/`) | `sql/` |
 
-## Chức năng (bản đầu)
+## Chức năng
 
 - **Đăng nhập JWT**, phân quyền theo `NhanVien.ChucVu`: `QL` = quản lý, `NV` = nhân viên.
 - **Sản phẩm**: ai cũng xem/tìm được (không phân biệt dấu); chỉ quản lý được thêm/sửa/xóa. Không xóa được sản phẩm đã có trong hóa đơn, phiếu nhập hoặc lô hàng.
 - **Lập hóa đơn**: chọn sản phẩm, khách hàng, khuyến mãi. Máy chủ tính lại tiền theo giá trong DB, kiểm tra khuyến mãi (đang chạy, đúng ngày, đạt điều kiện), trừ tồn kho trong cùng 1 transaction (lỗi là hủy cả hóa đơn). Nhân viên chỉ xem được hóa đơn mình lập.
-- **Tổng quan**: doanh thu hôm nay / tháng này (chỉ quản lý), số hóa đơn, sản phẩm sắp hết hàng (tồn ≤ 30), lô sắp hết hạn (trong 7 ngày tới hoặc vừa hết hạn ≤ 30 ngày). Giống Trang chủ của desktop.
+- **Tổng quan**: doanh thu hôm nay / tháng này và biểu đồ 14 ngày (chỉ quản lý), số hóa đơn, sản phẩm sắp hết hàng (tồn ≤ 30), lô sắp hết hạn (trong 7 ngày tới hoặc vừa hết hạn ≤ 30 ngày). Bấm vào sản phẩm sắp hết để lập phiếu nhập ngay.
+- **Nhập hàng**: lập phiếu nhập từ nhà cung cấp, cộng tồn kho trong 1 transaction. Dòng có hạn sử dụng tạo một lô hàng (bảng `HangHoa`) để Tổng quan cảnh báo khi sắp hết hạn; hạn được gợi ý sẵn theo số ngày sử dụng của sản phẩm.
+- **Khách hàng**: tìm không dấu theo tên, mã, số điện thoại; xem số hóa đơn, tổng chi tiêu, lần mua gần nhất. Quản lý thêm/sửa; không xóa được khách đã mua hàng (chuyển sang ngừng hoạt động).
+- **Báo cáo** (quản lý): doanh thu theo ngày hoặc tháng, so sánh với kỳ trước cùng độ dài, sản phẩm bán chạy, doanh thu theo nhân viên, tiền nhập hàng; xuất file CSV mở bằng Excel.
+- **Nhân viên** (quản lý): thêm, sửa, đặt lại mật khẩu (lưu BCrypt), cho nghỉ việc. Không tự hạ quyền hay tự khóa mình được, và cửa hàng luôn còn ít nhất một quản lý.
+- **In hóa đơn, phiếu nhập** khổ giấy in nhiệt 80 mm ngay từ trình duyệt.
+- Giao diện có chế độ tối, dùng tốt trên điện thoại (thanh tab dưới đáy).
 
 ## Mật khẩu BCrypt – app desktop vẫn đăng nhập được
 
@@ -32,7 +38,7 @@ docker compose --profile web up -d --build
 ```
 
 - Web: <http://localhost:8081> (nginx chuyển `/api` sang backend)
-- API: <http://localhost:8080/api> · health: <http://localhost:8080/actuator/health>
+- API: <http://localhost:8080/api>, tài liệu Swagger: <http://localhost:8080/swagger-ui.html>, health: <http://localhost:8080/actuator/health>
 - `docker compose up -d` (không có `--profile web`) vẫn chỉ bật PostgreSQL như trước, cho app desktop.
 
 Đã có database cũ từ trước (volume `db-data`)? File `sql/` chỉ tự chạy khi tạo DB lần đầu; backend sẽ tự mã hóa mật khẩu khi khởi động, hoặc chạy:
@@ -64,12 +70,17 @@ Tài khoản mẫu: `admin` / `admin` (quản lý), `nhanvien` / `123` (nhân vi
 | `CORS_ORIGINS` | `http://localhost:5173,http://localhost:8081` | Domain frontend được gọi API, phân tách bằng dấu phẩy |
 | `MIGRATE_PLAINTEXT_PASSWORDS` | `true` | Mã hóa mật khẩu chữ thường khi khởi động |
 | `PORT` | `8080` | Cổng HTTP (Render tự đặt) |
+| `SWAGGER_ENABLED` | `true` | Bật trang tài liệu `/swagger-ui.html` và `/v3/api-docs` |
+
+Frontend (đặt lúc build): `VITE_API_URL` là địa chỉ backend khi khác domain; `VITE_DEMO=true` hiện gợi ý tài khoản dùng thử ở trang đăng nhập.
 
 "Hôm nay" / "tháng này" luôn tính theo giờ Việt Nam (`Asia/Ho_Chi_Minh`) dù database đặt ở múi giờ nào.
 
 ## API
 
 Mọi API (trừ đăng nhập và health) cần header `Authorization: Bearer <token>`. Lỗi trả về dạng `{"message": "...", "errors": {"truong": "..."}}`.
+
+Tài liệu đầy đủ, gọi thử được ngay: **`/swagger-ui.html`**. Đăng nhập bằng `POST /api/auth/login`, chép `token` vào nút **Authorize**.
 
 | Method | Đường dẫn | Quyền | Mô tả |
 | --- | --- | --- | --- |
@@ -80,12 +91,20 @@ Mọi API (trừ đăng nhập và health) cần header `Authorization: Bearer <
 | GET | `/api/san-pham/{ma}` | đăng nhập | Chi tiết sản phẩm |
 | POST / PUT / DELETE | `/api/san-pham[/{ma}]` | QL | Thêm / sửa / xóa |
 | GET | `/api/loai-san-pham` | đăng nhập | Loại sản phẩm |
-| GET | `/api/khach-hang?q=` | đăng nhập | Khách hàng đang hoạt động |
+| GET | `/api/khach-hang?q=&tatCa=&limit=` | đăng nhập | Khách hàng kèm số hóa đơn, tổng chi tiêu (mặc định chỉ khách đang hoạt động) |
+| POST / PUT / DELETE | `/api/khach-hang[/{ma}]` | QL | Thêm (bỏ trống mã thì tự sinh) / sửa / xóa khách chưa mua hàng |
 | GET | `/api/khuyen-mai/hieu-luc` | đăng nhập | Khuyến mãi áp dụng được hôm nay |
 | GET | `/api/hoa-don?q=&tuNgay=&denNgay=&page=&size=` | đăng nhập | QL: mọi hóa đơn; NV: của mình |
 | GET | `/api/hoa-don/{ma}` | đăng nhập | Chi tiết (NV chỉ xem của mình) |
 | POST | `/api/hoa-don/xem-truoc` | đăng nhập | Tính tiền + kiểm tra, không lưu |
 | POST | `/api/hoa-don` | đăng nhập | `{maKhachHang?, maKhuyenMai?, items:[{maSanPham, soLuong}]}` |
+| GET | `/api/nha-cung-cap` | đăng nhập | Nhà cung cấp đang hợp tác |
+| GET | `/api/phieu-nhap?q=&tuNgay=&denNgay=&page=&size=` | đăng nhập | QL: mọi phiếu nhập; NV: của mình |
+| GET | `/api/phieu-nhap/{ma}` | đăng nhập | Chi tiết phiếu nhập |
+| POST | `/api/phieu-nhap` | đăng nhập | `{maNhaCungCap, items:[{maSanPham, soLuong, donGia, hanSuDung?}]}`: cộng tồn kho, tạo lô nếu có hạn |
+| GET | `/api/bao-cao?tuNgay=&denNgay=&nhom=ngay\|thang&top=` | QL | Tổng hợp + kỳ trước, doanh thu theo kỳ, bán chạy, theo nhân viên |
+| GET | `/api/nhan-vien` | QL | Nhân viên kèm số hóa đơn, doanh thu tháng này |
+| POST / PUT | `/api/nhan-vien[/{ma}]` | QL | Thêm (bắt buộc mật khẩu) / sửa (`matKhau` bỏ trống = giữ nguyên) |
 
 ## Kiểm thử
 
@@ -108,3 +127,5 @@ Xem [DEPLOY.md](DEPLOY.md) (Neon + Render).
 - Không dùng JPA để giữ nguyên schema cũ (bảng không có khóa tự tăng, mã dạng `HD123`); câu SQL viết giống các DAO của desktop.
 - Mã hóa đơn `HD{n+1}` sinh giống desktop, có `pg_advisory_xact_lock` để 2 người lập hóa đơn cùng lúc trên web không bị trùng mã. Desktop không giữ khóa này; nếu web và desktop lập hóa đơn đúng cùng lúc, một bên sẽ báo lỗi trùng mã và chỉ cần bấm lại.
 - Đơn giá trên hóa đơn lấy từ DB, không tin giá trình duyệt gửi lên. Tiền giảm làm tròn tới đồng.
+- Mã khách hàng, nhân viên, phiếu nhập, lô hàng sinh tự động theo cùng cách (`common/MaSinh`, có khóa advisory).
+- Báo cáo cộng dồn bằng SQL (`GROUP BY` theo ngày hoặc `DATE_TRUNC('month')`), kỳ không có hóa đơn vẫn trả về 0 để biểu đồ liền mạch.

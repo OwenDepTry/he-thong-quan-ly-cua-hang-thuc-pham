@@ -42,3 +42,5 @@ services:
         sync: false
       - key: NODE_VERSION    # Vite 8 cần Node >= 20.19
         value: "22"
+      - key: VITE_DEMO       # hiện gợi ý tài khoản dùng thử ở trang đăng nhập (bản demo cho CV). Cửa hàng thật: bỏ dòng này
+        value: "true"
