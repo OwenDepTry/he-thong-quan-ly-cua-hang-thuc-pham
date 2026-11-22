@@ -21,6 +21,7 @@ import vn.qlcuahang.web.sanpham.SanPhamDtos.SanPhamRequest;
 
 /** Quản lý sản phẩm. Xem: mọi người dùng; thêm/sửa/xóa: chỉ quản lý (cấu hình thêm ở SecurityConfig). */
 @RestController
+@io.swagger.v3.oas.annotations.tags.Tag(name = "Sản phẩm")
 public class SanPhamController {
 
     private final SanPhamRepository repo;

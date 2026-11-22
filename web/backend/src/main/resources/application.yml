@@ -23,6 +23,16 @@ spring:
     serialization:
       write-dates-as-timestamps: false
 
+springdoc:
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:true}
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:true}
+    path: /swagger-ui.html
+    persist-authorization: true
+    tags-sorter: alpha
+  packages-to-scan: vn.qlcuahang.web
+
 management:
   endpoints:
     web:

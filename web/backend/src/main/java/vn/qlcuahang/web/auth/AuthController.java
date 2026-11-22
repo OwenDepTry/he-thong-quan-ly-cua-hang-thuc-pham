@@ -12,6 +12,7 @@ import vn.qlcuahang.web.auth.AuthDtos.LoginResponse;
 import vn.qlcuahang.web.auth.AuthDtos.UserInfo;
 
 @RestController
+@io.swagger.v3.oas.annotations.tags.Tag(name = "Đăng nhập")
 @RequestMapping("/api/auth")
 public class AuthController {
 

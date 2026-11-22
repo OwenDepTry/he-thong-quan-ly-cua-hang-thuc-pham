@@ -52,9 +52,15 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                 .requestMatchers("/actuator/health/**", "/actuator/health", "/error").permitAll()
+                // Tài liệu API (tắt bằng SWAGGER_ENABLED=false); gọi thử vẫn cần token
+                .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                .requestMatchers("/api/bao-cao/**", "/api/bao-cao", "/api/nhan-vien/**", "/api/nhan-vien").hasRole("QL")
                 // Sản phẩm: ai đăng nhập cũng xem được (để bán hàng), chỉ quản lý được thêm/sửa/xóa
                 .requestMatchers(HttpMethod.GET, "/api/san-pham/**", "/api/loai-san-pham").authenticated()
                 .requestMatchers("/api/san-pham/**").hasRole("QL")
+                // Khách hàng: ai cũng tra cứu được để chọn khi bán, chỉ quản lý thêm/sửa/xóa
+                .requestMatchers(HttpMethod.GET, "/api/khach-hang/**", "/api/khach-hang").authenticated()
+                .requestMatchers("/api/khach-hang/**", "/api/khach-hang").hasRole("QL")
                 .requestMatchers("/api/**").authenticated()
                 .anyRequest().denyAll())
             .oauth2ResourceServer(oauth -> oauth

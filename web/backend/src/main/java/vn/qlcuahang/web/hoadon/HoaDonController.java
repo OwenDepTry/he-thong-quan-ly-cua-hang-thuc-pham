@@ -21,6 +21,7 @@ import vn.qlcuahang.web.hoadon.HoaDonDtos.Trang;
 import vn.qlcuahang.web.security.CurrentUser;
 
 @RestController
+@io.swagger.v3.oas.annotations.tags.Tag(name = "Hóa đơn")
 @RequestMapping("/api/hoa-don")
 public class HoaDonController {
 

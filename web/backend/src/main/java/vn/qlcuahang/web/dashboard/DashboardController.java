@@ -16,6 +16,7 @@ import vn.qlcuahang.web.security.CurrentUser;
  * Doanh thu chỉ trả về cho quản lý; nhân viên thấy số hóa đơn (giống Trang chủ desktop).
  */
 @RestController
+@io.swagger.v3.oas.annotations.tags.Tag(name = "Tổng quan")
 public class DashboardController {
 
     public record SapHetHang(String maSanPham, String tenSanPham, String donViTinh, int soLuongTon) {
