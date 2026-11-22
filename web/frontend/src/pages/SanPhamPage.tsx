@@ -1,7 +1,9 @@
 import { cloneElement, useMemo, useState, type FormEvent, type ReactElement } from 'react';
-import { ArrowDown, ArrowUp, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, ImagePlus, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { categoryOf } from '../lib/category';
-import { ApiError, api } from '../lib/api';
+import { ProductImage } from '../components/ProductImage';
+import { resizeImage } from '../lib/image';
+import { ApiError, api, imageUrl } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { formatMoney, formatNumber, normalize, parseMoneyInput } from '../lib/format';
 import type { LoaiSanPham, SanPham, SanPhamInput } from '../lib/types';
@@ -21,6 +23,8 @@ export default function SanPhamPage() {
   const [editing, setEditing] = useState<SanPham | 'new' | null>(null);
   const [deleting, setDeleting] = useState<SanPham | null>(null);
   const [busy, setBusy] = useState(false);
+  const [showCredits, setShowCredits] = useState(false);
+  const credited = (list.data ?? []).filter((s) => s.nguonAnh);
 
   // Lọc tại trình duyệt: danh sách nhỏ, gõ tới đâu lọc tới đó, không phân biệt dấu
   const rows = useMemo(() => {
@@ -133,11 +137,16 @@ export default function SanPhamPage() {
               {rows.map((s) => (
                 <tr key={s.maSanPham} onDoubleClick={() => isQuanLy && setEditing(s)}>
                   <td>
-                    <strong>{s.tenSanPham}</strong>
-                    <small className="muted block">
-                      {s.maSanPham}
-                      {s.moTa ? `, ${s.moTa}` : ''}
-                    </small>
+                    <div className="cell-product">
+                      <ProductImage sp={s} className="thumb" />
+                      <div>
+                        <strong>{s.tenSanPham}</strong>
+                        <small className="muted block">
+                          {s.maSanPham}
+                          {s.moTa ? `, ${s.moTa}` : ''}
+                        </small>
+                      </div>
+                    </div>
                   </td>
                   <td className="hide-sm">
                     {s.loai ? (
@@ -191,6 +200,34 @@ export default function SanPhamPage() {
           }}
         />
       )}
+      {credited.length > 0 && (
+        <p className="credits-line">
+          Ảnh minh họa của {credited.length} sản phẩm lấy từ Wikimedia Commons, giấy phép tự do.{' '}
+          <button className="link-btn" onClick={() => setShowCredits(true)}>
+            Xem nguồn ảnh
+          </button>
+        </p>
+      )}
+      {showCredits && (
+        <Modal title="Nguồn ảnh sản phẩm" onClose={() => setShowCredits(false)} wide>
+          <ul className="credits">
+            {credited.map((s) => (
+              <li key={s.maSanPham}>
+                <ProductImage sp={s} className="thumb-sm" />
+                <span>
+                  <strong>{s.tenSanPham}</strong>
+                  <small className="muted block">{s.nguonAnh}</small>
+                </span>
+                {s.trangNguonAnh && (
+                  <a href={s.trangNguonAnh} target="_blank" rel="noreferrer" className="link">
+                    Trang ảnh
+                  </a>
+                )}
+              </li>
+            ))}
+          </ul>
+        </Modal>
+      )}
       {deleting && (
         <ConfirmDialog
           title="Xóa sản phẩm"
@@ -237,6 +274,26 @@ function SanPhamForm({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // Ảnh: file mới đã thu nhỏ (chưa gửi), hoặc đánh dấu gỡ ảnh cũ; gửi sau khi lưu sản phẩm
+  const [anh, setAnh] = useState<{ blob: Blob; preview: string } | null>(null);
+  const [goAnh, setGoAnh] = useState(false);
+  const [anhError, setAnhError] = useState<string | null>(null);
+  const coAnhCu = !!initial?.hinhAnh && !goAnh;
+
+  async function chonAnh(e: { target: HTMLInputElement }) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setAnhError(null);
+    try {
+      const blob = await resizeImage(file);
+      if (anh) URL.revokeObjectURL(anh.preview);
+      setAnh({ blob, preview: URL.createObjectURL(blob) });
+      setGoAnh(false);
+    } catch (err) {
+      setAnhError((err as Error).message || 'Không đọc được ảnh.');
+    }
+  }
 
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value });
 
@@ -273,7 +330,13 @@ function SanPhamForm({
     };
     setBusy(true);
     try {
-      const saved = isNew ? await api.themSanPham(body) : await api.suaSanPham(initial.maSanPham, body);
+      let saved = isNew ? await api.themSanPham(body) : await api.suaSanPham(initial.maSanPham, body);
+      if (anh) {
+        saved = await api.taiAnhSanPham(saved.maSanPham, anh.blob);
+      } else if (goAnh && initial?.hinhAnh) {
+        await api.goAnhSanPham(saved.maSanPham);
+        saved = { ...saved, hinhAnh: null, nguonAnh: null, trangNguonAnh: null };
+      }
       onSaved(saved, isNew);
     } catch (err) {
       if (err instanceof ApiError) {
@@ -322,6 +385,58 @@ function SanPhamForm({
       }
     >
       <form id="sp-form" className="form-grid" onSubmit={submit} noValidate>
+        <div className="span-2 image-field">
+          {anh ? (
+            <img className="pimg image-preview" src={anh.preview} alt="Ảnh mới chọn" />
+          ) : coAnhCu && imageUrl(initial.hinhAnh) ? (
+            <ProductImage sp={initial} className="image-preview" iconSize={28} />
+          ) : (
+            <span className="pimg pimg-fallback image-preview cat cat-khac" aria-hidden="true">
+              <ImagePlus size={26} />
+            </span>
+          )}
+          <div className="image-actions">
+            <span className="actions">
+              <label className="btn btn-sm">
+                {anh || coAnhCu ? 'Đổi ảnh' : 'Chọn ảnh'}
+                <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={chonAnh} aria-label="Chọn ảnh sản phẩm" />
+              </label>
+              {(anh || coAnhCu) && (
+                <button
+                  type="button"
+                  className="btn btn-sm btn-ghost"
+                  onClick={() => {
+                    if (anh) {
+                      URL.revokeObjectURL(anh.preview);
+                      setAnh(null);
+                    } else setGoAnh(true);
+                  }}
+                >
+                  Gỡ ảnh
+                </button>
+              )}
+            </span>
+            {anhError ? (
+              <em className="field-error">{anhError}</em>
+            ) : anh ? (
+              <em className="field-hint">Ảnh sẽ được tải lên khi bấm Lưu.</em>
+            ) : coAnhCu && initial.nguonAnh ? (
+              <em className="field-hint">
+                Ảnh: {initial.nguonAnh}
+                {initial.trangNguonAnh && (
+                  <>
+                    {' '}
+                    (<a href={initial.trangNguonAnh} target="_blank" rel="noreferrer">nguồn</a>)
+                  </>
+                )}
+              </em>
+            ) : goAnh ? (
+              <em className="field-hint">Ảnh cũ sẽ được gỡ khi bấm Lưu.</em>
+            ) : (
+              <em className="field-hint">JPEG, PNG hoặc WebP. Ảnh được thu nhỏ trước khi tải lên.</em>
+            )}
+          </div>
+        </div>
         {field('maSanPham', 'Mã sản phẩm *', <input value={f.maSanPham} onChange={set('maSanPham')} disabled={!isNew} placeholder="VD: SP011" autoFocus={isNew} />, isNew ? undefined : 'Không thể đổi mã khi sửa')}
         {field('maNhom', 'Mã nhóm', <input value={f.maNhom} onChange={set('maNhom')} placeholder="VD: RC04" />)}
         <div className="span-2">

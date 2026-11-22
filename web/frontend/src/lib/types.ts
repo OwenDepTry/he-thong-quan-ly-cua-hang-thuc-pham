@@ -22,9 +22,14 @@ export interface SanPham {
   moTa: string | null;
   gia: number;
   soLuongTon: number;
+  /** "/api/san-pham/{ma}/hinh-anh?v=…" (ảnh tải lên) hoặc link ngoài; null nếu chưa có ảnh. */
+  hinhAnh?: string | null;
+  /** Ghi nguồn với ảnh lấy từ nơi khác (Wikimedia Commons). */
+  nguonAnh?: string | null;
+  trangNguonAnh?: string | null;
 }
 
-export type SanPhamInput = Omit<SanPham, 'gia' | 'soLuongTon'> & {
+export type SanPhamInput = Omit<SanPham, 'gia' | 'soLuongTon' | 'hinhAnh' | 'nguonAnh' | 'trangNguonAnh'> & {
   gia: number | null;
   soLuongTon: number | null;
 };
@@ -136,6 +141,8 @@ export interface TongHop {
   giaTriTrungBinh: number;
   tienNhap: number;
   soPhieuNhap: number;
+  giaVon: number;
+  loiNhuanGop: number;
 }
 
 export interface BaoCao {
@@ -152,8 +159,13 @@ export interface BaoCao {
     donViTinh: string | null;
     soLuong: number;
     doanhThu: number;
+    hinhAnh?: string | null;
   }[];
   theoNhanVien: { maNhanVien: string; hoTen: string; soHoaDon: number; doanhThu: number }[];
+  theoNhomHang: { loai: string; soLuong: number; doanhThu: number }[];
+  /** thu: 1 = thứ Hai … 7 = Chủ nhật */
+  theoThu: { thu: number; doanhThu: number; soHoaDon: number; soNgay: number }[];
+  khachHangThanThiet: { maKhachHang: string; hoTen: string; soHoaDon: number; doanhThu: number }[];
 }
 
 export interface KhuyenMai {

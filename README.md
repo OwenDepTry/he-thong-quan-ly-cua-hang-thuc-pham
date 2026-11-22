@@ -16,17 +16,18 @@ Phần mềm quản lý cho một cửa hàng thực phẩm nhỏ: bán hàng t�
 ## Tính năng
 
 **Bán hàng**
-- Màn hình bán hàng lọc theo nhóm hàng, tìm không dấu ("sua" ra "Sữa"), phím `/` để tìm nhanh, tăng giảm số lượng ngay trên hóa đơn.
+- Màn hình bán hàng có ảnh từng sản phẩm, lọc theo nhóm hàng, tìm không dấu ("sua" ra "Sữa"), phím `/` để tìm nhanh, tăng giảm số lượng ngay trên hóa đơn.
 - Máy chủ tính lại tiền theo giá trong database, kiểm tra tồn kho và điều kiện khuyến mãi, ghi hóa đơn và trừ kho trong cùng một transaction.
 - In hóa đơn khổ giấy in nhiệt 80 mm ngay từ trình duyệt.
 
 **Kho hàng**
+- Quản lý tải ảnh sản phẩm lên ngay trên web; ảnh được thu nhỏ trong trình duyệt rồi lưu trong database, nên deploy gói miễn phí không cần ổ đĩa.
 - Lập phiếu nhập từ nhà cung cấp, cộng tồn kho. Dòng có hạn sử dụng tạo một lô hàng; hạn được gợi ý sẵn theo số ngày sử dụng của sản phẩm.
 - Trang tổng quan gom hàng sắp hết và lô sắp hết hạn thành danh sách việc cần làm; bấm vào sản phẩm sắp hết để lập phiếu nhập ngay.
 
 **Khách hàng, nhân viên, báo cáo**
 - Khách hàng kèm số hóa đơn, tổng chi tiêu, lần mua gần nhất. Không xóa được khách đã mua hàng, chỉ chuyển sang ngừng hoạt động.
-- Báo cáo doanh thu theo ngày hoặc tháng, so sánh với kỳ trước cùng độ dài, sản phẩm bán chạy, doanh thu theo nhân viên; xuất file mở bằng Excel.
+- Thống kê doanh thu theo ngày hoặc tháng, so sánh với kỳ trước, lợi nhuận gộp ước tính (theo giá nhập bình quân), tỉ trọng nhóm hàng, thứ bán tốt nhất trong tuần, sản phẩm bán chạy, khách hàng thân thiết, doanh thu theo nhân viên; xuất file mở bằng Excel.
 - Quản lý nhân viên, đặt lại mật khẩu, cho nghỉ việc. Không tự hạ quyền hay tự khóa mình được và cửa hàng luôn còn ít nhất một quản lý.
 
 **Bảo mật và phân quyền**
@@ -38,9 +39,9 @@ Phần mềm quản lý cho một cửa hàng thực phẩm nhỏ: bán hàng t�
 
 ## Giao diện
 
-| Tổng quan | Báo cáo |
+| Tổng quan | Thống kê |
 | --- | --- |
-| ![Tổng quan](docs/screenshots/web/01-tong-quan.png) | ![Báo cáo](docs/screenshots/web/03-bao-cao.png) |
+| ![Tổng quan](docs/screenshots/web/01-tong-quan.png) | ![Thống kê](docs/screenshots/web/03-bao-cao.png) |
 | **Lập phiếu nhập** | **Khách hàng** |
 | ![Lập phiếu nhập](docs/screenshots/web/04-nhap-hang.png) | ![Khách hàng](docs/screenshots/web/05-khach-hang.png) |
 | **Chi tiết hóa đơn, in được** | **Chế độ tối** |
@@ -105,7 +106,7 @@ Deploy miễn phí lên Render + Neon: [web/DEPLOY.md](web/DEPLOY.md).
 ## Kiểm thử và CI
 
 ```bash
-cd web/backend && mvn verify      # 45 test tích hợp, chạy PostgreSQL thật bằng Testcontainers (cần Docker)
+cd web/backend && mvn verify      # 48 test tích hợp, chạy PostgreSQL thật bằng Testcontainers (cần Docker)
 cd web/frontend && npm test       # 17 test giao diện
 ```
 
@@ -171,6 +172,10 @@ Gặp lỗi kết nối, app sẽ ghi rõ nguyên nhân. Hay gặp nhất: Docke
 - Thanh toán chuyển khoản bằng mã QR
 - Đưa quản lý nhà cung cấp và khuyến mãi lên bản web
 - Phân quyền chi tiết hơn (thủ kho, thu ngân)
+
+## Nguồn ảnh
+
+Ảnh minh họa của 30 sản phẩm mẫu là ảnh thật trên [Wikimedia Commons](https://commons.wikimedia.org/), dùng theo giấy phép tự do của từng ảnh (phạm vi công cộng, CC0, CC BY, CC BY-SA, GFDL). Tác giả và đường dẫn tới trang ảnh nằm trong `sql/zzzz_anh_san_pham.sql`, và hiện ngay trong ứng dụng (trang Sản phẩm, mục "Xem nguồn ảnh"). Ảnh được hiển thị trực tiếp từ Commons, không chép vào repo.
 
 ## Tác giả
 

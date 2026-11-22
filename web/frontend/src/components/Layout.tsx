@@ -51,7 +51,7 @@ const MENU: { group: string; items: MenuItem[] }[] = [
     group: 'Cửa hàng',
     items: [
       { to: '/khach-hang', label: 'Khách hàng', icon: Users },
-      { to: '/bao-cao', label: 'Báo cáo', icon: BarChart3, quanLy: true },
+      { to: '/thong-ke', label: 'Thống kê', icon: BarChart3, quanLy: true },
       { to: '/nhan-vien', label: 'Nhân viên', icon: UserCog, quanLy: true },
     ],
   },

@@ -200,7 +200,7 @@ describe('App', () => {
     expect(await screen.findByText('Hóa đơn hôm nay')).toBeInTheDocument();
     const nav = within(screen.getByRole('navigation', { name: 'Điều hướng chính' }));
     expect(nav.getByRole('link', { name: 'Nhập hàng' })).toBeInTheDocument();
-    expect(nav.queryByRole('link', { name: 'Báo cáo' })).not.toBeInTheDocument();
+    expect(nav.queryByRole('link', { name: 'Thống kê' })).not.toBeInTheDocument();
     expect(nav.queryByRole('link', { name: 'Nhân viên' })).not.toBeInTheDocument();
   });
 
@@ -246,9 +246,9 @@ describe('App', () => {
     expect(screen.getByText('Lô HH106, hạn ' + addDays(today, 3).split('-').reverse().join('/'))).toBeInTheDocument();
   });
 
-  it('báo cáo so sánh với kỳ trước', async () => {
+  it('thống kê: so sánh kỳ trước, lợi nhuận, nhóm hàng, thứ bán tốt nhất', async () => {
     tokenStore.set('t-ql');
-    const tong = { doanhThu: 12_000_000, tienGiam: 300_000, soHoaDon: 40, giaTriTrungBinh: 300_000, tienNhap: 5_000_000, soPhieuNhap: 3 };
+    const tong = { doanhThu: 12_000_000, tienGiam: 300_000, soHoaDon: 40, giaTriTrungBinh: 300_000, tienNhap: 5_000_000, soPhieuNhap: 3, giaVon: 9_000_000, loiNhuanGop: 3_000_000 };
     const report: BaoCao = {
       tuNgay: '2026-10-25',
       denNgay: '2026-11-23',
@@ -258,13 +258,24 @@ describe('App', () => {
       theoKy: [{ ky: '2026-11-23', doanhThu: 12_000_000, soHoaDon: 40 }],
       sanPhamBanChay: [{ maSanPham: 'SP003', tenSanPham: 'Cá hồi', loai: 'Thịt và hải sản', donViTinh: 'Kg', soLuong: 20, doanhThu: 6_000_000 }],
       theoNhanVien: [{ maNhanVien: 'NV01', hoTen: 'Nguyễn Thị Hoa', soHoaDon: 40, doanhThu: 12_000_000 }],
+      theoNhomHang: [
+        { loai: 'Thịt và hải sản', soLuong: 20, doanhThu: 9_000_000 },
+        { loai: 'Rau củ', soLuong: 50, doanhThu: 3_000_000 },
+      ],
+      theoThu: [1, 2, 3, 4, 5, 6, 7].map((thu) => ({ thu, doanhThu: thu === 6 ? 4_000_000 : 1_000_000, soHoaDon: 5, soNgay: 4 })),
+      khachHangThanThiet: [{ maKhachHang: 'KH005', hoTen: 'Hoàng Minh Đức', soHoaDon: 6, doanhThu: 2_400_000 }],
     };
     fakeBackend({
       'GET /api/auth/me': () => [200, user('QL')],
       'GET /api/bao-cao': () => [200, report],
     });
-    renderAt('/bao-cao');
+    renderAt('/bao-cao'); // đường dẫn cũ chuyển sang /thong-ke
+    expect(await screen.findByRole('heading', { name: 'Thống kê' })).toBeInTheDocument();
     expect(await screen.findByText('Tăng 20% so với kỳ trước')).toBeInTheDocument();
+    expect(screen.getByText('Biên lợi nhuận 25%')).toBeInTheDocument();
+    expect(screen.getAllByText('75%').length).toBeGreaterThan(0); // Thịt và hải sản chiếm 75%
+    expect(screen.getByText(/Bán tốt nhất vào thứ bảy/)).toBeInTheDocument();
+    expect(screen.getByText('Hoàng Minh Đức')).toBeInTheDocument();
     expect(screen.getByText('Giảm 20% so với kỳ trước')).toBeInTheDocument();
     expect(screen.getByText('Cá hồi')).toBeInTheDocument();
     expect(screen.getByText('Nguyễn Thị Hoa')).toBeInTheDocument();

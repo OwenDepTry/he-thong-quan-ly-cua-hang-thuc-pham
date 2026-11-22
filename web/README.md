@@ -16,7 +16,8 @@ Bản web dùng **chung database PostgreSQL** với app desktop: hóa đơn lậ
 - **Tổng quan**: doanh thu hôm nay / tháng này và biểu đồ 14 ngày (chỉ quản lý), số hóa đơn, sản phẩm sắp hết hàng (tồn ≤ 30), lô sắp hết hạn (trong 7 ngày tới hoặc vừa hết hạn ≤ 30 ngày). Bấm vào sản phẩm sắp hết để lập phiếu nhập ngay.
 - **Nhập hàng**: lập phiếu nhập từ nhà cung cấp, cộng tồn kho trong 1 transaction. Dòng có hạn sử dụng tạo một lô hàng (bảng `HangHoa`) để Tổng quan cảnh báo khi sắp hết hạn; hạn được gợi ý sẵn theo số ngày sử dụng của sản phẩm.
 - **Khách hàng**: tìm không dấu theo tên, mã, số điện thoại; xem số hóa đơn, tổng chi tiêu, lần mua gần nhất. Quản lý thêm/sửa; không xóa được khách đã mua hàng (chuyển sang ngừng hoạt động).
-- **Báo cáo** (quản lý): doanh thu theo ngày hoặc tháng, so sánh với kỳ trước cùng độ dài, sản phẩm bán chạy, doanh thu theo nhân viên, tiền nhập hàng; xuất file CSV mở bằng Excel.
+- **Thống kê** (quản lý): doanh thu theo ngày hoặc tháng, so sánh với kỳ trước cùng độ dài, lợi nhuận gộp ước tính, tỉ trọng nhóm hàng, doanh thu trung bình theo thứ trong tuần, sản phẩm bán chạy, khách hàng thân thiết, doanh thu theo nhân viên, tiền nhập hàng; xuất file CSV mở bằng Excel.
+- **Ảnh sản phẩm**: quản lý tải ảnh lên (JPEG, PNG, WebP; trình duyệt thu nhỏ còn cạnh dài 800px trước khi gửi), lưu trong bảng `SanPhamHinhAnh`. Dữ liệu mẫu có sẵn ảnh thật từ Wikimedia Commons kèm ghi nguồn. Ảnh lỗi hoặc chưa có thì hiện icon nhóm hàng.
 - **Nhân viên** (quản lý): thêm, sửa, đặt lại mật khẩu (lưu BCrypt), cho nghỉ việc. Không tự hạ quyền hay tự khóa mình được, và cửa hàng luôn còn ít nhất một quản lý.
 - **In hóa đơn, phiếu nhập** khổ giấy in nhiệt 80 mm ngay từ trình duyệt.
 - Giao diện có chế độ tối, dùng tốt trên điện thoại (thanh tab dưới đáy).
@@ -90,6 +91,8 @@ Tài liệu đầy đủ, gọi thử được ngay: **`/swagger-ui.html`**. Đ�
 | GET | `/api/san-pham?q=&loai=` | đăng nhập | Danh sách / tìm sản phẩm |
 | GET | `/api/san-pham/{ma}` | đăng nhập | Chi tiết sản phẩm |
 | POST / PUT / DELETE | `/api/san-pham[/{ma}]` | QL | Thêm / sửa / xóa |
+| GET | `/api/san-pham/{ma}/hinh-anh` | công khai | Ảnh sản phẩm (ảnh ngoài thì chuyển hướng 302) |
+| PUT / DELETE | `/api/san-pham/{ma}/hinh-anh` | QL | Tải ảnh lên (multipart, trường `file`, tối đa 2 MB) / gỡ ảnh |
 | GET | `/api/loai-san-pham` | đăng nhập | Loại sản phẩm |
 | GET | `/api/khach-hang?q=&tatCa=&limit=` | đăng nhập | Khách hàng kèm số hóa đơn, tổng chi tiêu (mặc định chỉ khách đang hoạt động) |
 | POST / PUT / DELETE | `/api/khach-hang[/{ma}]` | QL | Thêm (bỏ trống mã thì tự sinh) / sửa / xóa khách chưa mua hàng |
@@ -102,7 +105,7 @@ Tài liệu đầy đủ, gọi thử được ngay: **`/swagger-ui.html`**. Đ�
 | GET | `/api/phieu-nhap?q=&tuNgay=&denNgay=&page=&size=` | đăng nhập | QL: mọi phiếu nhập; NV: của mình |
 | GET | `/api/phieu-nhap/{ma}` | đăng nhập | Chi tiết phiếu nhập |
 | POST | `/api/phieu-nhap` | đăng nhập | `{maNhaCungCap, items:[{maSanPham, soLuong, donGia, hanSuDung?}]}`: cộng tồn kho, tạo lô nếu có hạn |
-| GET | `/api/bao-cao?tuNgay=&denNgay=&nhom=ngay\|thang&top=` | QL | Tổng hợp + kỳ trước, doanh thu theo kỳ, bán chạy, theo nhân viên |
+| GET | `/api/bao-cao?tuNgay=&denNgay=&nhom=ngay\|thang&top=` | QL | Tổng hợp (có giá vốn, lợi nhuận gộp) + kỳ trước, theo kỳ, bán chạy, theo nhân viên, nhóm hàng, thứ trong tuần, khách thân thiết |
 | GET | `/api/nhan-vien` | QL | Nhân viên kèm số hóa đơn, doanh thu tháng này |
 | POST / PUT | `/api/nhan-vien[/{ma}]` | QL | Thêm (bắt buộc mật khẩu) / sửa (`matKhau` bỏ trống = giữ nguyên) |
 
@@ -128,4 +131,6 @@ Xem [DEPLOY.md](DEPLOY.md) (Neon + Render).
 - Mã hóa đơn `HD{n+1}` sinh giống desktop, có `pg_advisory_xact_lock` để 2 người lập hóa đơn cùng lúc trên web không bị trùng mã. Desktop không giữ khóa này; nếu web và desktop lập hóa đơn đúng cùng lúc, một bên sẽ báo lỗi trùng mã và chỉ cần bấm lại.
 - Đơn giá trên hóa đơn lấy từ DB, không tin giá trình duyệt gửi lên. Tiền giảm làm tròn tới đồng.
 - Mã khách hàng, nhân viên, phiếu nhập, lô hàng sinh tự động theo cùng cách (`common/MaSinh`, có khóa advisory).
-- Báo cáo cộng dồn bằng SQL (`GROUP BY` theo ngày hoặc `DATE_TRUNC('month')`), kỳ không có hóa đơn vẫn trả về 0 để biểu đồ liền mạch.
+- Giá vốn tính theo giá nhập bình quân gia quyền của từng sản phẩm; sản phẩm chưa từng nhập thì coi giá vốn bằng giá bán, để lợi nhuận không bị thổi phồng.
+- Bảng `SanPhamHinhAnh` được backend tự tạo khi khởi động nếu database cũ chưa có (`common/SchemaUpdater`).
+- Thống kê cộng dồn bằng SQL (`GROUP BY` theo ngày hoặc `DATE_TRUNC('month')`), kỳ không có hóa đơn vẫn trả về 0 để biểu đồ liền mạch.

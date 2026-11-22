@@ -68,14 +68,16 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   const headers: Record<string, string> = {};
   const token = tokenStore.get();
   if (token) headers.Authorization = `Bearer ${token}`;
-  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  const isForm = typeof FormData !== 'undefined' && body instanceof FormData;
+  // FormData: để trình duyệt tự đặt Content-Type multipart kèm boundary
+  if (body !== undefined && !isForm) headers['Content-Type'] = 'application/json';
 
   let res: Response;
   try {
     res = await fetch(BASE_URL + path, {
       method,
       headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: body === undefined ? undefined : isForm ? (body as FormData) : JSON.stringify(body),
     });
   } catch {
     throw new ApiError(0, 'Không kết nối được máy chủ. Kiểm tra mạng hoặc thử lại sau.');
@@ -118,6 +120,12 @@ function qs(params: Record<string, string | number | undefined | null>): string 
   return str ? `?${str}` : '';
 }
 
+/** Đường dẫn ảnh dùng được trong <img>: ảnh tải lên nằm ở backend nên thêm VITE_API_URL phía trước. */
+export function imageUrl(path: string | null | undefined): string | null {
+  if (!path) return null;
+  return path.startsWith('/api/') ? BASE_URL + path : path;
+}
+
 export const api = {
   login: (maNhanVien: string, matKhau: string) =>
     request<LoginResponse>('POST', '/api/auth/login', { maNhanVien, matKhau }),
@@ -131,6 +139,12 @@ export const api = {
   suaSanPham: (ma: string, sp: SanPhamInput) =>
     request<SanPham>('PUT', `/api/san-pham/${encodeURIComponent(ma)}`, sp),
   xoaSanPham: (ma: string) => request<void>('DELETE', `/api/san-pham/${encodeURIComponent(ma)}`),
+  taiAnhSanPham: (ma: string, file: Blob) => {
+    const form = new FormData();
+    form.append('file', file, file instanceof File ? file.name : 'anh.webp');
+    return request<SanPham>('PUT', `/api/san-pham/${encodeURIComponent(ma)}/hinh-anh`, form);
+  },
+  goAnhSanPham: (ma: string) => request<void>('DELETE', `/api/san-pham/${encodeURIComponent(ma)}/hinh-anh`),
 
   khachHang: (q?: string, opts: { tatCa?: boolean; limit?: number } = {}) =>
     request<KhachHang[]>('GET', `/api/khach-hang${qs({ q, tatCa: opts.tatCa ? 'true' : undefined, limit: opts.limit })}`),

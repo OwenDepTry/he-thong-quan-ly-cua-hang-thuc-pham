@@ -1,4 +1,4 @@
-import { Link, Route, Routes } from 'react-router-dom';
+import { Link, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './lib/auth';
 import { ToastProvider } from './components/ui';
 import { Layout, RequireAuth, RequireQuanLy } from './components/Layout';
@@ -9,7 +9,7 @@ import BanHangPage from './pages/BanHangPage';
 import HoaDonPage from './pages/HoaDonPage';
 import NhapHangPage from './pages/NhapHangPage';
 import KhachHangPage from './pages/KhachHangPage';
-import BaoCaoPage from './pages/BaoCaoPage';
+import ThongKePage from './pages/ThongKePage';
 import NhanVienPage from './pages/NhanVienPage';
 
 export function App() {
@@ -27,7 +27,8 @@ export function App() {
               <Route path="nhap-hang" element={<NhapHangPage />} />
               <Route path="khach-hang" element={<KhachHangPage />} />
               <Route element={<RequireQuanLy />}>
-                <Route path="bao-cao" element={<BaoCaoPage />} />
+                <Route path="thong-ke" element={<ThongKePage />} />
+                <Route path="bao-cao" element={<Navigate to="/thong-ke" replace />} />
                 <Route path="nhan-vien" element={<NhanVienPage />} />
               </Route>
               <Route

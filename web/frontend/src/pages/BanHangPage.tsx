@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertCircle, Minus, Plus, Search, ShoppingBasket, Trash2 } from 'lucide-react';
 import { ApiError, api } from '../lib/api';
 import { PrintButton } from '../components/form';
+import { ProductImage } from '../components/ProductImage';
 import { useAuth } from '../lib/auth';
 import { categoryOf } from '../lib/category';
 import { formatDate, formatMoney, normalize } from '../lib/format';
@@ -218,16 +219,16 @@ export default function BanHangPage() {
                   onClick={() => add(s)}
                   title={s.moTa ?? s.tenSanPham}
                 >
-                  <span className="tile-top">
-                    <span className="tile-icon" aria-hidden="true">
-                      <c.icon size={16} />
-                    </span>
+                  <span className="tile-media">
+                    <ProductImage sp={s} iconSize={30} />
                     {n ? <span className="in-cart" aria-label={`Đã chọn ${n}`}>{n}</span> : null}
                   </span>
-                  <span className="name">{s.tenSanPham}</span>
-                  <span className="price">{formatMoney(s.gia)}</span>
-                  <span className={`left${out ? ' out' : s.soLuongTon <= 30 ? ' low' : ''}`}>
-                    {out ? 'Hết hàng' : `Còn ${s.soLuongTon} ${s.donViTinh ?? ''}`}
+                  <span className="tile-body">
+                    <span className="name">{s.tenSanPham}</span>
+                    <span className="price">{formatMoney(s.gia)}</span>
+                    <span className={`left${out ? ' out' : s.soLuongTon <= 30 ? ' low' : ''}`}>
+                      {out ? 'Hết hàng' : `Còn ${s.soLuongTon} ${s.donViTinh ?? ''}`}
+                    </span>
                   </span>
                 </button>
               );
