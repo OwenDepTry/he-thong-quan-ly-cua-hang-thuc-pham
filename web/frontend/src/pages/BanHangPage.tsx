@@ -1,6 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { AlertCircle, Minus, Plus, Search, ShoppingBasket, Trash2 } from 'lucide-react';
 import { ApiError, api } from '../lib/api';
+import { useAuth } from '../lib/auth';
+import { categoryOf } from '../lib/category';
 import { formatDate, formatMoney, normalize } from '../lib/format';
 import type { HoaDonChiTiet, SanPham, TaoHoaDonRequest, TinhTien } from '../lib/types';
 import { ErrorState, Loading, Modal, useLoad, useToast } from '../components/ui';
@@ -13,7 +16,11 @@ interface CartLine {
 /** Màn hình bán hàng: chọn sản phẩm → giỏ hàng → khách hàng / khuyến mãi → lập hóa đơn. */
 export default function BanHangPage() {
   const toast = useToast();
+  const { user } = useAuth();
   const products = useLoad(() => api.sanPham(), []);
+  const [cat, setCat] = useState('');
+  const searchRef = useRef<HTMLInputElement>(null);
+  const receiptRef = useRef<HTMLDivElement>(null);
   const customers = useLoad(() => api.khachHang(), []);
   const promos = useLoad(() => api.khuyenMaiHieuLuc(), []);
 
@@ -27,12 +34,39 @@ export default function BanHangPage() {
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState<HoaDonChiTiet | null>(null);
 
+  // Nhóm hàng có trong danh sách (để làm bộ lọc), kèm số sản phẩm mỗi nhóm
+  const groups = useMemo(() => {
+    const map = new Map<string, { key: string; label: string; icon: ReturnType<typeof categoryOf>['icon']; count: number }>();
+    for (const s of products.data ?? []) {
+      const c = categoryOf(s.loai, s.tenSanPham);
+      const g = map.get(c.key) ?? { key: c.key, label: c.label, icon: c.icon, count: 0 };
+      g.count++;
+      map.set(c.key, g);
+    }
+    return [...map.values()];
+  }, [products.data]);
+
   const filtered = useMemo(() => {
     const k = normalize(q);
-    return (products.data ?? [])
-      .filter((s) => !k || normalize(`${s.maSanPham} ${s.tenSanPham}`).includes(k))
-      .slice(0, 60);
-  }, [products.data, q]);
+    return (products.data ?? []).filter(
+      (s) =>
+        (!k || normalize(`${s.maSanPham} ${s.tenSanPham}`).includes(k)) &&
+        (!cat || categoryOf(s.loai, s.tenSanPham).key === cat),
+    );
+  }, [products.data, q, cat]);
+
+  // Phím "/" để nhảy tới ô tìm sản phẩm (thao tác nhanh tại quầy)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement;
+      if (e.key === '/' && !['INPUT', 'SELECT', 'TEXTAREA'].includes(t.tagName)) {
+        e.preventDefault();
+        searchRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   const request: TaoHoaDonRequest = useMemo(
     () => ({
@@ -93,6 +127,12 @@ export default function BanHangPage() {
     setCart((c) => c.map((l) => (l.sp.maSanPham === ma ? { ...l, soLuong: value } : l)));
   }
 
+  function step(l: CartLine, delta: number) {
+    const next = (Number.isNaN(l.soLuong) ? 0 : l.soLuong) + delta;
+    if (next < 1) remove(l.sp.maSanPham);
+    else setQty(l.sp.maSanPham, Math.min(next, l.sp.soLuongTon));
+  }
+
   function remove(ma: string) {
     setCart((c) => c.filter((l) => l.sp.maSanPham !== ma));
   }
@@ -127,152 +167,206 @@ export default function BanHangPage() {
   if (products.loading && !products.data) return <Loading />;
   if (products.error) return <ErrorState message={products.error} onRetry={products.reload} />;
 
+  const inCart = new Map(cart.map((l) => [l.sp.maSanPham, l.soLuong]));
+  const itemCount = cart.reduce((n, l) => n + (l.soLuong || 0), 0);
+
   return (
     <div className="page">
       <header className="page-head">
         <div>
-          <h1>Lập hóa đơn</h1>
-          <p className="muted">Bấm vào sản phẩm để thêm vào hóa đơn. Giá và khuyến mãi được máy chủ tính lại khi lưu.</p>
+          <h1>Bán hàng</h1>
+          <p>Chọn sản phẩm để thêm vào hóa đơn. Nhấn / để tìm nhanh.</p>
         </div>
       </header>
 
       <div className="pos">
-        <section className="card pos-products">
-          <input
-            className="search"
-            placeholder="Tìm sản phẩm theo mã hoặc tên…"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            aria-label="Tìm sản phẩm để bán"
-          />
-          <div className="product-grid">
-            {filtered.map((s) => (
-              <button
-                key={s.maSanPham}
-                className={`product-tile${s.soLuongTon <= 0 ? ' disabled' : ''}`}
-                onClick={() => add(s)}
-                title={s.moTa ?? s.tenSanPham}
-              >
-                <strong>{s.tenSanPham}</strong>
-                <span className="price">{formatMoney(s.gia)}</span>
-                <small className={s.soLuongTon <= 0 ? 'text-danger' : s.soLuongTon <= 30 ? 'text-warn' : 'muted'}>
-                  {s.soLuongTon <= 0 ? 'Hết hàng' : `Tồn ${s.soLuongTon} ${s.donViTinh ?? ''}`}
-                </small>
+        <section className="pos-left" aria-label="Sản phẩm">
+          <div className="toolbar">
+            <div className="search-box">
+              <Search size={17} aria-hidden="true" />
+              <input
+                ref={searchRef}
+                placeholder="Tìm theo tên hoặc mã sản phẩm"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                aria-label="Tìm sản phẩm để bán"
+              />
+            </div>
+          </div>
+          {groups.length > 1 && (
+            <div className="filters" role="group" aria-label="Lọc theo nhóm hàng">
+              <button className="filter" aria-pressed={cat === ''} onClick={() => setCat('')}>
+                Tất cả <span className="count">{products.data?.length}</span>
               </button>
-            ))}
-            {filtered.length === 0 && <p className="muted">Không tìm thấy sản phẩm.</p>}
+              {groups.map((g) => (
+                <button key={g.key} className={`filter cat cat-${g.key}`} aria-pressed={cat === g.key} onClick={() => setCat(cat === g.key ? '' : g.key)}>
+                  <g.icon size={15} aria-hidden="true" /> {g.label} <span className="count">{g.count}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="product-grid">
+            {filtered.map((s) => {
+              const c = categoryOf(s.loai, s.tenSanPham);
+              const n = inCart.get(s.maSanPham);
+              const out = s.soLuongTon <= 0;
+              return (
+                <button
+                  key={s.maSanPham}
+                  className={`product-tile cat cat-${c.key}${out ? ' disabled' : ''}`}
+                  onClick={() => add(s)}
+                  title={s.moTa ?? s.tenSanPham}
+                >
+                  <span className="tile-top">
+                    <span className="tile-icon" aria-hidden="true">
+                      <c.icon size={16} />
+                    </span>
+                    {n ? <span className="in-cart" aria-label={`Đã chọn ${n}`}>{n}</span> : null}
+                  </span>
+                  <span className="name">{s.tenSanPham}</span>
+                  <span className="price">{formatMoney(s.gia)}</span>
+                  <span className={`left${out ? ' out' : s.soLuongTon <= 30 ? ' low' : ''}`}>
+                    {out ? 'Hết hàng' : `Còn ${s.soLuongTon} ${s.donViTinh ?? ''}`}
+                  </span>
+                </button>
+              );
+            })}
           </div>
+          {filtered.length === 0 && <p className="grid-empty">Không có sản phẩm nào khớp với “{q}”.</p>}
+
+          {cart.length > 0 && (
+            <div className="cart-bar">
+              <span>
+                <strong>{itemCount}</strong> sản phẩm trong hóa đơn
+              </span>
+              <button className="btn btn-sm" onClick={() => receiptRef.current?.scrollIntoView({ behavior: 'smooth' })}>
+                Xem hóa đơn
+              </button>
+            </div>
+          )}
         </section>
 
-        <section className="card pos-cart">
-          <h2>Hóa đơn</h2>
-          {cart.length === 0 ? (
-            <p className="muted empty-cart">Chưa có sản phẩm nào.</p>
-          ) : (
-            <table className="table table-compact">
-              <thead>
-                <tr>
-                  <th>Sản phẩm</th>
-                  <th className="num">SL</th>
-                  <th className="num">Thành tiền</th>
-                  <th aria-label="Xóa" />
-                </tr>
-              </thead>
-              <tbody>
+        <div className="receipt-wrap" ref={receiptRef}>
+          <section className="receipt" aria-label="Hóa đơn đang lập">
+            <div className="receipt-head">
+              <h2>Hóa đơn bán hàng</h2>
+              <p>Thu ngân: {user?.hoTen || user?.maNhanVien}</p>
+            </div>
+
+            {cart.length === 0 ? (
+              <div className="receipt-empty">
+                <ShoppingBasket size={30} aria-hidden="true" />
+                Chưa có sản phẩm nào. Bấm vào sản phẩm bên cạnh để thêm.
+              </div>
+            ) : (
+              <ul className="receipt-lines">
                 {cart.map((l) => (
-                  <tr key={l.sp.maSanPham}>
-                    <td>
-                      {l.sp.tenSanPham}
-                      <small className="muted block">{formatMoney(l.sp.gia)}</small>
-                      {l.soLuong > l.sp.soLuongTon && (
-                        <small className="text-danger block">Chỉ còn {l.sp.soLuongTon}</small>
-                      )}
-                    </td>
-                    <td className="num">
-                      <input
-                        className="qty"
-                        type="number"
-                        min={1}
-                        max={l.sp.soLuongTon}
-                        value={Number.isNaN(l.soLuong) ? '' : l.soLuong}
-                        onChange={(e) => setQty(l.sp.maSanPham, e.target.valueAsNumber)}
-                        aria-label={`Số lượng ${l.sp.tenSanPham}`}
-                      />
-                    </td>
-                    <td className="num">{formatMoney(l.sp.gia * (l.soLuong || 0))}</td>
-                    <td>
-                      <button className="icon-btn" onClick={() => remove(l.sp.maSanPham)} aria-label={`Bỏ ${l.sp.tenSanPham}`}>
-                        ×
+                  <li key={l.sp.maSanPham}>
+                    <div className="line-top">
+                      <span className="line-name">{l.sp.tenSanPham}</span>
+                      <span className="line-total">{formatMoney(l.sp.gia * (l.soLuong || 0))}</span>
+                    </div>
+                    <div className="line-bottom">
+                      <span className="stepper">
+                        <button onClick={() => step(l, -1)} aria-label={`Bớt một ${l.sp.tenSanPham}`}>
+                          <Minus size={14} />
+                        </button>
+                        <input
+                          type="number"
+                          min={1}
+                          max={l.sp.soLuongTon}
+                          value={Number.isNaN(l.soLuong) ? '' : l.soLuong}
+                          onChange={(e) => setQty(l.sp.maSanPham, e.target.valueAsNumber)}
+                          aria-label={`Số lượng ${l.sp.tenSanPham}`}
+                        />
+                        <button
+                          onClick={() => step(l, 1)}
+                          disabled={l.soLuong >= l.sp.soLuongTon}
+                          aria-label={`Thêm một ${l.sp.tenSanPham}`}
+                        >
+                          <Plus size={14} />
+                        </button>
+                      </span>
+                      <span>
+                        × {formatMoney(l.sp.gia)}
+                        {l.soLuong > l.sp.soLuongTon && <span className="text-danger block">Chỉ còn {l.sp.soLuongTon}</span>}
+                      </span>
+                      <button className="icon-btn danger" onClick={() => remove(l.sp.maSanPham)} aria-label={`Bỏ ${l.sp.tenSanPham}`}>
+                        <Trash2 size={16} />
                       </button>
-                    </td>
-                  </tr>
+                    </div>
+                  </li>
                 ))}
-              </tbody>
-            </table>
-          )}
+              </ul>
+            )}
 
-          <label className="field">
-            <span>Khách hàng</span>
-            <select value={maKH} onChange={(e) => setMaKH(e.target.value)}>
-              <option value="">Khách lẻ</option>
-              {(customers.data ?? []).map((k) => (
-                <option key={k.maKhachHang} value={k.maKhachHang}>
-                  {k.maKhachHang} – {k.hoTen}
-                  {k.soDienThoai ? ` (${k.soDienThoai})` : ''}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="field">
-            <span>Khuyến mãi</span>
-            <select value={maKM} onChange={(e) => setMaKM(e.target.value)}>
-              <option value="">Không áp dụng</option>
-              {(promos.data ?? []).map((k) => (
-                <option key={k.maKhuyenMai} value={k.maKhuyenMai}>
-                  {k.maKhuyenMai} – {k.tenKhuyenMai} (giảm {k.phanTramGiam}%{k.dieuKien ? `, đơn ${k.dieuKien}` : ''})
-                </option>
-              ))}
-            </select>
-            {promos.data && promos.data.length === 0 && <em className="field-hint">Hôm nay không có khuyến mãi nào.</em>}
-          </label>
-
-          <div className="totals">
-            <div>
-              <span>Tổng tiền</span>
-              <strong>{formatMoney(preview?.tongTien ?? localTotal)}</strong>
+            <div className="receipt-fields">
+              <label className="field">
+                <span>Khách hàng</span>
+                <select value={maKH} onChange={(e) => setMaKH(e.target.value)}>
+                  <option value="">Khách lẻ</option>
+                  {(customers.data ?? []).map((k) => (
+                    <option key={k.maKhachHang} value={k.maKhachHang}>
+                      {k.hoTen}
+                      {k.soDienThoai ? ` (${k.soDienThoai})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>Khuyến mãi</span>
+                <select value={maKM} onChange={(e) => setMaKM(e.target.value)}>
+                  <option value="">Không áp dụng</option>
+                  {(promos.data ?? []).map((k) => (
+                    <option key={k.maKhuyenMai} value={k.maKhuyenMai}>
+                      {k.tenKhuyenMai}: giảm {k.phanTramGiam}%{k.dieuKien ? `, đơn ${k.dieuKien.replace('>=', 'từ ')}` : ''}
+                    </option>
+                  ))}
+                </select>
+                {promos.data && promos.data.length === 0 && <em className="field-hint">Hôm nay không có khuyến mãi nào.</em>}
+              </label>
             </div>
-            <div>
-              <span>Giảm giá{preview?.phanTramGiam ? ` (${preview.phanTramGiam}%)` : ''}</span>
-              <strong>{formatMoney(preview?.tienGiam ?? 0)}</strong>
-            </div>
-            <div className="grand">
-              <span>Khách trả</span>
-              <strong>{formatMoney(preview?.thanhTien ?? localTotal)}</strong>
-            </div>
-          </div>
 
-          {previewError && (
-            <div className="alert alert-error" role="alert">
-              {previewError}
+            <div className="totals">
+              <div>
+                <span>Tổng tiền hàng</span>
+                <span>{formatMoney(preview?.tongTien ?? localTotal)}</span>
+              </div>
+              <div>
+                <span>Giảm giá{preview?.phanTramGiam ? ` ${preview.phanTramGiam}%` : ''}</span>
+                <span>{(preview?.tienGiam ?? 0) > 0 ? `−${formatMoney(preview?.tienGiam)}` : formatMoney(0)}</span>
+              </div>
+              <div className="grand">
+                <span>Khách trả</span>
+                <strong>{formatMoney(preview?.thanhTien ?? localTotal)}</strong>
+              </div>
             </div>
-          )}
 
-          <div className="pos-actions">
-            <button className="btn" onClick={reset} disabled={cart.length === 0 || saving}>
-              Hủy
-            </button>
-            <button className="btn btn-primary" onClick={submit} disabled={!canSubmit}>
-              {saving ? 'Đang lưu…' : previewing ? 'Đang tính…' : 'Lập hóa đơn'}
-            </button>
-          </div>
-        </section>
+            {previewError && (
+              <div className="alert alert-error" role="alert">
+                <AlertCircle size={16} aria-hidden="true" />
+                <span>{previewError}</span>
+              </div>
+            )}
+
+            <div className="receipt-actions">
+              <button className="btn" onClick={reset} disabled={cart.length === 0 || saving}>
+                Hủy
+              </button>
+              <button className="btn btn-primary" onClick={submit} disabled={!canSubmit}>
+                {saving ? 'Đang lưu…' : previewing ? 'Đang tính…' : 'Lập hóa đơn'}
+              </button>
+            </div>
+          </section>
+        </div>
       </div>
 
       {done && (
         <Modal
           title={`Đã lập hóa đơn ${done.hoaDon.maHoaDon}`}
           onClose={() => setDone(null)}
+          className="receipt-modal"
           footer={
             <>
               <Link className="btn" to="/hoa-don">
@@ -294,59 +388,46 @@ export default function BanHangPage() {
 export function HoaDonView({ hd }: { hd: HoaDonChiTiet }) {
   const h = hd.hoaDon;
   return (
-    <div className="invoice">
+    <div className="receipt">
+      <div className="receipt-head">
+        <h2>Hóa đơn {h.maHoaDon}</h2>
+        <p>{formatDate(h.thoiGian)}</p>
+      </div>
       <dl className="meta">
-        <div>
-          <dt>Ngày</dt>
-          <dd>{formatDate(h.thoiGian)}</dd>
-        </div>
-        <div>
-          <dt>Khách hàng</dt>
-          <dd>{h.maKhachHang ? `${h.tenKhachHang} (${h.maKhachHang})` : 'Khách lẻ'}</dd>
-        </div>
-        <div>
-          <dt>Nhân viên</dt>
-          <dd>
-            {h.tenNhanVien} ({h.maNhanVien})
-          </dd>
-        </div>
-        <div>
-          <dt>Khuyến mãi</dt>
-          <dd>{h.maKhuyenMai ?? '—'}</dd>
-        </div>
+        <dt>Khách hàng</dt>
+        <dd>{h.maKhachHang ? h.tenKhachHang || h.maKhachHang : 'Khách lẻ'}</dd>
+        <dt>Thu ngân</dt>
+        <dd>{h.tenNhanVien || h.maNhanVien}</dd>
+        {h.maKhuyenMai && (
+          <>
+            <dt>Khuyến mãi</dt>
+            <dd>{h.maKhuyenMai}</dd>
+          </>
+        )}
       </dl>
-      <table className="table table-compact">
-        <thead>
-          <tr>
-            <th>Sản phẩm</th>
-            <th className="num">SL</th>
-            <th className="num">Đơn giá</th>
-            <th className="num">Thành tiền</th>
-          </tr>
-        </thead>
-        <tbody>
-          {hd.items.map((i) => (
-            <tr key={i.maSanPham}>
-              <td>
-                {i.tenSanPham} <small className="muted">{i.maSanPham}</small>
-              </td>
-              <td className="num">
-                {i.soLuong} {i.donViTinh ?? ''}
-              </td>
-              <td className="num">{formatMoney(i.donGia)}</td>
-              <td className="num">{formatMoney(i.thanhTien)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <ul className="receipt-lines">
+        {hd.items.map((i) => (
+          <li key={i.maSanPham}>
+            <div className="line-top">
+              <span className="line-name">{i.tenSanPham}</span>
+              <span className="line-total">{formatMoney(i.thanhTien)}</span>
+            </div>
+            <div className="line-bottom">
+              <span>
+                {i.soLuong} {i.donViTinh ?? ''} × {formatMoney(i.donGia)}
+              </span>
+            </div>
+          </li>
+        ))}
+      </ul>
       <div className="totals">
         <div>
-          <span>Tổng tiền</span>
-          <strong>{formatMoney(h.tongTien)}</strong>
+          <span>Tổng tiền hàng</span>
+          <span>{formatMoney(h.tongTien)}</span>
         </div>
         <div>
           <span>Giảm giá</span>
-          <strong>{formatMoney(h.tienGiam)}</strong>
+          <span>{h.tienGiam > 0 ? `−${formatMoney(h.tienGiam)}` : formatMoney(0)}</span>
         </div>
         <div className="grand">
           <span>Thành tiền</span>

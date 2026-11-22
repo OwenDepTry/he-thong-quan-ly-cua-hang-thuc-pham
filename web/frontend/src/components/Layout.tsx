@@ -1,12 +1,14 @@
+import { BarChart3, LogOut, Moon, Package, ReceiptText, ShoppingBasket, Store, Sun } from 'lucide-react';
 import { NavLink, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
+import { useTheme } from '../lib/theme';
 import { Loading } from './ui';
 
 const MENU = [
-  { to: '/', label: 'Tổng quan', icon: '◎', end: true },
-  { to: '/ban-hang', label: 'Lập hóa đơn', icon: '＋' },
-  { to: '/hoa-don', label: 'Hóa đơn', icon: '≡' },
-  { to: '/san-pham', label: 'Sản phẩm', icon: '▦' },
+  { to: '/', label: 'Tổng quan', icon: BarChart3, end: true },
+  { to: '/ban-hang', label: 'Bán hàng', icon: ShoppingBasket },
+  { to: '/hoa-don', label: 'Hóa đơn', icon: ReceiptText },
+  { to: '/san-pham', label: 'Sản phẩm', icon: Package },
 ];
 
 export function RequireAuth() {
@@ -17,46 +19,66 @@ export function RequireAuth() {
   return <Outlet />;
 }
 
+export function initials(name: string | undefined): string {
+  return (name || '?').trim().split(/\s+/).pop()?.[0]?.toUpperCase() ?? '?';
+}
+
 export function Layout() {
   const { user, isQuanLy, logout } = useAuth();
+  const { theme, toggle } = useTheme();
+  const name = user?.hoTen || user?.maNhanVien;
+
   return (
     <div className="app">
-      <aside className="sidebar">
-        <div className="brand">
+      <header className="topbar">
+        <NavLink to="/" className="brand" aria-label="Về trang tổng quan">
           <span className="brand-mark" aria-hidden="true">
-            🛒
+            <Store size={18} />
           </span>
-          <div>
+          <span>
             <strong>Cửa hàng thực phẩm</strong>
-            <small>Hệ thống quản lý</small>
-          </div>
-        </div>
-        <nav>
+            <small>Quản lý bán hàng</small>
+          </span>
+        </NavLink>
+
+        {/* Trên điện thoại, CSS chuyển menu này thành thanh tab ở đáy màn hình */}
+        <nav className="mainnav" aria-label="Điều hướng chính">
           {MENU.map((m) => (
-            <NavLink key={m.to} to={m.to} end={m.end} className={({ isActive }) => (isActive ? 'active' : '')}>
-              <span className="nav-icon" aria-hidden="true">
-                {m.icon}
-              </span>
-              {m.label}
+            <NavLink key={m.to} to={m.to} end={m.end} aria-label={m.label} title={m.label} className={({ isActive }) => (isActive ? "active" : "")}>
+              <m.icon size={17} aria-hidden="true" />
+              <span>{m.label}</span>
             </NavLink>
           ))}
         </nav>
-        <div className="sidebar-user">
-          <div className="avatar" aria-hidden="true">
-            {(user?.hoTen || user?.maNhanVien || '?').trim().split(/\s+/).pop()?.[0]?.toUpperCase()}
+
+        <div className="topbar-right">
+          <button
+            className="icon-btn"
+            onClick={toggle}
+            aria-label={theme === 'dark' ? 'Chuyển sang giao diện sáng' : 'Chuyển sang giao diện tối'}
+            title={theme === 'dark' ? 'Giao diện sáng' : 'Giao diện tối'}
+          >
+            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
+          <div className="userchip">
+            <div className="avatar" aria-hidden="true">
+              {initials(name)}
+            </div>
+            <div className="who">
+              <strong title={user?.hoTen}>{name}</strong>
+              <small>{isQuanLy ? 'Quản lý' : 'Nhân viên bán hàng'}</small>
+            </div>
           </div>
-          <div className="who">
-            <strong title={user?.hoTen}>{user?.hoTen || user?.maNhanVien}</strong>
-            <small>{isQuanLy ? 'Quản lý' : 'Nhân viên bán hàng'}</small>
-          </div>
-          <button className="btn btn-ghost btn-sm" onClick={logout}>
-            Đăng xuất
+          <button className="icon-btn" onClick={logout} aria-label="Đăng xuất" title="Đăng xuất">
+            <LogOut size={18} />
           </button>
         </div>
-      </aside>
+      </header>
+
       <main className="content">
         <Outlet />
       </main>
+
     </div>
   );
 }
