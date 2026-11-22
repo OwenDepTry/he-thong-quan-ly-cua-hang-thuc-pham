@@ -3,7 +3,8 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { App } from './App';
 import { tokenStore } from './lib/api';
-import type { Dashboard, SanPham } from './lib/types';
+import type { BaoCao, Dashboard, SanPham } from './lib/types';
+import { addDays, isoDate } from './lib/format';
 
 const dashboard: Dashboard = {
   ngay: '2026-11-20',
@@ -178,7 +179,7 @@ describe('App', () => {
     const qty = screen.getByLabelText('Số lượng Thịt bò');
     await userEvent.clear(qty);
     await userEvent.type(qty, '8');
-    await userEvent.selectOptions(screen.getByLabelText('Khách hàng'), 'KH001');
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Khách hàng' }), 'KH001');
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Lập hóa đơn' })).toBeEnabled());
     expect(screen.getByText('216.000 ₫')).toBeInTheDocument();
@@ -187,5 +188,85 @@ describe('App', () => {
     expect(await screen.findByText('Đã lập hóa đơn HD2001')).toBeInTheDocument();
     const post = calls.find((c) => c.key === 'POST /api/hoa-don')!;
     expect(post.body).toEqual({ maKhachHang: 'KH001', maKhuyenMai: 'KM004', items: [{ maSanPham: 'SP001', soLuong: 8 }] });
+  });
+
+  it('nhân viên không thấy Báo cáo, Nhân viên; gõ thẳng địa chỉ cũng bị đưa về tổng quan', async () => {
+    tokenStore.set('t-nv');
+    fakeBackend({
+      'GET /api/auth/me': () => [200, user('NV')],
+      'GET /api/dashboard': () => [200, { ...dashboard, doanhThuHomNay: null, doanhThuThangNay: null }],
+    });
+    renderAt('/bao-cao');
+    expect(await screen.findByText('Hóa đơn hôm nay')).toBeInTheDocument();
+    const nav = within(screen.getByRole('navigation', { name: 'Điều hướng chính' }));
+    expect(nav.getByRole('link', { name: 'Nhập hàng' })).toBeInTheDocument();
+    expect(nav.queryByRole('link', { name: 'Báo cáo' })).not.toBeInTheDocument();
+    expect(nav.queryByRole('link', { name: 'Nhân viên' })).not.toBeInTheDocument();
+  });
+
+  it('nhập hàng từ cảnh báo tồn kho: chọn sẵn sản phẩm, gợi ý hạn dùng, gửi đúng dữ liệu', async () => {
+    tokenStore.set('t-nv');
+    const today = isoDate(new Date());
+    const calls = fakeBackend({
+      'GET /api/auth/me': () => [200, user('NV')],
+      'GET /api/phieu-nhap': () => [200, { items: [], total: 0, page: 0, size: 20 }],
+      'GET /api/nha-cung-cap': () => [200, [{ maNhaCungCap: 'NCC01', ten: 'Vissan', tenLienHe: null, soDienThoai: null }]],
+      'GET /api/san-pham': () => [200, sanPham],
+      'POST /api/phieu-nhap': () => [
+        201,
+        {
+          phieuNhap: { maPhieuNhap: 'PN101', maNhaCungCap: 'NCC01', tenNhaCungCap: 'Vissan', maNhanVien: 'nhanvien', tenNhanVien: 'Người Nhân Viên', tongTien: 1_000_000, thoiGian: today, soMatHang: 1 },
+          items: [{ maSanPham: 'SP001', tenSanPham: 'Thịt bò', donViTinh: 'Kg', soLuong: 50, donGia: 20000, thanhTien: 1_000_000 }],
+          loHangMoi: [{ maHang: 'HH106', maSanPham: 'SP001', soLuong: 50, hanSuDung: addDays(today, 3) }],
+        },
+      ],
+    });
+    renderAt('/nhap-hang?sp=SP001');
+
+    const dialog = await screen.findByRole('dialog', { name: 'Lập phiếu nhập' });
+    const sp = await within(dialog).findByLabelText(/Sản phẩm dòng 1/);
+    expect(sp).toHaveValue('SP001');
+    // Thịt bò dùng được 3 ngày nên hạn gợi ý là hôm nay + 3
+    expect(within(dialog).getByLabelText(/Hạn sử dụng dòng 1/)).toHaveValue(addDays(today, 3));
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Lưu phiếu nhập' }));
+    expect(within(dialog).getByText('Số lượng lớn hơn 0')).toBeInTheDocument();
+
+    await userEvent.type(within(dialog).getByLabelText(/Số lượng dòng 1/), '50');
+    await userEvent.type(within(dialog).getByLabelText(/Giá nhập dòng 1/), '20.000');
+    expect(within(dialog).getByText('1.000.000 ₫')).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Lưu phiếu nhập' }));
+
+    expect(await screen.findByText(/Đã lập phiếu nhập PN101/)).toBeInTheDocument();
+    const post = calls.find((c) => c.key === 'POST /api/phieu-nhap')!;
+    expect(post.body).toEqual({
+      maNhaCungCap: 'NCC01',
+      items: [{ maSanPham: 'SP001', soLuong: 50, donGia: 20000, hanSuDung: addDays(today, 3) }],
+    });
+    expect(screen.getByText('Lô HH106, hạn ' + addDays(today, 3).split('-').reverse().join('/'))).toBeInTheDocument();
+  });
+
+  it('báo cáo so sánh với kỳ trước', async () => {
+    tokenStore.set('t-ql');
+    const tong = { doanhThu: 12_000_000, tienGiam: 300_000, soHoaDon: 40, giaTriTrungBinh: 300_000, tienNhap: 5_000_000, soPhieuNhap: 3 };
+    const report: BaoCao = {
+      tuNgay: '2026-10-25',
+      denNgay: '2026-11-23',
+      nhom: 'ngay',
+      tongHop: tong,
+      kyTruoc: { ...tong, doanhThu: 10_000_000, soHoaDon: 50 },
+      theoKy: [{ ky: '2026-11-23', doanhThu: 12_000_000, soHoaDon: 40 }],
+      sanPhamBanChay: [{ maSanPham: 'SP003', tenSanPham: 'Cá hồi', loai: 'Thịt và hải sản', donViTinh: 'Kg', soLuong: 20, doanhThu: 6_000_000 }],
+      theoNhanVien: [{ maNhanVien: 'NV01', hoTen: 'Nguyễn Thị Hoa', soHoaDon: 40, doanhThu: 12_000_000 }],
+    };
+    fakeBackend({
+      'GET /api/auth/me': () => [200, user('QL')],
+      'GET /api/bao-cao': () => [200, report],
+    });
+    renderAt('/bao-cao');
+    expect(await screen.findByText('Tăng 20% so với kỳ trước')).toBeInTheDocument();
+    expect(screen.getByText('Giảm 20% so với kỳ trước')).toBeInTheDocument();
+    expect(screen.getByText('Cá hồi')).toBeInTheDocument();
+    expect(screen.getByText('Nguyễn Thị Hoa')).toBeInTheDocument();
   });
 });

@@ -34,10 +34,126 @@ export interface LoaiSanPham {
   tenLoai: string;
 }
 
+export type TrangThai = 'active' | 'inactive';
+
 export interface KhachHang {
   maKhachHang: string;
+  ho: string | null;
+  tenLot: string | null;
+  ten: string;
   hoTen: string;
+  phai: string | null;
+  ngaySinh: string | null;
   soDienThoai: string | null;
+  tinh: string | null;
+  ngayThamGia: string | null;
+  diem: number;
+  trangThai: TrangThai;
+  soHoaDon: number;
+  tongChiTieu: number;
+  lanMuaCuoi: string | null;
+}
+
+export interface KhachHangInput {
+  maKhachHang?: string | null;
+  ho: string | null;
+  tenLot: string | null;
+  ten: string;
+  phai: string | null;
+  ngaySinh: string | null;
+  soDienThoai: string;
+  tinh: string | null;
+  trangThai: TrangThai;
+}
+
+export interface NhanVien {
+  maNhanVien: string;
+  ho: string | null;
+  tenLot: string | null;
+  ten: string;
+  hoTen: string;
+  phai: string | null;
+  ngaySinh: string | null;
+  soDienThoai: string | null;
+  tinh: string | null;
+  diaChi: string | null;
+  luong: number;
+  chucVu: Role;
+  trangThai: TrangThai;
+  hoaDonThangNay: number;
+  doanhThuThangNay: number;
+}
+
+export interface NhanVienInput {
+  maNhanVien?: string | null;
+  ho: string | null;
+  tenLot: string | null;
+  ten: string;
+  phai: string | null;
+  ngaySinh: string | null;
+  soDienThoai: string | null;
+  tinh: string | null;
+  diaChi: string | null;
+  luong: number | null;
+  chucVu: Role;
+  trangThai: TrangThai;
+  matKhau: string | null;
+}
+
+export interface NhaCungCap {
+  maNhaCungCap: string;
+  ten: string;
+  tenLienHe: string | null;
+  soDienThoai: string | null;
+}
+
+export interface PhieuNhapTomTat {
+  maPhieuNhap: string;
+  maNhaCungCap: string | null;
+  tenNhaCungCap: string | null;
+  maNhanVien: string;
+  tenNhanVien: string;
+  tongTien: number;
+  thoiGian: string | null;
+  soMatHang: number;
+}
+
+export interface PhieuNhapChiTiet {
+  phieuNhap: PhieuNhapTomTat;
+  items: ChiTiet[];
+  loHangMoi: { maHang: string; maSanPham: string; soLuong: number; hanSuDung: string }[];
+}
+
+export interface TaoPhieuNhapRequest {
+  maNhaCungCap: string;
+  items: { maSanPham: string; soLuong: number; donGia: number; hanSuDung: string | null }[];
+}
+
+export interface TongHop {
+  doanhThu: number;
+  tienGiam: number;
+  soHoaDon: number;
+  giaTriTrungBinh: number;
+  tienNhap: number;
+  soPhieuNhap: number;
+}
+
+export interface BaoCao {
+  tuNgay: string;
+  denNgay: string;
+  nhom: 'ngay' | 'thang';
+  tongHop: TongHop;
+  kyTruoc: TongHop;
+  theoKy: { ky: string; doanhThu: number; soHoaDon: number }[];
+  sanPhamBanChay: {
+    maSanPham: string;
+    tenSanPham: string;
+    loai: string | null;
+    donViTinh: string | null;
+    soLuong: number;
+    doanhThu: number;
+  }[];
+  theoNhanVien: { maNhanVien: string; hoTen: string; soHoaDon: number; doanhThu: number }[];
 }
 
 export interface KhuyenMai {

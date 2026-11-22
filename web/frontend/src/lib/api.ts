@@ -1,5 +1,13 @@
 import type {
+  BaoCao,
   Dashboard,
+  KhachHangInput,
+  NhaCungCap,
+  NhanVien,
+  NhanVienInput,
+  PhieuNhapChiTiet,
+  PhieuNhapTomTat,
+  TaoPhieuNhapRequest,
   HoaDonChiTiet,
   HoaDonTomTat,
   KhachHang,
@@ -124,7 +132,26 @@ export const api = {
     request<SanPham>('PUT', `/api/san-pham/${encodeURIComponent(ma)}`, sp),
   xoaSanPham: (ma: string) => request<void>('DELETE', `/api/san-pham/${encodeURIComponent(ma)}`),
 
-  khachHang: (q?: string) => request<KhachHang[]>('GET', `/api/khach-hang${qs({ q })}`),
+  khachHang: (q?: string, opts: { tatCa?: boolean; limit?: number } = {}) =>
+    request<KhachHang[]>('GET', `/api/khach-hang${qs({ q, tatCa: opts.tatCa ? 'true' : undefined, limit: opts.limit })}`),
+  themKhachHang: (kh: KhachHangInput) => request<KhachHang>('POST', '/api/khach-hang', kh),
+  suaKhachHang: (ma: string, kh: KhachHangInput) =>
+    request<KhachHang>('PUT', `/api/khach-hang/${encodeURIComponent(ma)}`, kh),
+  xoaKhachHang: (ma: string) => request<void>('DELETE', `/api/khach-hang/${encodeURIComponent(ma)}`),
+
+  nhanVien: () => request<NhanVien[]>('GET', '/api/nhan-vien'),
+  themNhanVien: (nv: NhanVienInput) => request<NhanVien>('POST', '/api/nhan-vien', nv),
+  suaNhanVien: (ma: string, nv: NhanVienInput) =>
+    request<NhanVien>('PUT', `/api/nhan-vien/${encodeURIComponent(ma)}`, nv),
+
+  nhaCungCap: () => request<NhaCungCap[]>('GET', '/api/nha-cung-cap'),
+  phieuNhap: (p: { q?: string; tuNgay?: string; denNgay?: string; page?: number; size?: number }) =>
+    request<Trang<PhieuNhapTomTat>>('GET', `/api/phieu-nhap${qs(p)}`),
+  chiTietPhieuNhap: (ma: string) => request<PhieuNhapChiTiet>('GET', `/api/phieu-nhap/${encodeURIComponent(ma)}`),
+  taoPhieuNhap: (req: TaoPhieuNhapRequest) => request<PhieuNhapChiTiet>('POST', '/api/phieu-nhap', req),
+
+  baoCao: (p: { tuNgay?: string; denNgay?: string; nhom?: 'ngay' | 'thang'; top?: number }) =>
+    request<BaoCao>('GET', `/api/bao-cao${qs(p)}`),
   khuyenMaiHieuLuc: () => request<KhuyenMai[]>('GET', '/api/khuyen-mai/hieu-luc'),
 
   hoaDon: (p: { q?: string; tuNgay?: string; denNgay?: string; page?: number; size?: number }) =>

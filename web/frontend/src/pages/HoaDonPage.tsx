@@ -6,6 +6,7 @@ import { formatDate, formatMoney, formatNumber } from '../lib/format';
 import type { HoaDonChiTiet } from '../lib/types';
 import { Empty, ErrorState, Loading, Modal, useLoad, useToast } from '../components/ui';
 import { HoaDonView } from './BanHangPage';
+import { PrintButton } from '../components/form';
 
 const PAGE_SIZE = 20;
 
@@ -134,7 +135,19 @@ export default function HoaDonPage() {
       )}
 
       {detail && (
-        <Modal title="Chi tiết hóa đơn" onClose={() => setDetail(null)} className="receipt-modal">
+        <Modal
+          title="Chi tiết hóa đơn"
+          onClose={() => setDetail(null)}
+          className="receipt-modal"
+          footer={
+            <>
+              <button className="btn" onClick={() => setDetail(null)}>
+                Đóng
+              </button>
+              <PrintButton label="In hóa đơn" />
+            </>
+          }
+        >
           <HoaDonView hd={detail} />
         </Modal>
       )}

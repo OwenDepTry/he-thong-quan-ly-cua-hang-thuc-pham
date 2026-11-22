@@ -2,7 +2,7 @@ import { CalendarClock, CheckCircle2, PackageX, ShoppingBasket } from 'lucide-re
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
-import { formatDate, formatMoney, formatNumber } from '../lib/format';
+import { addDays, formatDate, formatMoney, formatNumber } from '../lib/format';
 import type { Dashboard } from '../lib/types';
 import { ErrorState, Loading, useLoad } from '../components/ui';
 import { RevenueChart, type DayRevenue } from '../components/RevenueChart';
@@ -33,7 +33,7 @@ export default function DashboardPage() {
       {data && (
         <div className="overview">
           <SalesPanel data={data} isQuanLy={isQuanLy} />
-          <TodoPanel data={data} isQuanLy={isQuanLy} />
+          <TodoPanel data={data} />
         </div>
       )}
     </div>
@@ -90,10 +90,7 @@ function SalesPanel({ data, isQuanLy }: { data: Dashboard; isQuanLy: boolean }) 
   );
 }
 
-/**
- * Doanh thu 14 ngày: tổng hợp từ API danh sách hóa đơn (mỗi lần tối đa 200 hóa đơn).
- * Đủ cho cửa hàng nhỏ; khi dữ liệu lớn nên thêm endpoint thống kê theo ngày ở backend.
- */
+/** Doanh thu 14 ngày, lấy từ API báo cáo (đã cộng sẵn theo ngày ở database). */
 function SalesChart({ endDate }: { endDate: string }) {
   const { data, error } = useLoad(() => loadDays(endDate), [endDate]);
   if (error) return null; // biểu đồ là phần phụ: lỗi thì ẩn, không làm hỏng trang
@@ -112,32 +109,13 @@ function SalesChart({ endDate }: { endDate: string }) {
 }
 
 async function loadDays(endDate: string): Promise<DayRevenue[]> {
-  const end = new Date(`${endDate}T00:00:00`);
-  const days: DayRevenue[] = [];
-  for (let i = CHART_DAYS - 1; i >= 0; i--) {
-    const d = new Date(end);
-    d.setDate(end.getDate() - i);
-    days.push({ ngay: iso(d), doanhThu: 0, soHoaDon: 0 });
-  }
-  const byDay = new Map(days.map((d) => [d.ngay, d]));
-  const size = 200;
-  for (let page = 0; page < 10; page++) {
-    const res = await api.hoaDon({ tuNgay: days[0].ngay, denNgay: endDate, page, size });
-    for (const h of res.items) {
-      const day = h.thoiGian ? byDay.get(h.thoiGian.slice(0, 10)) : undefined;
-      if (day) {
-        day.doanhThu += h.thanhTien;
-        day.soHoaDon += 1;
-      }
-    }
-    if ((page + 1) * size >= res.total) break;
-  }
-  return days;
+  const r = await api.baoCao({ tuNgay: addDays(endDate, -(CHART_DAYS - 1)), denNgay: endDate, nhom: 'ngay', top: 1 });
+  return r.theoKy.map((d) => ({ ngay: d.ky, doanhThu: d.doanhThu, soHoaDon: d.soHoaDon }));
 }
 
-type TodoItem = { key: string; kind: 'stock' | 'expiry'; title: string; detail: string; badge: string; danger: boolean; order: number };
+type TodoItem = { key: string; kind: 'stock' | 'expiry'; title: string; detail: string; badge: string; danger: boolean; order: number; href?: string };
 
-function TodoPanel({ data, isQuanLy }: { data: Dashboard; isQuanLy: boolean }) {
+function TodoPanel({ data }: { data: Dashboard }) {
   // Gộp hàng sắp hết và lô sắp hết hạn thành một danh sách việc cần làm, nặng nhất lên đầu
   const items: TodoItem[] = [
     ...data.sapHetHang.map((s) => ({
@@ -148,6 +126,7 @@ function TodoPanel({ data, isQuanLy }: { data: Dashboard; isQuanLy: boolean }) {
       badge: s.soLuongTon <= 0 ? 'Hết hàng' : `Còn ${s.soLuongTon} ${s.donViTinh ?? ''}`.trim(),
       danger: s.soLuongTon <= 0,
       order: s.soLuongTon <= 0 ? 0 : 2,
+      href: `/nhap-hang?sp=${encodeURIComponent(s.maSanPham)}`,
     })),
     ...data.sapHetHan.map((h) => ({
       key: `h-${h.maHang}`,
@@ -181,7 +160,13 @@ function TodoPanel({ data, isQuanLy }: { data: Dashboard; isQuanLy: boolean }) {
                 {it.kind === 'stock' ? <PackageX size={17} /> : <CalendarClock size={17} />}
               </span>
               <div>
-                <strong>{it.title}</strong>
+                {it.href ? (
+                  <Link to={it.href} className="todo-link" title="Lập phiếu nhập cho sản phẩm này">
+                    <strong>{it.title}</strong>
+                  </Link>
+                ) : (
+                  <strong>{it.title}</strong>
+                )}
                 <small>{it.detail}</small>
               </div>
               <span className={`pill ${it.danger ? 'pill-danger' : 'pill-warn'}`}>{it.badge}</span>
@@ -189,16 +174,14 @@ function TodoPanel({ data, isQuanLy }: { data: Dashboard; isQuanLy: boolean }) {
           ))}
         </ul>
       )}
-      {(hidden > 0 || isQuanLy) && (
+      {
         <div className="todo-foot">
           <span>{hidden > 0 ? `Còn ${hidden} việc khác` : `Tồn kho dưới ${data.nguongSapHetHang} và hạn trong ${data.soNgayCanhBaoHetHan} ngày`}</span>
-          {isQuanLy && (
-            <Link to="/san-pham" className="link">
-              Xem kho hàng
-            </Link>
-          )}
+          <Link to="/nhap-hang" className="link">
+            Nhập hàng
+          </Link>
         </div>
-      )}
+      }
     </section>
   );
 }
@@ -212,9 +195,4 @@ function longDate(isoDate: string): string {
   const d = new Date(`${isoDate}T00:00:00`);
   const thu = ['Chủ nhật', 'Thứ hai', 'Thứ ba', 'Thứ tư', 'Thứ năm', 'Thứ sáu', 'Thứ bảy'][d.getDay()];
   return `${thu}, ${formatDate(isoDate)}`;
-}
-
-function iso(d: Date): string {
-  const p = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }

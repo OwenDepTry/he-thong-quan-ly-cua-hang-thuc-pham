@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { AlertCircle, Minus, Plus, Search, ShoppingBasket, Trash2 } from 'lucide-react';
 import { ApiError, api } from '../lib/api';
+import { PrintButton } from '../components/form';
 import { useAuth } from '../lib/auth';
 import { categoryOf } from '../lib/category';
 import { formatDate, formatMoney, normalize } from '../lib/format';
@@ -369,9 +369,7 @@ export default function BanHangPage() {
           className="receipt-modal"
           footer={
             <>
-              <Link className="btn" to="/hoa-don">
-                Xem danh sách hóa đơn
-              </Link>
+              <PrintButton label="In hóa đơn" />
               <button className="btn btn-primary" onClick={() => setDone(null)} autoFocus>
                 Lập hóa đơn mới
               </button>
@@ -388,7 +386,8 @@ export default function BanHangPage() {
 export function HoaDonView({ hd }: { hd: HoaDonChiTiet }) {
   const h = hd.hoaDon;
   return (
-    <div className="receipt">
+    <div className="receipt print-area">
+      <p className="receipt-store">Cửa hàng thực phẩm</p>
       <div className="receipt-head">
         <h2>Hóa đơn {h.maHoaDon}</h2>
         <p>{formatDate(h.thoiGian)}</p>

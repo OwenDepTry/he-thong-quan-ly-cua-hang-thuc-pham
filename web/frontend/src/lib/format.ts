@@ -49,3 +49,20 @@ export function parseMoneyInput(text: string): number | null {
   const n = Number(cleaned);
   return Number.isFinite(n) ? n : null;
 }
+
+/** Ngày theo giờ máy, dạng "yyyy-MM-dd" (không dùng toISOString vì sẽ lệch sang UTC). */
+export function isoDate(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+export function addDays(iso: string, days: number): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  return isoDate(new Date(y, m - 1, d + days));
+}
+
+/** Phần trăm thay đổi so với kỳ trước; null khi kỳ trước bằng 0. */
+export function percentChange(now: number, before: number): number | null {
+  if (!before) return null;
+  return ((now - before) / before) * 100;
+}
