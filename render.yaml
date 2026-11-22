@@ -1,0 +1,44 @@
+# Render Blueprint: backend Spring Boot (Docker) + frontend React (static site), gói Free.
+# Database dùng Neon (miễn phí) – xem web/DEPLOY.md. Các biến "sync: false" sẽ được Render hỏi khi tạo.
+# Lưu ý: dockerfilePath, dockerContext, staticPublishPath tính từ GỐC repo.
+services:
+  - type: web
+    name: qlcuahang-backend
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./web/backend/Dockerfile
+    dockerContext: ./web/backend
+    healthCheckPath: /actuator/health
+    buildFilter:
+      paths:
+        - web/backend/**
+    envVars:
+      - key: DB_URL          # jdbc:postgresql://<host-neon>/<db>?sslmode=require
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true  # chuỗi ngẫu nhiên 256-bit
+      - key: CORS_ORIGINS    # URL của frontend, VD https://qlcuahang-frontend.onrender.com
+        sync: false
+
+  - type: web
+    name: qlcuahang-frontend
+    runtime: static
+    buildCommand: cd web/frontend && npm ci && npm run build
+    staticPublishPath: ./web/frontend/dist
+    buildFilter:
+      paths:
+        - web/frontend/**
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL    # URL của backend, VD https://qlcuahang-backend.onrender.com
+        sync: false
+      - key: NODE_VERSION    # Vite 8 cần Node >= 20.19
+        value: "22"

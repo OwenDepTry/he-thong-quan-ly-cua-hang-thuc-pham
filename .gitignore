@@ -9,3 +9,11 @@ build/
 
 # File đóng gói (tạo bằng build.bat / build.sh)
 dist/
+
+# Bản web
+web/backend/target/
+web/frontend/node_modules/
+web/frontend/dist/
+
+# File patch / zip tải về để áp thay đổi
+*.patch

@@ -62,7 +62,9 @@
 * PostgreSQL 16 chạy bằng Docker · JDBC
 * iText 5 (xuất PDF)
 
-Các thư viện `.jar` đã có sẵn trong thư mục `lib/`, không cần tải thêm.
+Các thư viện `.jar` đã có sẵn trong thư mục `lib/`, không cần tải thêm. Mật khẩu được mã hóa BCrypt bằng jBCrypt (mã nguồn nhúng sẵn ở `src/org/mindrot/jbcrypt`, giấy phép ISC).
+
+**Bản web** (thư mục [`web/`](web/README.md)): Spring Boot 3 + React, dùng chung database với app desktop. Chạy thử: `docker compose --profile web up -d --build` rồi mở <http://localhost:8081>. Deploy miễn phí: [web/DEPLOY.md](web/DEPLOY.md).
 
 ---
 
@@ -99,6 +101,8 @@ trải đều **12 tháng gần nhất tính tới hôm nay**, kèm vài sản p
 | Nhân viên mẫu | NV01, NV02, NV03 | 123 |
 | Quản lý mẫu | NV04 | 123 |
 
+Mật khẩu lưu trong database dạng **BCrypt** (`$2a$10$…`), không còn lưu chữ thường. Database cũ chưa mã hóa vẫn đăng nhập bình thường; mật khẩu sẽ được mã hóa ngay sau lần đăng nhập đúng đầu tiên, hoặc chạy `sql/zzz_ma_hoa_mat_khau.sql` để mã hóa tất cả một lần.
+
 ---
 
 ## 🛠️ Chạy từ VS Code / IDE (dành cho lập trình)
@@ -126,6 +130,7 @@ Muốn đổi thì chép `db.properties.example` thành `db.properties` rồi s�
 | Xem trạng thái (phải là `healthy`) | `docker compose ps` |
 | Tắt database | `docker compose stop` |
 | Xóa sạch dữ liệu, nạp lại dữ liệu mẫu | `docker compose down -v` rồi `docker compose up -d` |
+| Bật cả bản web (database + backend + frontend) | `docker compose --profile web up -d --build` |
 
 ---
 
@@ -140,10 +145,14 @@ Muốn đổi thì chép `db.properties.example` thành `db.properties` rồi s�
  ┃ ┣ 📂 images      ảnh dùng trong giao diện
  ┃ ┗ 📂 main        Main.java – điểm khởi động
  ┣ 📂 ui            giao diện Swing (màn hình, hộp thoại, thành phần dùng chung)
- ┣ 📂 sql           script tạo CSDL + dữ liệu mẫu zz_du_lieu_mau.sql (Docker tự nạp lần đầu)
+ ┃ ┗ 📂 org/mindrot/jbcrypt  BCrypt (mã hóa mật khẩu)
+ ┣ 📂 sql           script tạo CSDL, dữ liệu mẫu, mã hóa mật khẩu (Docker tự nạp lần đầu, theo thứ tự tên)
+ ┣ 📂 web           bản web: backend Spring Boot + frontend React (xem web/README.md)
+ ┣ 📂 .github       GitHub Actions (test backend, frontend, desktop)
  ┣ 📂 lib           thư viện .jar (FlatLaf, PostgreSQL JDBC, iText)
  ┣ 📂 docs          ảnh chụp màn hình
- ┣ 📄 docker-compose.yml
+ ┣ 📄 docker-compose.yml     database (mặc định) + bản web (--profile web)
+ ┣ 📄 render.yaml            cấu hình deploy Render
  ┣ 📄 chay.bat / chay.sh     chạy ứng dụng bằng 1 lần bấm
  ┣ 📄 nap-du-lieu-mau.bat    nạp dữ liệu mẫu vào database đang có
  ┗ 📄 build.bat / build.sh   đóng gói thành dist/QuanLyCuaHang.jar
@@ -175,7 +184,7 @@ Khi không kết nối được CSDL, hộp thông báo trong app sẽ ghi rõ n
 
 ## 🎯 Định hướng phát triển
 
-* Xây dựng phiên bản web
+* ~~Xây dựng phiên bản web~~ → đã có bản đầu ở `web/`
 * Phân quyền chi tiết hơn
 * Tích hợp thanh toán online
 * Quét mã vạch khi bán hàng
