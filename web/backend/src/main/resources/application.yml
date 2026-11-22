@@ -18,6 +18,11 @@ spring:
       maximum-pool-size: ${DB_POOL_SIZE:5}
       # "Hôm nay" / "tháng này" tính theo giờ Việt Nam, kể cả khi DB đặt ở UTC (Neon)
       connection-init-sql: SET TIME ZONE 'Asia/Ho_Chi_Minh'
+  servlet:
+    multipart:
+      # Ảnh sản phẩm (frontend đã thu nhỏ trước khi gửi); kiểm tra 2 MB ở controller
+      max-file-size: 3MB
+      max-request-size: 3MB
   jackson:
     time-zone: Asia/Ho_Chi_Minh
     serialization:

@@ -82,6 +82,7 @@ jobs:
           for f in sql/*.sql; do $PSQL -f "$f"; done
           $PSQL -f sql/zz_du_lieu_mau.sql
           $PSQL -f sql/zzz_ma_hoa_mat_khau.sql
+          $PSQL -f sql/zzzz_anh_san_pham.sql
           left=$(psql -h 127.0.0.1 -p 55432 -U postgres -d qlcuahangthucpham -Atc \
             "SELECT COUNT(*) FROM NhanVien WHERE MatKhau !~ '^\\\$2[aby]\\\$'")
           echo "Mật khẩu chưa mã hóa: $left"

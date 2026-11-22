@@ -55,6 +55,8 @@ public class SecurityConfig {
                 // Tài liệu API (tắt bằng SWAGGER_ENABLED=false); gọi thử vẫn cần token
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .requestMatchers("/api/bao-cao/**", "/api/bao-cao", "/api/nhan-vien/**", "/api/nhan-vien").hasRole("QL")
+                // Ảnh sản phẩm: thẻ <img> không gửi được token nên cho xem công khai
+                .requestMatchers(HttpMethod.GET, "/api/san-pham/*/hinh-anh").permitAll()
                 // Sản phẩm: ai đăng nhập cũng xem được (để bán hàng), chỉ quản lý được thêm/sửa/xóa
                 .requestMatchers(HttpMethod.GET, "/api/san-pham/**", "/api/loai-san-pham").authenticated()
                 .requestMatchers("/api/san-pham/**").hasRole("QL")

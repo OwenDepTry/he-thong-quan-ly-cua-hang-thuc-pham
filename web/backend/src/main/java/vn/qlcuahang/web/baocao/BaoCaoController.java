@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import vn.qlcuahang.web.common.ApiException;
 import vn.qlcuahang.web.config.AppProperties;
+import vn.qlcuahang.web.sanpham.SanPhamRepository;
 
 /**
  * Báo cáo doanh thu cho quản lý: tổng hợp kỳ này so với kỳ trước, doanh thu theo ngày/tháng,
@@ -29,8 +30,13 @@ public class BaoCaoController {
     /** Khoảng thời gian dài nhất cho một báo cáo. */
     static final int MAX_DAYS = 3 * 366;
 
+    /**
+     * giaVon: số lượng bán × giá nhập bình quân của sản phẩm (mọi phiếu nhập). Sản phẩm chưa từng nhập
+     * thì coi giá vốn bằng giá bán (không tính lãi) để không thổi phồng lợi nhuận.
+     * loiNhuanGop = doanhThu (sau giảm giá) − giaVon.
+     */
     public record TongHop(double doanhThu, double tienGiam, int soHoaDon, double giaTriTrungBinh,
-                          double tienNhap, int soPhieuNhap) {
+                          double tienNhap, int soPhieuNhap, double giaVon, double loiNhuanGop) {
     }
 
     /** {@code ky} là ngày (nhom=ngay) hoặc ngày đầu tháng (nhom=thang). */
@@ -38,7 +44,17 @@ public class BaoCaoController {
     }
 
     public record SanPhamBanChay(String maSanPham, String tenSanPham, String loai, String donViTinh,
-                                 long soLuong, double doanhThu) {
+                                 long soLuong, double doanhThu, String hinhAnh) {
+    }
+
+    public record NhomHang(String loai, long soLuong, double doanhThu) {
+    }
+
+    /** thu: 1 = thứ Hai … 7 = Chủ nhật; soNgay = số ngày thứ đó có trong khoảng (để tính trung bình). */
+    public record TheoThu(int thu, double doanhThu, int soHoaDon, int soNgay) {
+    }
+
+    public record KhachHangThanThiet(String maKhachHang, String hoTen, int soHoaDon, double doanhThu) {
     }
 
     public record NhanVienDoanhThu(String maNhanVien, String hoTen, int soHoaDon, double doanhThu) {
@@ -46,8 +62,17 @@ public class BaoCaoController {
 
     public record BaoCao(LocalDate tuNgay, LocalDate denNgay, String nhom, TongHop tongHop, TongHop kyTruoc,
                          List<DiemDoanhThu> theoKy, List<SanPhamBanChay> sanPhamBanChay,
-                         List<NhanVienDoanhThu> theoNhanVien) {
+                         List<NhanVienDoanhThu> theoNhanVien, List<NhomHang> theoNhomHang, List<TheoThu> theoThu,
+                         List<KhachHangThanThiet> khachHangThanThiet) {
     }
+
+    /** Giá nhập bình quân gia quyền của từng sản phẩm, dùng làm giá vốn. */
+    private static final String GIA_VON_CTE = """
+            WITH GiaVon AS (
+                SELECT MaSanPham, SUM(SoLuong * DonGia) / NULLIF(SUM(SoLuong), 0) AS Gia
+                FROM ChiTietPhieuNhap GROUP BY MaSanPham
+            )
+            """;
 
     private static final String DOANH_THU = "COALESCE(SUM(hd.TongTien - COALESCE(hd.TienGiam, 0)), 0)";
 
@@ -88,7 +113,8 @@ public class BaoCaoController {
         LocalDate tuTruoc = tu.minusDays(soNgay);
         LocalDate denTruoc = tu.minusDays(1);
         return new BaoCao(tu, den, n, tongHop(tu, den), tongHop(tuTruoc, denTruoc), theoKy(tu, den, n),
-                sanPhamBanChay(tu, den, limit), theoNhanVien(tu, den));
+                sanPhamBanChay(tu, den, limit), theoNhanVien(tu, den), theoNhomHang(tu, den), theoThu(tu, den),
+                khachHangThanThiet(tu, den));
     }
 
     private TongHop tongHop(LocalDate tu, LocalDate den) {
@@ -102,10 +128,18 @@ public class BaoCaoController {
                 .params(tu, den)
                 .query((rs, i) -> new Object[]{rs.getDouble(1), rs.getInt(2)})
                 .single();
+        double giaVon = jdbc.sql(GIA_VON_CTE + """
+                        SELECT COALESCE(SUM(ct.SoLuong * COALESCE(gv.Gia, ct.DonGia)), 0)
+                        FROM ChiTietHoaDon ct
+                        JOIN HoaDon hd ON hd.MaHoaDon = ct.MaHoaDon
+                        LEFT JOIN GiaVon gv ON gv.MaSanPham = ct.MaSanPham
+                        WHERE hd.ThoiGian BETWEEN ? AND ?
+                        """)
+                .params(tu, den).query(Double.class).single();
         double doanhThu = (Double) ban[0];
         int soHoaDon = (Integer) ban[2];
         return new TongHop(doanhThu, (Double) ban[1], soHoaDon, soHoaDon == 0 ? 0 : doanhThu / soHoaDon,
-                (Double) nhap[0], (Integer) nhap[1]);
+                (Double) nhap[0], (Integer) nhap[1], giaVon, doanhThu - giaVon);
     }
 
     /** Đủ mọi ngày/tháng trong khoảng, kỳ không có hóa đơn trả về 0 để vẽ biểu đồ liền mạch. */
@@ -130,20 +164,72 @@ public class BaoCaoController {
     }
 
     private List<SanPhamBanChay> sanPhamBanChay(LocalDate tu, LocalDate den, int limit) {
+        return jdbc.sql("SELECT b.*, " + SanPhamRepository.HINH_ANH_SQL + " AS HinhAnh " + """
+                FROM (
+                    SELECT ct.MaSanPham, sp.TenSanPham, sp.Loai, sp.DonViTinh,
+                           SUM(ct.SoLuong) AS SoLuong, SUM(ct.SoLuong * ct.DonGia) AS DoanhThu
+                    FROM ChiTietHoaDon ct
+                    JOIN HoaDon hd ON hd.MaHoaDon = ct.MaHoaDon
+                    JOIN SanPham sp ON sp.MaSanPham = ct.MaSanPham
+                    WHERE hd.ThoiGian BETWEEN ? AND ?
+                    GROUP BY ct.MaSanPham, sp.TenSanPham, sp.Loai, sp.DonViTinh
+                ) b
+                JOIN SanPham sp ON sp.MaSanPham = b.MaSanPham
+                LEFT JOIN SanPhamHinhAnh ha ON ha.MaSanPham = b.MaSanPham
+                ORDER BY b.DoanhThu DESC, b.MaSanPham
+                LIMIT ?
+                """)
+                .params(tu, den, limit)
+                .query((rs, i) -> new SanPhamBanChay(rs.getString("MaSanPham"), rs.getString("TenSanPham"),
+                        rs.getString("Loai"), rs.getString("DonViTinh"), rs.getLong("SoLuong"),
+                        rs.getDouble("DoanhThu"), rs.getString("HinhAnh")))
+                .list();
+    }
+
+    private List<NhomHang> theoNhomHang(LocalDate tu, LocalDate den) {
         return jdbc.sql("""
-                SELECT ct.MaSanPham, sp.TenSanPham, sp.Loai, sp.DonViTinh,
-                       SUM(ct.SoLuong) AS SoLuong, SUM(ct.SoLuong * ct.DonGia) AS DoanhThu
+                SELECT COALESCE(NULLIF(TRIM(sp.Loai), ''), 'Khác') AS Loai, SUM(ct.SoLuong), SUM(ct.SoLuong * ct.DonGia) AS DoanhThu
                 FROM ChiTietHoaDon ct
                 JOIN HoaDon hd ON hd.MaHoaDon = ct.MaHoaDon
                 JOIN SanPham sp ON sp.MaSanPham = ct.MaSanPham
                 WHERE hd.ThoiGian BETWEEN ? AND ?
-                GROUP BY ct.MaSanPham, sp.TenSanPham, sp.Loai, sp.DonViTinh
-                ORDER BY DoanhThu DESC, ct.MaSanPham
-                LIMIT ?
+                GROUP BY 1 ORDER BY DoanhThu DESC
                 """)
-                .params(tu, den, limit)
-                .query((rs, i) -> new SanPhamBanChay(rs.getString(1), rs.getString(2), rs.getString(3),
-                        rs.getString(4), rs.getLong(5), rs.getDouble(6)))
+                .params(tu, den)
+                .query((rs, i) -> new NhomHang(rs.getString(1), rs.getLong(2), rs.getDouble(3)))
+                .list();
+    }
+
+    private List<TheoThu> theoThu(LocalDate tu, LocalDate den) {
+        Map<Integer, Object[]> data = new HashMap<>();
+        jdbc.sql("SELECT CAST(EXTRACT(ISODOW FROM hd.ThoiGian) AS INT), " + DOANH_THU + ", COUNT(*) "
+                        + "FROM HoaDon hd WHERE hd.ThoiGian BETWEEN ? AND ? GROUP BY 1")
+                .params(tu, den)
+                .query((rs, i) -> new Object[]{rs.getInt(1), rs.getDouble(2), rs.getInt(3)})
+                .list()
+                .forEach(r -> data.put((Integer) r[0], r));
+        int[] soNgay = new int[8];
+        for (LocalDate d = tu; !d.isAfter(den); d = d.plusDays(1)) {
+            soNgay[d.getDayOfWeek().getValue()]++;
+        }
+        List<TheoThu> out = new ArrayList<>();
+        for (int thu = 1; thu <= 7; thu++) {
+            Object[] r = data.get(thu);
+            out.add(new TheoThu(thu, r == null ? 0 : (Double) r[1], r == null ? 0 : (Integer) r[2], soNgay[thu]));
+        }
+        return out;
+    }
+
+    private List<KhachHangThanThiet> khachHangThanThiet(LocalDate tu, LocalDate den) {
+        return jdbc.sql("SELECT hd.MaKhachHang, "
+                        + "TRIM(COALESCE(CONCAT_WS(' ', kh.Ho, NULLIF(kh.TenLot, ''), kh.Ten), '')), "
+                        + "COUNT(*), " + DOANH_THU + " AS DoanhThu "
+                        + "FROM HoaDon hd JOIN KhachHang kh ON kh.MaKhachHang = hd.MaKhachHang "
+                        + "WHERE hd.ThoiGian BETWEEN ? AND ? "
+                        + "GROUP BY hd.MaKhachHang, kh.Ho, kh.TenLot, kh.Ten ORDER BY DoanhThu DESC LIMIT 5")
+                .params(tu, den)
+                .query((rs, i) -> new KhachHangThanThiet(rs.getString(1), rs.getString(2), rs.getInt(3),
+                        rs.getDouble(4)))
                 .list();
     }
 

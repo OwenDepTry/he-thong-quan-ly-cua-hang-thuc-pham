@@ -42,6 +42,8 @@ if errorlevel 1 (
 )
 REM Ma hoa BCrypt mat khau cua nhan vien mau vua them (chay lai nhieu lan khong sao)
 docker compose exec -T db psql -U postgres -d qlcuahangthucpham -v ON_ERROR_STOP=1 -q -f /docker-entrypoint-initdb.d/zzz_ma_hoa_mat_khau.sql
+REM Anh san pham mau (Wikimedia Commons) cho ban web
+docker compose exec -T db psql -U postgres -d qlcuahangthucpham -v ON_ERROR_STOP=1 -q -f /docker-entrypoint-initdb.d/zzzz_anh_san_pham.sql
 echo.
 echo Xong! Mo lai ung dung (hoac bam vao Trang chu) de xem du lieu moi.
 

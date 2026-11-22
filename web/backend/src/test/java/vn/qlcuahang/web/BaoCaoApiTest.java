@@ -37,6 +37,21 @@ class BaoCaoApiTest extends IntegrationTestBase {
         // Dữ liệu mẫu có hóa đơn rải đều 12 tháng nên phải có sản phẩm bán chạy
         assertThat(r.get("sanPhamBanChay").size()).isGreaterThan(0);
         assertThat(r.get("theoNhanVien").size()).isGreaterThan(0);
+
+        // Giá nhập mẫu bằng 60-80% giá bán nên lợi nhuận gộp dương và nhỏ hơn doanh thu
+        double loiNhuan = r.at("/tongHop/loiNhuanGop").asDouble();
+        assertThat(loiNhuan).isPositive().isLessThan(expected);
+        assertThat(r.at("/tongHop/giaVon").asDouble() + loiNhuan).isEqualTo(expected, org.assertj.core.data.Offset.offset(0.5));
+
+        assertThat(r.get("theoThu").size()).isEqualTo(7);
+        int soNgay = 0;
+        for (JsonNode t : r.get("theoThu")) {
+            soNgay += t.get("soNgay").asInt();
+        }
+        assertThat(soNgay).isEqualTo(14);
+        assertThat(r.get("theoNhomHang").size()).isGreaterThan(1);
+        assertThat(r.get("khachHangThanThiet").size()).isBetween(1, 5);
+        assertThat(r.at("/sanPhamBanChay/0/hinhAnh").isNull()).isFalse();
     }
 
     @Test

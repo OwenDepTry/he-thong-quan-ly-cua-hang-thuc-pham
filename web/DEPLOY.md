@@ -32,9 +32,10 @@ Thời gian: khoảng 20 phút. Cần tài khoản GitHub (repo đã đẩy lên
    psql "$NEON" -v ON_ERROR_STOP=1 -f sql/qlcuahangthucpham.sql
    psql "$NEON" -v ON_ERROR_STOP=1 -f sql/zz_du_lieu_mau.sql        # dữ liệu mẫu – bỏ qua nếu không cần
    psql "$NEON" -v ON_ERROR_STOP=1 -f sql/zzz_ma_hoa_mat_khau.sql   # mã hóa mật khẩu BCrypt
+   psql "$NEON" -v ON_ERROR_STOP=1 -f sql/zzzz_anh_san_pham.sql     # ảnh sản phẩm mẫu (Wikimedia Commons)
    ```
 
-   Không cài psql? Dùng Docker: `docker run --rm -it -v "$PWD/sql:/sql" postgres:16-alpine psql "$NEON" -f /sql/qlcuahangthucpham.sql` (lặp lại cho 2 file còn lại).
+   Không cài psql? Dùng Docker: `docker run --rm -it -v "$PWD/sql:/sql" postgres:16-alpine psql "$NEON" -f /sql/qlcuahangthucpham.sql` (lặp lại cho các file còn lại).
 
    **Cách B – SQL Editor của Neon**: mở từng file trong `sql/` theo đúng thứ tự trên, dán toàn bộ nội dung vào SQL Editor và bấm **Run**.
 
@@ -98,7 +99,7 @@ Repo đã có sẵn `render.yaml` ở thư mục gốc, mô tả 2 service: `qlc
 ## 4. Bản demo công khai (để gắn vào CV)
 
 - Giữ nguyên tài khoản mẫu và `VITE_DEMO=true` để người xem đăng nhập thử được ngay.
-- Người xem có thể lập hóa đơn, sửa dữ liệu. Muốn làm mới toàn bộ: trên Neon xóa và tạo lại database (hoặc tạo branch mới), rồi nạp lại 3 file `sql/` như bước 1.3. Dữ liệu mẫu luôn tính theo ngày nạp, nên biểu đồ và cảnh báo sẽ có số liệu "hôm nay".
+- Người xem có thể lập hóa đơn, sửa dữ liệu. Muốn làm mới toàn bộ: trên Neon xóa và tạo lại database (hoặc tạo branch mới), rồi nạp lại các file `sql/` như bước 1.3. Dữ liệu mẫu luôn tính theo ngày nạp, nên biểu đồ và cảnh báo sẽ có số liệu "hôm nay".
 - Ghi link frontend vào README ở mục "Xem thử" và vào CV. Lần mở đầu sau một lúc không ai dùng sẽ chậm khoảng 1 phút do Render Free khởi động lại backend.
 
 ## 5. App desktop dùng chung database Neon (tùy chọn)

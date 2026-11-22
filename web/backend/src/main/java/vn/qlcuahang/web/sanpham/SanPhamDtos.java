@@ -22,7 +22,12 @@ public final class SanPhamDtos {
             String hanSuDung,
             String moTa,
             double gia,
-            int soLuongTon) {
+            int soLuongTon,
+            /** Đường dẫn ảnh: "/api/san-pham/{ma}/hinh-anh?v=..." (ảnh tải lên) hoặc link ngoài; null nếu chưa có. */
+            String hinhAnh,
+            /** Ghi nguồn ảnh (tác giả, giấy phép) với ảnh lấy từ nơi khác. */
+            String nguonAnh,
+            String trangNguonAnh) {
     }
 
     /** Dùng cho cả thêm (cần maSanPham) và sửa (maSanPham lấy từ URL). */

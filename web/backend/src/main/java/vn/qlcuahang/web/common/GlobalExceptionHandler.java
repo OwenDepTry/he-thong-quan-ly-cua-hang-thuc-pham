@@ -47,6 +47,17 @@ public class GlobalExceptionHandler {
                 "Thao tác vi phạm ràng buộc dữ liệu (mã bị trùng hoặc đang được dữ liệu khác sử dụng).", Map.of()));
     }
 
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    ResponseEntity<ErrorResponse> handleTooLarge(Exception e) {
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+                .body(new ErrorResponse("File quá lớn. Ảnh tối đa 2 MB.", Map.of()));
+    }
+
+    @ExceptionHandler(org.springframework.web.multipart.support.MissingServletRequestPartException.class)
+    ResponseEntity<ErrorResponse> handleMissingPart(Exception e) {
+        return ResponseEntity.badRequest().body(new ErrorResponse("Chưa chọn ảnh.", Map.of()));
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     ResponseEntity<ErrorResponse> handleDenied(AccessDeniedException e) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
