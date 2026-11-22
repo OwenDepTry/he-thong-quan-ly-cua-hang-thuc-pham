@@ -1,6 +1,7 @@
 package dao;
 
 import config.DBConnection;
+import config.PasswordUtil;
 import entity.NhanVien;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -67,8 +68,25 @@ public class NhanVienDAO {
                 }
 
                 String storedPassword = nhanVien.getMatKhau() == null ? "" : nhanVien.getMatKhau().trim();
-                if (!storedPassword.equals(matKhau)) {
+                if (!PasswordUtil.matches(matKhau, storedPassword)) {
                     return new LoginResult(LoginStatus.WRONG_PASSWORD, null, null);
+                }
+
+                if (!PasswordUtil.isHashed(storedPassword)) {
+                    // Dữ liệu cũ lưu chữ thường: nâng cấp lên BCrypt ngay khi đăng nhập đúng
+                    String hashed = PasswordUtil.hash(matKhau);
+                    try (PreparedStatement up = conn.prepareStatement(
+                            "UPDATE NhanVien SET MatKhau = ? WHERE MaNhanVien = ? AND MatKhau = ?")) {
+                        up.setString(1, hashed);
+                        up.setString(2, nhanVien.getMaNhanVien());
+                        up.setString(3, nhanVien.getMatKhau());
+                        if (up.executeUpdate() > 0) {
+                            nhanVien.setMatKhau(hashed);
+                        }
+                    } catch (Exception e) {
+                        // Không chặn đăng nhập nếu nâng cấp thất bại
+                        e.printStackTrace();
+                    }
                 }
 
                 return new LoginResult(LoginStatus.SUCCESS, nhanVien, null);
@@ -266,20 +284,31 @@ public class NhanVienDAO {
     }
 
     public boolean changePassword(String maNhanVien, String oldPassword, String newPassword) {
-        String sql = """
-            UPDATE NhanVien
-            SET MatKhau = ?
-            WHERE MaNhanVien = ? AND MatKhau = ?
-        """;
+        String sqlSelect = "SELECT MatKhau FROM NhanVien WHERE MaNhanVien = ?";
+        // So sánh với giá trị vừa đọc để không ghi đè nếu ai đó đổi mật khẩu cùng lúc
+        String sqlUpdate = "UPDATE NhanVien SET MatKhau = ? WHERE MaNhanVien = ? AND MatKhau = ?";
 
         try (Connection conn = DBConnection.open();
-            PreparedStatement ps = conn.prepareStatement(sql)) {
+            PreparedStatement psSelect = conn.prepareStatement(sqlSelect)) {
 
-            ps.setString(1, newPassword);
-            ps.setString(2, maNhanVien);
-            ps.setString(3, oldPassword);
+            psSelect.setString(1, maNhanVien);
+            String stored;
+            try (ResultSet rs = psSelect.executeQuery()) {
+                if (!rs.next()) {
+                    return false;
+                }
+                stored = rs.getString(1);
+            }
+            if (stored == null || !PasswordUtil.matches(oldPassword, stored.trim())) {
+                return false;
+            }
 
-            return ps.executeUpdate() > 0;
+            try (PreparedStatement ps = conn.prepareStatement(sqlUpdate)) {
+                ps.setString(1, PasswordUtil.hash(newPassword));
+                ps.setString(2, maNhanVien);
+                ps.setString(3, stored);
+                return ps.executeUpdate() > 0;
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -305,7 +334,8 @@ public class NhanVienDAO {
         ps.setDouble(index++, nv.getLuong());
         ps.setString(index++, nv.getChucVu());
         ps.setString(index++, nv.getTrangThai());
-        ps.setString(index++, nv.getMatKhau());
+        // Form sửa nhân viên hiển thị sẵn hash cũ: giữ nguyên nếu không đổi, mã hóa nếu nhập mật khẩu mới
+        ps.setString(index++, PasswordUtil.hashIfNeeded(nv.getMatKhau()));
 
         if (updateMode) {
             ps.setString(index, nv.getMaNhanVien());

@@ -22,6 +22,8 @@ public class NhanVienDialog extends FormDialog {
     private final JComboBox<Choice> cboChucVu = choices("NV", "Nhân viên", "QL", "Quản lý");
     private final JComboBox<Choice> cboTrangThai = choices("active", "Đang làm việc", "inactive", "Đã nghỉ / khóa");
     private final JPasswordField txtMatKhau = new JPasswordField();
+    /** Hash BCrypt hiện có khi sửa; để trống ô mật khẩu nghĩa là giữ nguyên. */
+    private String matKhauCu;
 
     public NhanVienDialog(Frame owner, String title, NhanVien nv, boolean editableId) {
         super(owner, title, editableId ? "Điền thông tin nhân viên rồi bấm Lưu."
@@ -45,7 +47,12 @@ public class NhanVienDialog extends FormDialog {
         addField("Lương (đồng)", txtLuong, true);
         addField("Trạng thái", cboTrangThai, false);
         txtMatKhau.putClientProperty("JPasswordField.showRevealButton", Boolean.TRUE);
-        addField("Mật khẩu đăng nhập", txtMatKhau, true);
+        if (nv != null) {
+            txtMatKhau.putClientProperty("JTextField.placeholderText", "Để trống nếu không đổi");
+            addField("Mật khẩu mới", txtMatKhau, false, "Để trống để giữ mật khẩu hiện tại", false);
+        } else {
+            addField("Mật khẩu đăng nhập", txtMatKhau, true);
+        }
 
         if (nv != null) {
             fillData(nv);
@@ -72,7 +79,9 @@ public class NhanVienDialog extends FormDialog {
         txtLuong.setText(displayNumber(nv.getLuong()));
         select(cboChucVu, nv.getChucVu());
         select(cboTrangThai, nv.getTrangThai());
-        txtMatKhau.setText(nv.getMatKhau());
+        // Không hiển thị hash; chỉ ghi đè khi người dùng nhập mật khẩu mới
+        matKhauCu = nv.getMatKhau();
+        txtMatKhau.setText("");
     }
 
     @Override
@@ -85,7 +94,9 @@ public class NhanVienDialog extends FormDialog {
         ok &= required(txtTinh, "Tỉnh / Thành phố");
         ok &= required(txtDiaChi, "Địa chỉ");
         ok &= number(txtLuong, "Lương", 0, Double.MAX_VALUE);
-        ok &= required(txtMatKhau, "Mật khẩu");
+        if (matKhauCu == null) {
+            ok &= required(txtMatKhau, "Mật khẩu");
+        }
         return ok;
     }
 
@@ -103,7 +114,12 @@ public class NhanVienDialog extends FormDialog {
                 Double.parseDouble(plainNumber(txtLuong)),
                 value(cboChucVu),
                 value(cboTrangThai),
-                text(txtMatKhau)
+                matKhauMoiHoacCu()
         );
+    }
+
+    private String matKhauMoiHoacCu() {
+        String moi = new String(txtMatKhau.getPassword()).trim();
+        return moi.isEmpty() && matKhauCu != null ? matKhauCu : moi;
     }
 }

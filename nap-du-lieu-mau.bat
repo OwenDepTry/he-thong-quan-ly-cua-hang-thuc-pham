@@ -40,6 +40,8 @@ if errorlevel 1 (
     echo [LOI] Nap du lieu that bai. Xem thong bao o tren.
     goto end
 )
+REM Ma hoa BCrypt mat khau cua nhan vien mau vua them (chay lai nhieu lan khong sao)
+docker compose exec -T db psql -U postgres -d qlcuahangthucpham -v ON_ERROR_STOP=1 -q -f /docker-entrypoint-initdb.d/zzz_ma_hoa_mat_khau.sql
 echo.
 echo Xong! Mo lai ung dung (hoac bam vao Trang chu) de xem du lieu moi.
 

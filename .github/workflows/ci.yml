@@ -1,0 +1,113 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (Spring Boot + Testcontainers)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web/backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+          cache-dependency-path: web/backend/pom.xml
+      # Testcontainers dùng Docker có sẵn trên runner, nạp sql/ ở gốc repo vào postgres:16-alpine
+      - run: mvn -B verify
+      - name: Lưu báo cáo test khi lỗi
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-reports
+          path: web/backend/target/surefire-reports
+
+  frontend:
+    name: Frontend (React + Vite)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/frontend/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  desktop:
+    name: Desktop (Swing) + SQL
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: qlcuahangthucpham
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports: ['55432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d qlcuahangthucpham"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Đóng gói app desktop
+        run: bash build.sh
+      - name: Nạp sql/ theo đúng thứ tự như Docker (dữ liệu mẫu + mã hóa mật khẩu chạy lại lần 2 phải không lỗi)
+        env:
+          PGPASSWORD: postgres
+        run: |
+          PSQL="psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -p 55432 -U postgres -d qlcuahangthucpham -q"
+          for f in sql/*.sql; do $PSQL -f "$f"; done
+          $PSQL -f sql/zz_du_lieu_mau.sql
+          $PSQL -f sql/zzz_ma_hoa_mat_khau.sql
+          left=$(psql -h 127.0.0.1 -p 55432 -U postgres -d qlcuahangthucpham -Atc \
+            "SELECT COUNT(*) FROM NhanVien WHERE MatKhau !~ '^\\\$2[aby]\\\$'")
+          echo "Mật khẩu chưa mã hóa: $left"
+          test "$left" = "0"
+      - name: Desktop đăng nhập được bằng mật khẩu BCrypt
+        run: |
+          mkdir -p build/ci
+          cat > build/ci/DesktopLogin.java <<'EOF'
+          public class DesktopLogin {
+            public static void main(String[] a) {
+              var r = new dao.NhanVienDAO().loginDetailed("admin", "admin");
+              System.out.println("admin -> " + r.getStatus());
+              if (r.getStatus() != dao.NhanVienDAO.LoginStatus.SUCCESS) System.exit(1);
+              var w = new dao.NhanVienDAO().loginDetailed("admin", "sai");
+              if (w.getStatus() != dao.NhanVienDAO.LoginStatus.WRONG_PASSWORD) System.exit(1);
+            }
+          }
+          EOF
+          javac -cp dist/QuanLyCuaHang.jar -d build/ci build/ci/DesktopLogin.java
+          java -cp dist/QuanLyCuaHang.jar:build/ci DesktopLogin
+
+  docker:
+    name: Docker images
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose --profile web config -q
+      - run: docker compose --profile web build

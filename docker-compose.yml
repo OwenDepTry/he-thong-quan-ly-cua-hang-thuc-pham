@@ -1,7 +1,9 @@
-# PostgreSQL cho project. Cách dùng (ở thư mục gốc project):
-#   docker compose up -d        # khởi động (lần đầu sẽ tự nạp sql/qlcuahangthucpham.sql)
-#   docker compose stop         # tắt
-#   docker compose down -v      # xóa hẳn dữ liệu (lần up sau sẽ nạp lại dữ liệu mẫu)
+# Cách dùng (ở thư mục gốc project):
+#   docker compose up -d                       # chỉ PostgreSQL – đủ cho app desktop (như trước)
+#   docker compose --profile web up -d --build # PostgreSQL + backend (8080) + web (http://localhost:8081)
+#   docker compose stop                        # tắt
+#   docker compose down -v                     # xóa hẳn dữ liệu (lần up sau sẽ nạp lại dữ liệu mẫu)
+# Lần đầu khởi động, PostgreSQL tự chạy mọi file trong sql/ theo thứ tự tên.
 services:
   db:
     image: postgres:16-alpine
@@ -23,6 +25,38 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+
+  # ----- Bản web (chỉ chạy khi thêm --profile web) -----
+  backend:
+    profiles: ["web"]
+    build: ./web/backend
+    container_name: qlcuahangthucpham-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/qlcuahangthucpham
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      # Đổi khi dùng thật: openssl rand -base64 48
+      JWT_SECRET: ${JWT_SECRET:-docker-compose-dev-secret-change-me-0123456789}
+      CORS_ORIGINS: http://localhost:8081,http://localhost:5173
+    ports:
+      - "8080:8080"
+
+  frontend:
+    profiles: ["web"]
+    build: ./web/frontend
+    container_name: qlcuahangthucpham-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      BACKEND_URL: http://backend:8080
+    ports:
+      - "8081:80"
 
 volumes:
   db-data:

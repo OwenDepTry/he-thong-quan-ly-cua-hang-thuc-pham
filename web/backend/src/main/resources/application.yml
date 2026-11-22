@@ -1,0 +1,53 @@
+# Mọi giá trị đều ghi đè được bằng biến môi trường (xem web/README.md).
+server:
+  port: ${PORT:8080}
+  # Render/Neon đứng sau proxy HTTPS
+  forward-headers-strategy: framework
+  error:
+    include-message: always
+
+spring:
+  application:
+    name: qlcuahang-web
+  datasource:
+    # Mặc định khớp docker-compose.yml ở thư mục gốc (app desktop dùng chung DB này)
+    url: ${DB_URL:jdbc:postgresql://localhost:55432/qlcuahangthucpham}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:5}
+      # "Hôm nay" / "tháng này" tính theo giờ Việt Nam, kể cả khi DB đặt ở UTC (Neon)
+      connection-init-sql: SET TIME ZONE 'Asia/Ho_Chi_Minh'
+  jackson:
+    time-zone: Asia/Ho_Chi_Minh
+    serialization:
+      write-dates-as-timestamps: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+app:
+  zone-id: Asia/Ho_Chi_Minh
+  jwt:
+    # BẮT BUỘC đổi khi deploy: chuỗi ngẫu nhiên >= 32 ký tự (openssl rand -base64 48)
+    secret: ${JWT_SECRET:dev-only-secret-change-me-please-0123456789abcdef}
+    ttl: ${JWT_TTL:PT8H}
+    issuer: qlcuahang-web
+  cors:
+    # Nhiều địa chỉ phân tách bằng dấu phẩy
+    allowed-origins: ${CORS_ORIGINS:http://localhost:5173,http://localhost:8081}
+  security:
+    # Khi khởi động, mã hóa BCrypt mọi mật khẩu còn lưu dạng chữ thường
+    migrate-plaintext-passwords: ${MIGRATE_PLAINTEXT_PASSWORDS:true}
+  dashboard:
+    low-stock-threshold: 30
+    expiry-warning-days: 7
+    expired-lookback-days: 30
+    list-limit: 5

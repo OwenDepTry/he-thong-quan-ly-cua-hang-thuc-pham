@@ -282,7 +282,7 @@ public class NhanVienPanel extends AdminTablePanelBase {
                 + "\nLương: " + nv.getLuong()
                 + "\nChức vụ: " + nv.getChucVu()
                 + "\nTrạng thái: " + nv.getTrangThai()
-                + "\nMật khẩu: " + nv.getMatKhau();
+                + "\nMật khẩu: " + (config.PasswordUtil.isHashed(nv.getMatKhau()) ? "(đã mã hóa)" : "(chưa mã hóa – sẽ mã hóa ở lần đăng nhập tới)");
 
         JOptionPane.showMessageDialog(this, message, "Chi tiết nhân viên", JOptionPane.INFORMATION_MESSAGE);
     }
